@@ -10,6 +10,7 @@ packages = [{include = "moodle_quiz_archive_worker"}]
 python = "^3.11"
 flask = "^2.3.2"
 playwright = "^1.34.0"
+pillow = "^9.5.0"
 
 
 [build-system]

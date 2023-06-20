@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from custom_types import JobStatus
+from custom_types import JobStatus, JobArchiveRequest
 
 
 class QuizArchiveJob:
@@ -8,9 +8,10 @@ class QuizArchiveJob:
     A single archive job that is processed by the quiz archive worker
     """
 
-    def __init__(self, jobid):
+    def __init__(self, jobid: UUID, job_request: JobArchiveRequest):
         self.id = jobid
         self.status = JobStatus.UNINITIALIZED
+        self.request = job_request
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -31,3 +32,6 @@ class QuizArchiveJob:
 
     def get_status(self) -> JobStatus:
         return self.status
+
+    def set_status(self, status: JobStatus) -> None:
+        self.status = status

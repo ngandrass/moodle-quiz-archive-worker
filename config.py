@@ -14,3 +14,6 @@ class Config:
 
     REQUEST_TIMEOUT_SEC = 1800
     """Number of seconds before execution of a single request is aborted."""
+
+    MOODLE_WSFUNCTION_ARCHIVE = 'quiz_archiver_generate_attempt_report'
+    """Name of the Moodle webservice function to call to trigger an quiz attempt export"""

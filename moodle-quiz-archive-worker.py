@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import asyncio
-import io
 import queue
 import threading
 import time
@@ -10,8 +8,6 @@ from collections import deque
 
 import requests
 from flask import Flask, make_response, request, jsonify
-from PIL import Image
-from playwright.async_api import async_playwright, ViewportSize
 
 from config import Config
 from quiz_archive_job import QuizArchiveJob
@@ -40,22 +36,9 @@ def queue_processing_loop():
 
     while getattr(threading.current_thread(), "do_run", True):
         job = job_queue.get()
-        execute_job(job)
+        job.execute()
 
     app.logger.info("Terminating queue worker thread")
-
-
-def execute_job(job: QuizArchiveJob):
-    app.logger.debug(f"Processing job {job.get_id()}")
-    job.set_status(JobStatus.RUNNING)
-
-    import time
-    for x in range(16):
-        app.logger.debug(f"<{job.get_id()}>: {x}")
-        time.sleep(1)
-
-    job.set_status(JobStatus.FINISHED)
-    app.logger.info(f"Finished job {job.get_id()}")
 
 
 def error_response(error_msg: str, status_code):
@@ -148,16 +131,19 @@ def handle_archive_request():
         job = QuizArchiveJob(uuid.uuid1(), job_request)
         job_queue.put_nowait(job)  # Actual queue capacity limit is enforced here!
         job_history.append(job)
+        job.set_status(JobStatus.AWAITING_PROCESSING)
         app.logger.info(f"Enqueued job {job.get_id()} from {request.remote_addr}")
     except TypeError:
         return error_response('JSON is technically incomplete or missing a required parameter.', HTTPStatus.BAD_REQUEST)
     except ValueError as e:
         return error_response(f'JSON data is invalid: {str(e)}', HTTPStatus.BAD_REQUEST)
+    except ConnectionError:
+        return error_response('Connection to Moodle webservice failed. Cannot process request. Aborting.', HTTPStatus.BAD_REQUEST)
     except queue.Full:
         job = None
         return error_response('Maximum number of queued jobs exceeded.', HTTPStatus.TOO_MANY_REQUESTS)
     except:
-        return error_response('Invalid request.', HTTPStatus.BAD_REQUEST)
+        return error_response(f'Invalid request.', HTTPStatus.BAD_REQUEST)
     finally:
         if not job:
             app.logger.warning(f'Failed to process request to {request.url} from {request.remote_addr}')
@@ -166,33 +152,11 @@ def handle_archive_request():
     return jsonify({'jobid': job.get_id(), 'status': job.get_status()}), HTTPStatus.OK
 
 
-async def foo():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        page = await browser.new_page(viewport=ViewportSize(width=1920, height=1080))
-        await page.goto("file:///tmp/out.html")
-        print(await page.title())
-        screenshot = await page.screenshot(
-            full_page=True,
-            caret="hide",
-            type="png"
-        )
-        await browser.close()
-
-        img = Image.open(io.BytesIO(screenshot))
-        img.convert(mode='RGB', palette=Image.ADAPTIVE).save(
-            fp="out.pdf",
-            format='PDF',
-            dpi=(300, 300),
-            quality=96
-        )
-
-
 def main():
+    app.logger.setLevel(Config.LOG_LEVEL)
     queue_processing_thread = FlaskThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
     queue_processing_thread.start()
     app.run(debug=True)
-    # asyncio.run(foo())
 
 
 if __name__ == "__main__":

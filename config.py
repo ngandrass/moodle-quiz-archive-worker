@@ -1,3 +1,6 @@
+import logging
+
+
 class Config:
 
     APP_NAME = "moodle-quiz-archive-worker"
@@ -5,6 +8,9 @@ class Config:
 
     VERSION = "0.1.0"
     """Version of this app."""
+
+    LOG_LEVEL = logging.INFO
+    """Python Logger logging level"""
 
     QUEUE_SIZE = 8
     """Maximum number of requests that are queued before returning an error."""

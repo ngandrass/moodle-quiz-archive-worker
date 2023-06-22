@@ -24,5 +24,8 @@ class Config:
     MOODLE_WSFUNCTION_ARCHIVE = 'quiz_archiver_generate_attempt_report'
     """Name of the Moodle webservice function to call to trigger an quiz attempt export"""
 
+    MOODLE_WSFUNCTION_PROESS_UPLOAD = 'quiz_archiver_process_uploaded_artifact'
+    """Name of the Moodle webservice function to call after an artifact was uploaded successfully"""
+
     REPORT_BASE_VIEWPORT_WIDTH = 1240
     """Width of the viewport created for rendering quiz attempts in pixel"""

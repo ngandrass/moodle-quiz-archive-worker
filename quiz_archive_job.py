@@ -21,6 +21,9 @@ class QuizArchiveJob:
     A single archive job that is processed by the quiz archive worker
     """
 
+    MOODLE_UPLOAD_FILE_FIELDS = ['component', 'contextid', 'userid', 'filearea', 'filename', 'filepath', 'itemid']
+    """Keys that are present in the response for each file, received after uploading a file to Moodle"""
+
     def __init__(self, jobid: UUID, job_request: JobArchiveRequest):
         self.id = jobid
         self.status = JobStatus.UNINITIALIZED
@@ -91,6 +94,9 @@ class QuizArchiveJob:
                 archive_name = f'quiz_archive_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.tar.gz'
                 with tarfile.open(f'out/{archive_name}', 'w:gz') as tar:
                     tar.add(self.workdir, arcname="")
+
+                # Push final file to Moodle
+                self._push_artifact_to_moodle(f'out/{archive_name}')  # TODO: Do not write to permament directory but instead cache files for some time?
 
         except Exception as e:
             self.logger.error(f"Job failed with error: {str(e)}")
@@ -177,3 +183,51 @@ class QuizArchiveJob:
 
         # Looks fine - Data seems valid :)
         return data['report']
+
+    def _push_artifact_to_moodle(self, artifact_filename: str):
+        with open(artifact_filename, "rb") as f:
+            try:
+                self.logger.info(f'Uploading artifact "{artifact_filename}" to "{self.request.moodle_upload_url}"')
+                r = requests.post(self.request.moodle_upload_url, files={'file_1': f}, data={
+                    'token': self.request.wstoken,
+                    'filepath': '/',
+                    'itemid': 0
+                })
+                response = r.json()
+            except Exception:
+                raise ConnectionError(f'Failed to upload artifact to "{self.request.moodle_upload_url}"')
+
+        # Check if upload failed
+        if 'errorcode' in response and 'debuginfo' in response:
+            self.logger.debug(f'Upload response: {response}')
+            raise RuntimeError(f'Moodle webservice upload returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+
+        # Validate response
+        upload_metadata = response[0]
+        for key in self.MOODLE_UPLOAD_FILE_FIELDS:
+            if key not in upload_metadata:
+                self.logger.debug(f'Upload response: {response}')
+                raise ValueError(f'Moodle webservice upload returned an invalid response')
+
+        # Call wsfunction to process artifact
+        try:
+            r = requests.get(url=self.request.moodle_ws_url, params={
+                'wstoken': self.request.wstoken,
+                'moodlewsrestformat': 'json',
+                'wsfunction': Config.MOODLE_WSFUNCTION_PROESS_UPLOAD,
+                'jobid': self.get_id(),
+                **dict((f'artifact_{key}', upload_metadata[key]) for key in self.MOODLE_UPLOAD_FILE_FIELDS)
+            })
+            response = r.json()
+        except Exception:
+            ConnectionError(f'Failed to call upload processing hook "{Config.MOODLE_WSFUNCTION_PROESS_UPLOAD}" at "{self.request.moodle_ws_url}"')
+
+        # Check if Moodle wsfunction returned an error
+        if 'errorcode' in response and 'debuginfo' in response:
+            raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+
+        # Check that everything went smoothely on the Moodle side (not that we could change anything here...)
+        if response['jobid'] != str(self.get_id()) or response['status'] != 'OK':
+            raise RuntimeError(f'Moodle webservice failed to process uploaded artifact with status: {response["status"]}')
+
+        self.logger.info('Processed uploaded artifact successfully.')

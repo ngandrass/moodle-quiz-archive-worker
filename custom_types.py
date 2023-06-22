@@ -34,6 +34,7 @@ class JobArchiveRequest:
     def __init__(self,
                  api_version: int,
                  moodle_ws_url: str,
+                 moodle_upload_url: str,
                  wstoken: str,
                  courseid: int,
                  cmid: int,
@@ -45,6 +46,7 @@ class JobArchiveRequest:
 
         self.api_version = api_version
         self.moodle_ws_url = moodle_ws_url
+        self.moodle_upload_url = moodle_upload_url
         self.wstoken = wstoken
         self.courseid = int(courseid)
         self.cmid = int(cmid)
@@ -60,6 +62,9 @@ class JobArchiveRequest:
     def _validate_self(self):
         """Validates this object based on current values"""
         if not isinstance(self.moodle_ws_url, str) or self.moodle_ws_url is None:
+            return False
+
+        if not isinstance(self.moodle_upload_url, str) or self.moodle_upload_url is None:
             return False
 
         if not isinstance(self.wstoken, str) or self.wstoken is None:

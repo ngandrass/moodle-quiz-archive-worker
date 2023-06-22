@@ -1,6 +1,11 @@
 import asyncio
+import glob
+import hashlib
 import io
 import logging
+import tarfile
+from datetime import datetime
+from tempfile import TemporaryDirectory
 from uuid import UUID
 
 import requests
@@ -20,6 +25,7 @@ class QuizArchiveJob:
         self.id = jobid
         self.status = JobStatus.UNINITIALIZED
         self.request = job_request
+        self.workdir = None
 
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
         logging.basicConfig(
@@ -55,28 +61,59 @@ class QuizArchiveJob:
         self.logger.info(f"Processing job {self.id}")
         self.set_status(JobStatus.RUNNING)
 
-        if self.request.tasks['archive_quiz_attempts']:
-            for attemptid in self.request.tasks['archive_quiz_attempts']['attemptids']:
-                asyncio.run(self._render_quiz_attempt(attemptid))
+        try:
+            with TemporaryDirectory() as tempdir:
+                self.workdir = tempdir
+                self.logger.debug(f"Using temporary working directory: {self.workdir}")
+
+                # Process tasks
+                if self.request.tasks['archive_quiz_attempts']:
+                    for attemptid in self.request.tasks['archive_quiz_attempts']['attemptids']:
+                        asyncio.run(self._render_quiz_attempt(attemptid))
+
+                if self.request.tasks['archive_moodle_course_backup']:
+                    self.logger.warning('Task archive_moodle_course_backup requested but currently not implemented!')
+                    # TODO: Implement
+
+                # Hash every file
+                self.logger.info("Calculating file hashes ...")
+                archive_files = glob.glob(f'{self.workdir}/**/*', recursive=True)
+                for archive_file in archive_files:
+                    with open(archive_file, 'rb') as f:
+                        sha256_hash = hashlib.sha256()
+                        for byte_block in iter(lambda: f.read(4096),b""):
+                            sha256_hash.update(byte_block)
+                        with open(f'{f.name}.sha256', 'w+') as hashfile:
+                            hashfile.write(sha256_hash.hexdigest())
+
+                # Create final archive
+                self.logger.info("Generating final archive ...")
+                archive_name = f'quiz_archive_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.tar.gz'
+                with tarfile.open(f'out/{archive_name}', 'w:gz') as tar:
+                    tar.add(self.workdir, arcname="")
+
+        except Exception as e:
+            self.logger.error(f"Job failed with error: {str(e)}")
+            self.set_status(JobStatus.FAILED)
+            return
 
         self.set_status(JobStatus.FINISHED)
         self.logger.info(f"Finished job {self.id}")
 
-    async def _render_quiz_attempt(self, attemptid: int) -> object: # TODO
+    async def _render_quiz_attempt(self, attemptid: int):
         """
         Renders a complete quiz attempt to a PDF file
 
         :param attemptid: ID of the quiz attempt to render
-        :return: TOOD
         """
         report_name = f"quiz_attempt_report_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
         attempt_html = self._get_attempt_html_from_moodle(attemptid)
-        with open(f"out/{report_name}.html", "w+") as f:
+        with open(f"{self.workdir}/{report_name}.html", "w+") as f:
             f.write(attempt_html)
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(args=['--disable-web-security'])  # Pass --disable-web-security to ignore CORS errors
-            context = await browser.new_context(viewport=ViewportSize(width=1920, height=1080))
+            context = await browser.new_context(viewport=ViewportSize(width=int(Config.REPORT_BASE_VIEWPORT_WIDTH), height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9))))
             page = await context.new_page()
             await page.set_content(attempt_html)
             screenshot = await page.screenshot(
@@ -88,7 +125,7 @@ class QuizArchiveJob:
 
             img = Image.open(io.BytesIO(screenshot))
             img.convert(mode='RGB', palette=Image.ADAPTIVE).save(
-                fp=f"out/{report_name}.pdf",
+                fp=f"{self.workdir}/{report_name}.pdf",
                 format='PDF',
                 dpi=(300, 300),
                 quality=96

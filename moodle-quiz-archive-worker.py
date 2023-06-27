@@ -142,7 +142,7 @@ def handle_archive_request():
     except queue.Full:
         job = None
         return error_response('Maximum number of queued jobs exceeded.', HTTPStatus.TOO_MANY_REQUESTS)
-    except:
+    except Exception:
         return error_response(f'Invalid request.', HTTPStatus.BAD_REQUEST)
     finally:
         if not job:
@@ -156,7 +156,7 @@ def main():
     app.logger.setLevel(Config.LOG_LEVEL)
     queue_processing_thread = FlaskThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
     queue_processing_thread.start()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
 
 
 if __name__ == "__main__":

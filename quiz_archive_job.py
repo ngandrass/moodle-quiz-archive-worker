@@ -74,6 +74,7 @@ class QuizArchiveJob:
                     'wstoken': self.request.wstoken,
                     'moodlewsrestformat': 'json',
                     'wsfunction': Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
+                    'jobid': str(self.id),
                     'status': str(self.status)
                 })
                 data = r.json()

@@ -91,12 +91,13 @@ class QuizArchiveJob:
 
                 # Create final archive
                 self.logger.info("Generating final archive ...")
-                archive_name = f'quiz_archive_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.tar.gz'
-                with tarfile.open(f'out/{archive_name}', 'w:gz') as tar:
-                    tar.add(self.workdir, arcname="")
+                with TemporaryDirectory() as tardir:
+                    archive_name = f'quiz_archive_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.tar.gz'
+                    with tarfile.open(f'{tardir}/{archive_name}', 'w:gz') as tar:
+                        tar.add(self.workdir, arcname="")
 
-                # Push final file to Moodle
-                self._push_artifact_to_moodle(f'out/{archive_name}')  # TODO: Do not write to permament directory but instead cache files for some time?
+                    # Push final file to Moodle
+                    self._push_artifact_to_moodle(f'{tardir}/{archive_name}')
 
         except Exception as e:
             self.logger.error(f"Job failed with error: {str(e)}")

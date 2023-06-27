@@ -27,5 +27,8 @@ class Config:
     MOODLE_WSFUNCTION_PROESS_UPLOAD = 'quiz_archiver_process_uploaded_artifact'
     """Name of the Moodle webservice function to call after an artifact was uploaded successfully"""
 
+    MOODLE_WSFUNCTION_UPDATE_JOB_STATUS = 'quiz_archiver_update_job_status'
+    """Name of the Moodle webservice function to call to update the status of a job"""
+
     REPORT_BASE_VIEWPORT_WIDTH = 1240
     """Width of the viewport created for rendering quiz attempts in pixel"""

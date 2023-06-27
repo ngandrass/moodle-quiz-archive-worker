@@ -57,12 +57,40 @@ class QuizArchiveJob:
     def get_status(self) -> JobStatus:
         return self.status
 
-    def set_status(self, status: JobStatus) -> None:
+    def set_status(self, status: JobStatus, notify_moodle: bool = False) -> None:
+        """
+        Updates the status of this job. If notify_moodle is True, the status update
+        is passed to the Moodle API as well.
+
+        :param status: New job status
+        :param notify_moodle: Call job status update function via Moodle API if True
+        :return: None
+        """
         self.status = status
 
+        if notify_moodle:
+            try:
+                r = requests.get(url=self.request.moodle_ws_url, params={
+                    'wstoken': self.request.wstoken,
+                    'moodlewsrestformat': 'json',
+                    'wsfunction': Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
+                    'status': self.status
+                })
+                data = r.json()
+
+                if data['status'] != 'OK':
+                    self.logger.warning(f'Moodle API rejected to update job status to new value: {self.status}')
+            except Exception:
+                self.logger.warning('Failed to update job status via Moodle API. Connection error.')
+
     def execute(self):
+        """
+        Executes this job
+
+        :return: None
+        """
         self.logger.info(f"Processing job {self.id}")
-        self.set_status(JobStatus.RUNNING)
+        self.set_status(JobStatus.RUNNING, notify_moodle=True)
 
         try:
             with TemporaryDirectory() as tempdir:
@@ -101,10 +129,10 @@ class QuizArchiveJob:
 
         except Exception as e:
             self.logger.error(f"Job failed with error: {str(e)}")
-            self.set_status(JobStatus.FAILED)
+            self.set_status(JobStatus.FAILED, notify_moodle=True)
             return
 
-        self.set_status(JobStatus.FINISHED)
+        self.set_status(JobStatus.FINISHED, notify_moodle=False)  # Do not notify Moodle as it marks this job as completed on its own after the file was processed
         self.logger.info(f"Finished job {self.id}")
 
     async def _render_quiz_attempt(self, attemptid: int):

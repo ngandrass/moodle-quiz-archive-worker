@@ -103,8 +103,8 @@ class QuizArchiveJob:
                     for attemptid in self.request.tasks['archive_quiz_attempts']['attemptids']:
                         asyncio.run(self._render_quiz_attempt(attemptid))
 
-                if self.request.tasks['archive_moodle_course_backup']:
-                    self.logger.warning('Task archive_moodle_course_backup requested but currently not implemented!')
+                if self.request.tasks['archive_moodle_backups']:
+                    self.logger.warning('Task archive_moodle_backups requested but currently not implemented!')
                     # TODO: Implement
 
                 # Hash every file

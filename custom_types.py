@@ -1,5 +1,4 @@
 from enum import StrEnum
-import json
 from typing import List
 
 
@@ -40,7 +39,7 @@ class JobArchiveRequest:
                  cmid: int,
                  quizid: int,
                  task_archive_quiz_attempts: any,
-                 task_moodle_course_backup: any):
+                 task_moodle_backups: any):
         if api_version != self.API_VERSION:
             raise ValueError(f'API version mismatch. Expected: {self.API_VERSION}, Got: {api_version}.')
 
@@ -53,7 +52,7 @@ class JobArchiveRequest:
         self.quizid = int(quizid)
         self.tasks = {
             'archive_quiz_attempts': task_archive_quiz_attempts,
-            'archive_moodle_course_backup': task_moodle_course_backup
+            'archive_moodle_backups': task_moodle_backups
         }
 
         if not self._validate_self():
@@ -83,8 +82,8 @@ class JobArchiveRequest:
             if not isinstance(self.tasks['archive_quiz_attempts']['attemptids'], List):
                 return False
 
-        if self.tasks['archive_moodle_course_backup'] is not None:
-            if not isinstance(self.tasks['archive_moodle_course_backup']['TODO'], object):
+        if self.tasks['archive_moodle_backups'] is not None:
+            if not isinstance(self.tasks['archive_moodle_backups']['TODO'], object):
                 return False
 
         return True

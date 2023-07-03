@@ -143,7 +143,7 @@ class QuizArchiveJob:
         """
         report_name = f"quiz_attempt_report_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
         attempt_html = self._get_attempt_html_from_moodle(attemptid)
-        with open(f"{self.workdir}/{report_name}.html", "w+") as f:
+        with open(f"{self.workdir}/attempts/{report_name}.html", "w+") as f:
             f.write(attempt_html)
 
         async with async_playwright() as p:
@@ -273,7 +273,7 @@ class QuizArchiveJob:
 
         # Download backup
         try:
-            with open(f'{self.workdir}/{filename}', 'wb+') as f:
+            with open(f'{self.workdir}/backups/{filename}', 'wb+') as f:
                 r = requests.get(url=download_url, params={
                     'token': self.request.wstoken,
                     'forcedownload': 1

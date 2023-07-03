@@ -116,6 +116,9 @@ class QuizArchiveJob:
                 archive_files = glob.glob(f'{self.workdir}/**/*', recursive=True)
                 for archive_file in archive_files:
                     with open(archive_file, 'rb') as f:
+                        if threading.current_thread().stop_requested():
+                            raise InterruptedError('Thread stop requested')
+
                         sha256_hash = hashlib.sha256()
                         for byte_block in iter(lambda: f.read(4096),b""):
                             sha256_hash.update(byte_block)

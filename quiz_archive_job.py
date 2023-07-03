@@ -115,15 +115,16 @@ class QuizArchiveJob:
                 self.logger.info("Calculating file hashes ...")
                 archive_files = glob.glob(f'{self.workdir}/**/*', recursive=True)
                 for archive_file in archive_files:
-                    with open(archive_file, 'rb') as f:
-                        if threading.current_thread().stop_requested():
-                            raise InterruptedError('Thread stop requested')
+                    if os.path.isfile(archive_file):
+                        with open(archive_file, 'rb') as f:
+                            if threading.current_thread().stop_requested():
+                                raise InterruptedError('Thread stop requested')
 
-                        sha256_hash = hashlib.sha256()
-                        for byte_block in iter(lambda: f.read(4096),b""):
-                            sha256_hash.update(byte_block)
-                        with open(f'{f.name}.sha256', 'w+') as hashfile:
-                            hashfile.write(sha256_hash.hexdigest())
+                            sha256_hash = hashlib.sha256()
+                            for byte_block in iter(lambda: f.read(4096), b""):
+                                sha256_hash.update(byte_block)
+                            with open(f'{f.name}.sha256', 'w+') as hashfile:
+                                hashfile.write(sha256_hash.hexdigest())
 
                 # Create final archive
                 self.logger.info("Generating final archive ...")

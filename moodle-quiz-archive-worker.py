@@ -41,7 +41,6 @@ class FlaskThread(threading.Thread):
 def queue_processing_loop():
     app.logger.info("Spwaned queue worker thread")
 
-    # FIXME: Implement timeout!
     while getattr(threading.current_thread(), "do_run", True):
         # Start job execution
         job = job_queue.get()

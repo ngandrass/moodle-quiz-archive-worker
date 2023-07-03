@@ -83,7 +83,11 @@ class JobArchiveRequest:
                 return False
 
         if self.tasks['archive_moodle_backups'] is not None:
-            if not isinstance(self.tasks['archive_moodle_backups']['TODO'], object):
+            if not isinstance(self.tasks['archive_moodle_backups'], List):
                 return False
+            for backup in self.tasks['archive_moodle_backups']:
+                for key in ['backupid', 'filename', 'file_download_url']:
+                    if key not in backup:
+                        return False
 
         return True

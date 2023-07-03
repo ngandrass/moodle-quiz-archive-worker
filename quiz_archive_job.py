@@ -104,8 +104,7 @@ class QuizArchiveJob:
                         asyncio.run(self._render_quiz_attempt(attemptid))
 
                 if self.request.tasks['archive_moodle_backups']:
-                    self.logger.warning('Task archive_moodle_backups requested but currently not implemented!')
-                    # TODO: Implement
+                    asyncio.run(self._process_moodle_backups())
 
                 # Hash every file
                 self.logger.info("Calculating file hashes ...")
@@ -213,6 +212,87 @@ class QuizArchiveJob:
 
         # Looks fine - Data seems valid :)
         return data['report']
+
+    async def _process_moodle_backups(self):
+        try:
+            async with asyncio.TaskGroup() as tg:
+                for backup in self.request.tasks['archive_moodle_backups']:
+                    tg.create_task(self._process_moodle_backup(backup['backupid'], backup['filename'], backup['file_download_url']))
+        except ExceptionGroup as eg:
+            # Just take the first exception for now as any exception in any task will interrupt the whole job :)
+            for e in eg.exceptions:
+                raise e
+
+    async def _process_moodle_backup(self, backupid: str, filename: str, download_url: str):
+        self.logger.debug(f'Processing Moodle backup with id {backupid}')
+
+        # Wait for backup to finish
+        while True:
+            try:
+                self.logger.debug(f'Requesting status for backup {backupid}')
+                r = requests.get(url=self.request.moodle_ws_url, params={
+                    'wstoken': self.request.wstoken,
+                    'moodlewsrestformat': 'json',
+                    'wsfunction': Config.MOODLE_WSFUNCTION_GET_BACKUP,
+                    'jobid': self.get_id(),
+                    'backupid': backupid
+                })
+                response = r.json()
+            except Exception:
+                raise ConnectionError(f'Failed to get status of backup {backupid}')
+
+            if 'errorcode' in response and 'debuginfo' in response:
+                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_BACKUP} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+
+            if response['status'] == 'SUCCESS':
+                self.logger.debug(f'Backup {backupid} finished successfully.')
+                break
+
+            if response['status'] != 'E_BACKUP_PENDING':
+                raise RuntimeError(f'Retrieving status of backup "{backupid}" failed with {response["status"]}. Aborting.')
+
+            self.logger.info(f'Backup {backupid} not finished yet. Waiting {Config.BACKUP_STATUS_RETRY_SEC} seconds before retrying ...')
+            await asyncio.sleep(Config.BACKUP_STATUS_RETRY_SEC)
+
+        # Check backup filesize
+        try:
+            self.logger.debug(f'Requesting status for backup {backupid}')
+            h = requests.head(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
+            content_length = h.headers.get('Content-Length', None)
+
+            if not content_length:
+                raise RuntimeError(f'Backup filesize could not be determined')
+            elif int(content_length) > Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES:
+                raise RuntimeError(f'Backup filesize of {content_length} bytes exceeds maximum allowed filesize {Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES} bytes')
+            else:
+                self.logger.debug(f'Backup {backupid} filesize')
+        except RuntimeError as e:
+            raise e
+        except Exception as e:
+            raise ConnectionError(f'Failed to retrieve HEAD for backup {backupid} at: {download_url}. {str(e)}')
+
+        # Download backup
+        try:
+            with open(f'{self.workdir}/{filename}', 'wb+') as f:
+                r = requests.get(url=download_url, params={
+                    'token': self.request.wstoken,
+                    'forcedownload': 1
+                }, stream=True)
+
+                chunksize = int(32 * 10e6)  # 32 MB
+                downloaded_bytes = 0
+                for chunk in r.iter_content(chunksize):
+                    if downloaded_bytes > Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES:
+                        raise RuntimeError(f'Downloading backup file was larger than expected and exceeded the maximum file size limit of {Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES} bytes')
+                    downloaded_bytes = downloaded_bytes + f.write(chunk)
+        except RuntimeError as e:
+            raise e
+        except IOError:
+            raise RuntimeError(f'Encountered internal IOError while writing the backup file from {download_url} to {filename}')
+        except Exception:
+            ConnectionError(f'Failed to download backup file from: {download_url}')
+
+        self.logger.info(f'Downloaded {downloaded_bytes} bytes of backup {backupid} to {self.workdir}/{filename}')
 
     def _push_artifact_to_moodle(self, artifact_filename: str):
         with open(artifact_filename, "rb") as f:

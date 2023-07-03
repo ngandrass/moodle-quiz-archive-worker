@@ -24,11 +24,18 @@ class FlaskThread(threading.Thread):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
 
     def run(self):
         time.sleep(3)  # Delay thread execution to make sure app_context is ready
         with app.app_context():
             super().run()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stop_requested(self):
+        return self._stop_event.is_set()
 
 
 def queue_processing_loop():
@@ -36,8 +43,18 @@ def queue_processing_loop():
 
     # FIXME: Implement timeout!
     while getattr(threading.current_thread(), "do_run", True):
+        # Start job execution
         job = job_queue.get()
-        job.execute()
+        t = FlaskThread(target=job.execute)
+        t.start()
+        t.join(Config.REQUEST_TIMEOUT_SEC)
+
+        # Determine if job finished or timeout was reached
+        if t.is_alive():
+            t.stop()
+            app.logger.warning(f'Job {job.get_id} exceeded runtime limit of {Config.REQUEST_TIMEOUT_SEC} seconds. Request termination ...')
+            t.join()
+            app.logger.info(f'Job {job.get_id} terminated gracefully')
 
     app.logger.info("Terminating queue worker thread")
 

@@ -21,6 +21,7 @@ class JobStatus(StrEnum):
     RUNNING = 'RUNNING'
     FINISHED = 'FINISHED'
     FAILED = 'FAILED'
+    TIMEOUT = 'TIMEOUT'
 
 
 class JobArchiveRequest:

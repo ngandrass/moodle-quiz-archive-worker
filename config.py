@@ -18,7 +18,7 @@ class Config:
     HISTORY_SIZE = 128
     """Maximum number of jobs to keep in the history before forgetting about them."""
 
-    REQUEST_TIMEOUT_SEC = 1800
+    REQUEST_TIMEOUT_SEC = 10
     """Number of seconds before execution of a single request is aborted."""
 
     BACKUP_STATUS_RETRY_SEC = 30

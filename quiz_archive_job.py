@@ -4,6 +4,7 @@ import hashlib
 import io
 import logging
 import tarfile
+import threading
 from datetime import datetime
 from tempfile import TemporaryDirectory
 from uuid import UUID
@@ -101,6 +102,9 @@ class QuizArchiveJob:
                 # Process tasks
                 if self.request.tasks['archive_quiz_attempts']:
                     for attemptid in self.request.tasks['archive_quiz_attempts']['attemptids']:
+                        if threading.current_thread().stop_requested():
+                            raise InterruptedError('Thread stop requested')
+
                         asyncio.run(self._render_quiz_attempt(attemptid))
 
                 if self.request.tasks['archive_moodle_backups']:
@@ -127,6 +131,10 @@ class QuizArchiveJob:
                     # Push final file to Moodle
                     self._push_artifact_to_moodle(f'{tardir}/{archive_name}')
 
+        except InterruptedError:
+            self.logger.warning(f'Job termination requested. Terminated gracefully.')
+            self.set_status(JobStatus.TIMEOUT, notify_moodle=True)
+            return
         except Exception as e:
             self.logger.error(f"Job failed with error: {str(e)}")
             self.set_status(JobStatus.FAILED, notify_moodle=True)
@@ -250,6 +258,9 @@ class QuizArchiveJob:
 
             if response['status'] != 'E_BACKUP_PENDING':
                 raise RuntimeError(f'Retrieving status of backup "{backupid}" failed with {response["status"]}. Aborting.')
+
+            if threading.current_thread().stop_requested():
+                raise InterruptedError('Thread stop requested')
 
             self.logger.info(f'Backup {backupid} not finished yet. Waiting {Config.BACKUP_STATUS_RETRY_SEC} seconds before retrying ...')
             await asyncio.sleep(Config.BACKUP_STATUS_RETRY_SEC)

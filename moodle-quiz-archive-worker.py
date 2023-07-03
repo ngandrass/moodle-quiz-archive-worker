@@ -52,9 +52,9 @@ def queue_processing_loop():
         # Determine if job finished or timeout was reached
         if t.is_alive():
             t.stop()
-            app.logger.warning(f'Job {job.get_id} exceeded runtime limit of {Config.REQUEST_TIMEOUT_SEC} seconds. Request termination ...')
+            app.logger.warning(f'Job {job.get_id()} exceeded runtime limit of {Config.REQUEST_TIMEOUT_SEC} seconds. Request termination ...')
             t.join()
-            app.logger.info(f'Job {job.get_id} terminated gracefully')
+            app.logger.info(f'Job {job.get_id()} terminated gracefully')
 
     app.logger.info("Terminating queue worker thread")
 

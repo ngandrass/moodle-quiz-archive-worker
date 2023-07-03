@@ -3,6 +3,7 @@ import glob
 import hashlib
 import io
 import logging
+import os
 import tarfile
 import threading
 from datetime import datetime
@@ -151,6 +152,7 @@ class QuizArchiveJob:
         """
         report_name = f"quiz_attempt_report_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
         attempt_html = self._get_attempt_html_from_moodle(attemptid)
+        os.makedirs(f'{self.workdir}/attempts', exist_ok=True)
         with open(f"{self.workdir}/attempts/{report_name}.html", "w+") as f:
             f.write(attempt_html)
 
@@ -284,6 +286,7 @@ class QuizArchiveJob:
 
         # Download backup
         try:
+            os.makedirs(f'{self.workdir}/backups', exist_ok=True)
             with open(f'{self.workdir}/backups/{filename}', 'wb+') as f:
                 r = requests.get(url=download_url, params={
                     'token': self.request.wstoken,

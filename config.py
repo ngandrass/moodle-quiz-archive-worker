@@ -1,4 +1,5 @@
 import logging
+import os
 
 
 class Config:
@@ -9,23 +10,26 @@ class Config:
     VERSION = "0.1.0"
     """Version of this app."""
 
-    LOG_LEVEL = logging.INFO
+    LOG_LEVEL = logging.getLevelNamesMapping()[os.getenv('QUIZ_ARCHIVER_LOG_LEVEL', default='INFO')]
     """Python Logger logging level"""
 
-    QUEUE_SIZE = 8
+    QUEUE_SIZE = os.getenv('QUIZ_ARCHIVER_QUEUE_SIZE', default=8)
     """Maximum number of requests that are queued before returning an error."""
 
-    HISTORY_SIZE = 128
+    HISTORY_SIZE = os.getenv('QUIZ_ARCHIVER_HISTORY_SIZE', default=128)
     """Maximum number of jobs to keep in the history before forgetting about them."""
 
-    REQUEST_TIMEOUT_SEC = 30 * 60
+    REQUEST_TIMEOUT_SEC = os.getenv('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(30 * 60))
     """Number of seconds before execution of a single request is aborted."""
 
-    BACKUP_STATUS_RETRY_SEC = 30
+    BACKUP_STATUS_RETRY_SEC = os.getenv('QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30)
     """Number of seconds between status checks of pending backups via the Moodle API"""
 
-    BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES = 512 * 10e6
+    BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES = os.getenv('QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES', default=(512 * 10e6))
     """Maximum number of bytes a backup is allowed to have for downloading"""
+
+    REPORT_BASE_VIEWPORT_WIDTH = os.getenv('QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH', default=1240)
+    """Width of the viewport created for rendering quiz attempts in pixel"""
 
     MOODLE_WSFUNCTION_ARCHIVE = 'quiz_archiver_generate_attempt_report'
     """Name of the Moodle webservice function to call to trigger an quiz attempt export"""
@@ -38,6 +42,3 @@ class Config:
 
     MOODLE_WSFUNCTION_UPDATE_JOB_STATUS = 'quiz_archiver_update_job_status'
     """Name of the Moodle webservice function to call to update the status of a job"""
-
-    REPORT_BASE_VIEWPORT_WIDTH = 1240
-    """Width of the viewport created for rendering quiz attempts in pixel"""

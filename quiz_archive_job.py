@@ -174,7 +174,7 @@ class QuizArchiveJob:
 
             img = Image.open(io.BytesIO(screenshot))
             img.convert(mode='RGB', palette=Image.ADAPTIVE).save(
-                fp=f"{self.workdir}/{report_name}.pdf",
+                fp=f"{self.workdir}/attempts/{report_name}.pdf",
                 format='PDF',
                 dpi=(300, 300),
                 quality=96

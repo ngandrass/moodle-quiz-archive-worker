@@ -33,5 +33,5 @@ RUN set -ex && \
     playwright install chromium
 
 # Run definition
-EXPOSE 5000
+EXPOSE 8080
 CMD ["/bin/sh", "-c", "/app/moodle-quiz-archive-worker.py"]

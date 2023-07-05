@@ -129,12 +129,22 @@ class QuizArchiveJob:
                 # Create final archive
                 self.logger.info("Generating final archive ...")
                 with TemporaryDirectory() as tardir:
-                    archive_name = f'quiz_archive_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.tar.gz'
-                    with tarfile.open(f'{tardir}/{archive_name}', 'w:gz') as tar:
+                    # Add files
+                    archive_file = f'{tardir}/quiz_archive_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.tar.gz'
+                    with tarfile.open(archive_file, 'w:gz') as tar:
                         tar.add(self.workdir, arcname="")
 
+                    # Calculate checksum
+                    with open(archive_file, 'rb') as f:
+                        if threading.current_thread().stop_requested():
+                            raise InterruptedError('Thread stop requested')
+
+                        archive_sha256sum = hashlib.sha256()
+                        for byte_block in iter(lambda: f.read(4096), b""):
+                            archive_sha256sum.update(byte_block)
+
                     # Push final file to Moodle
-                    self._push_artifact_to_moodle(f'{tardir}/{archive_name}')
+                    self._push_artifact_to_moodle(archive_file, archive_sha256sum.hexdigest())
 
         except InterruptedError:
             self.logger.warning(f'Job termination requested. Terminated gracefully.')
@@ -312,10 +322,10 @@ class QuizArchiveJob:
 
         self.logger.info(f'Downloaded {downloaded_bytes} bytes of backup {backupid} to {self.workdir}/{filename}')
 
-    def _push_artifact_to_moodle(self, artifact_filename: str):
+    def _push_artifact_to_moodle(self, artifact_filename: str, artifact_sha256sum: str):
         with open(artifact_filename, "rb") as f:
             try:
-                self.logger.info(f'Uploading artifact "{artifact_filename}" to "{self.request.moodle_upload_url}"')
+                self.logger.info(f'Uploading artifact "{artifact_filename}" (sha256sum: {artifact_sha256sum} to "{self.request.moodle_upload_url}"')
                 r = requests.post(self.request.moodle_upload_url, files={'file_1': f}, data={
                     'token': self.request.wstoken,
                     'filepath': '/',
@@ -344,6 +354,7 @@ class QuizArchiveJob:
                 'moodlewsrestformat': 'json',
                 'wsfunction': Config.MOODLE_WSFUNCTION_PROESS_UPLOAD,
                 'jobid': self.get_id(),
+                'artifact_sha256sum': artifact_sha256sum,
                 **dict((f'artifact_{key}', upload_metadata[key]) for key in self.MOODLE_UPLOAD_FILE_FIELDS)
             })
             response = r.json()

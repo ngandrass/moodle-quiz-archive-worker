@@ -365,8 +365,8 @@ class QuizArchiveJob:
         if 'errorcode' in response and 'debuginfo' in response:
             raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
 
-        # Check that everything went smoothely on the Moodle side (not that we could change anything here...)
-        if response['jobid'] != str(self.get_id()) or response['status'] != 'OK':
+        # Check that everything went smoothly on the Moodle side (not that we could change anything here...)
+        if response['status'] != 'OK':
             raise RuntimeError(f'Moodle webservice failed to process uploaded artifact with status: {response["status"]}')
 
         self.logger.info('Processed uploaded artifact successfully.')

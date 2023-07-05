@@ -2,7 +2,6 @@
 import logging
 import queue
 import threading
-import time
 import uuid
 from http import HTTPStatus
 from collections import deque
@@ -172,7 +171,7 @@ def handle_archive_request():
 
 
 def main():
-    app.logger.setLevel(Config.LOG_LEVEL)
+    logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 
     queue_processing_thread = FlaskThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')

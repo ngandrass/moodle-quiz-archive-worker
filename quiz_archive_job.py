@@ -31,10 +31,7 @@ class QuizArchiveJob:
         self.status = JobStatus.UNINITIALIZED
         self.request = job_request
         self.workdir = None
-
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
-        self.logger.setLevel(Config.LOG_LEVEL)
-        self.logger.handlers[0].setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s in %(name)s: %(message)s"))
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):

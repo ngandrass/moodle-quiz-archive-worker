@@ -33,11 +33,8 @@ class QuizArchiveJob:
         self.workdir = None
 
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
-        logging.basicConfig(
-            encoding="utf-8",
-            level=Config.LOG_LEVEL,
-            format="[%(asctime)s] %(levelname)s in %(name)s: %(message)s"
-        )
+        self.logger.setLevel(Config.LOG_LEVEL)
+        self.logger.handlers[0].setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s in %(name)s: %(message)s"))
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):

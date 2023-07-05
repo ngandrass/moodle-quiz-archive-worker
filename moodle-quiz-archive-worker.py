@@ -19,18 +19,16 @@ job_queue = queue.Queue(maxsize=Config.QUEUE_SIZE)
 job_history = deque(maxlen=Config.HISTORY_SIZE)
 
 
-class FlaskThread(threading.Thread):
+class InterruptableThread(threading.Thread):
     """
-    Custom Thread that runs with Flask context
+    Custom Thread that allows to be interrupted by a stop event
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._stop_event = threading.Event()
 
     def run(self):
-        time.sleep(3)  # Delay thread execution to make sure app_context is ready
-        with app.app_context():
-            super().run()
+        super().run()
 
     def stop(self):
         self._stop_event.set()
@@ -45,7 +43,7 @@ def queue_processing_loop():
     while getattr(threading.current_thread(), "do_run", True):
         # Start job execution
         job = job_queue.get()
-        t = FlaskThread(target=job.execute)
+        t = InterruptableThread(target=job.execute)
         t.start()
         t.join(Config.REQUEST_TIMEOUT_SEC)
 
@@ -174,7 +172,7 @@ def main():
     logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 
-    queue_processing_thread = FlaskThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
+    queue_processing_thread = InterruptableThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
     queue_processing_thread.start()
 
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

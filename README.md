@@ -20,6 +20,8 @@ to allow integrity checks.
 Configuration parameters are located inside `config.py` and can be overwritten
 via the following environment variables:
 
+- `QUIZ_ARCHIVER_SERVER_HOST`: Host to bind to (default=`'0.0.0.0'`)
+- `QUIZ_ARCHIVER_SERVER_PORT`: Port to bind to (default=`8080`)
 - `QUIZ_ARCHIVER_LOG_LEVEL`: Logging level. One of `'CRITICAL'`, `'FATAL'`, `'ERROR'`, `'WARN'`, `'WARNING'`, `'INFO'`, `'DEBUG'` (default=`'INFO'`)
 - `QUIZ_ARCHIVER_QUEUE_SIZE`: Maximum number of jobs to enqueue (default=`8`)
 - `QUIZ_ARCHIVER_HISTORY_SIZE`: Maximum number of jobs to remember in job history (default=`128`)

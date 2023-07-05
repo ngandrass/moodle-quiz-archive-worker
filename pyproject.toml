@@ -12,6 +12,7 @@ flask = "^2.3.2"
 playwright = "^1.34.0"
 pillow = "^9.5.0"
 requests = "^2.31.0"
+waitress = "^2.1.2"
 
 
 [build-system]

@@ -13,6 +13,12 @@ class Config:
     LOG_LEVEL = logging.getLevelNamesMapping()[os.getenv('QUIZ_ARCHIVER_LOG_LEVEL', default='INFO')]
     """Python Logger logging level"""
 
+    SERVER_HOST = os.getenv('QUIZ_ARCHIVER_SERVER_HOST', default='0.0.0.0')
+    """Host for Flask to bind to"""
+
+    SERVER_PORT = os.getenv('QUIZ_ARCHIVER_SERVER_PORT', default='8080')
+    """Port for Flask to listen on"""
+
     QUEUE_SIZE = os.getenv('QUIZ_ARCHIVER_QUEUE_SIZE', default=8)
     """Maximum number of requests that are queued before returning an error."""
 

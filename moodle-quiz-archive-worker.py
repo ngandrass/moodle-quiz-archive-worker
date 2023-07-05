@@ -7,6 +7,7 @@ from http import HTTPStatus
 from collections import deque
 
 import requests
+import waitress
 from flask import Flask, make_response, request, jsonify
 
 from config import Config
@@ -172,9 +173,11 @@ def handle_archive_request():
 def main():
     app.logger.setLevel(Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {Config.LOG_LEVEL}')
+
     queue_processing_thread = FlaskThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
     queue_processing_thread.start()
-    app.run(host='0.0.0.0', debug=True)
+
+    waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)
 
 
 if __name__ == "__main__":

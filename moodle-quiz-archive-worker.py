@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 import queue
 import threading
 import time
@@ -172,7 +173,7 @@ def handle_archive_request():
 
 def main():
     app.logger.setLevel(Config.LOG_LEVEL)
-    app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {Config.LOG_LEVEL}')
+    app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 
     queue_processing_thread = FlaskThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
     queue_processing_thread.start()

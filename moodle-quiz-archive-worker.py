@@ -124,9 +124,9 @@ def handle_status_jobid(jobid):
     return jsonify(job.to_json()), HTTPStatus.OK
 
 
-@app.post('/version')
+@app.get('/version')
 def handle_version():
-    return {'version': Config.VERSION}
+    return jsonify({'version': Config.VERSION}), HTTPStatus.OK
 
 
 @app.post('/archive')

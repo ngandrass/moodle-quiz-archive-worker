@@ -124,6 +124,11 @@ def handle_status_jobid(jobid):
     return jsonify(job.to_json()), HTTPStatus.OK
 
 
+@app.post('/version')
+def handle_version():
+    return {'version': Config.VERSION}
+
+
 @app.post('/archive')
 def handle_archive_request():
     app.logger.debug(f"Received new archive request: {request.data}")
@@ -169,6 +174,10 @@ def handle_archive_request():
 
 
 def main():
+    """
+    Main entry point of the application
+    :return:
+    """
     logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 

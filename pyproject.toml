@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "moodle-quiz-archive-worker"
-version = "1.0.1"
+version = "1.0.2"
 description = ""
 authors = ["Niels Gandraß <niels@gandrass.de>"]
 readme = "README.md"

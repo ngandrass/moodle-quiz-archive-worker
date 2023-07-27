@@ -324,7 +324,10 @@ class QuizArchiveJob:
     def _push_artifact_to_moodle(self, artifact_filename: str, artifact_sha256sum: str):
         with open(artifact_filename, "rb") as f:
             try:
-                self.logger.info(f'Uploading artifact "{artifact_filename}" (sha256sum: {artifact_sha256sum} to "{self.request.moodle_upload_url}"')
+                file_stats = os.stat(artifact_filename)
+                filesize = file_stats.st_size
+                self.logger.info(f'Uploading artifact "{artifact_filename}" (size: {filesize} bytes) (sha256sum: {artifact_sha256sum}) to "{self.request.moodle_upload_url}"')
+
                 r = requests.post(self.request.moodle_upload_url, files={'file_1': f}, data={
                     'token': self.request.wstoken,
                     'filepath': '/',

@@ -280,7 +280,11 @@ class QuizArchiveJob:
             self.logger.debug(f'Requesting status for backup {backupid}')
             h = requests.head(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
             self.logger.debug(f'Backup file HEAD request headers: {h.headers}')
+            content_type = h.headers.get('Content-Type', None)
             content_length = h.headers.get('Content-Length', None)
+
+            if content_type != 'application/vnd.moodle.backup':
+                raise RuntimeError(f'Backup Content-Type invalid. Expected "application/vnd.moodle.backup" but got "{content_type}"')
 
             if not content_length:
                 raise RuntimeError(f'Backup filesize could not be determined')

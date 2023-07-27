@@ -279,6 +279,7 @@ class QuizArchiveJob:
         try:
             self.logger.debug(f'Requesting status for backup {backupid}')
             h = requests.head(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
+            self.logger.debug(f'Backup file HEAD request headers: {h.headers}')
             content_length = h.headers.get('Content-Length', None)
 
             if not content_length:

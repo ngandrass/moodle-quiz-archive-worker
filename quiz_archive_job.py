@@ -335,7 +335,7 @@ class QuizArchiveJob:
                 })
                 response = r.json()
             except Exception:
-                raise ConnectionError(f'Failed to upload artifact to "{self.request.moodle_upload_url}"')
+                raise ConnectionError(f'Failed to upload artifact to "{self.request.moodle_upload_url}". Exception: {str(e)}. Response: {r.text}')
 
         # Check if upload failed
         if 'errorcode' in response and 'debuginfo' in response:

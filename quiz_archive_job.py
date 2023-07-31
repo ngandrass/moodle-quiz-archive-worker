@@ -164,7 +164,7 @@ class QuizArchiveJob:
 
         :param attemptid: ID of the quiz attempt to render
         """
-        report_name = f"quiz_attempt_report_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
+        report_name = self.get_report_name(attemptid)
         attempt_html = self._get_attempt_html_from_moodle(attemptid)
         os.makedirs(f'{self.workdir}/attempts', exist_ok=True)
         with open(f"{self.workdir}/attempts/{report_name}.html", "w+") as f:
@@ -191,6 +191,15 @@ class QuizArchiveJob:
             )
 
             self.logger.info(f"Generated {report_name}")
+
+    def get_report_name(self, attemptid: int):
+        """
+        Returns the report name for a quiz attempt
+
+        :param attemptid: ID of the quiz attempt
+        :return: string report name
+        """
+        return f"quiz_attempt_report_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
 
     def _get_attempt_html_from_moodle(self, attemptid: int) -> str:
         """
@@ -247,6 +256,10 @@ class QuizArchiveJob:
         metadata = asyncio.run(self._fetch_quiz_attempt_metadata())
         self.logger.debug(f"Quiz attempt metadata: {metadata}")
 
+        # Add report filename to each metadata entry
+        for entry in metadata:
+            entry['report_filename'] = f"{self.get_report_name(entry['attemptid'])}.pdf"
+
         # Write metadata to CSV file
         with open(f'{self.workdir}/attempts_metadata.csv', 'w+') as f:
             writer = csv.DictWriter(
@@ -259,7 +272,7 @@ class QuizArchiveJob:
             writer.writeheader()
             writer.writerows(metadata)
 
-        self.logger.info(f"Wrote metadata for {len(metadata)} quiz attempts to {self.workdir}/attempts_metadata.csv")
+        self.logger.info(f"Wrote metadata for {len(metadata)} quiz attempts to CSV file")
 
     async def _fetch_quiz_attempt_metadata(self):
         """

@@ -1,4 +1,5 @@
 import asyncio
+import csv
 import glob
 import hashlib
 import io
@@ -96,6 +97,11 @@ class QuizArchiveJob:
 
                 # Process tasks
                 if self.request.tasks['archive_quiz_attempts']:
+                    # Quiz attempt metadata
+                    if self.request.tasks['archive_quiz_attempts']['fetch_metadata']:
+                        self._process_quiz_attempts_metadata()
+
+                    # Quiz attempts
                     for attemptid in self.request.tasks['archive_quiz_attempts']['attemptids']:
                         if threading.current_thread().stop_requested():
                             raise InterruptedError('Thread stop requested')
@@ -230,6 +236,68 @@ class QuizArchiveJob:
 
         # Looks fine - Data seems valid :)
         return data['report']
+
+    def _process_quiz_attempts_metadata(self):
+        """
+        Fetches metadata for all quiz attempts that should be archived and writes it to a CSV file
+
+        :return: None
+        """
+        # Fetch metadata for all quiz attempts that should be archived
+        metadata = asyncio.run(self._fetch_quiz_attempt_metadata())
+        self.logger.debug(f"Quiz attempt metadata: {metadata}")
+
+        # Write metadata to CSV file
+        with open(f'{self.workdir}/attempts_metadata.csv', 'w+') as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=metadata[0].keys(),
+                delimiter=',',
+                quotechar='"',
+                quoting=csv.QUOTE_NONNUMERIC
+            )
+            writer.writeheader()
+            writer.writerows(metadata)
+
+        self.logger.info(f"Wrote metadata for {len(metadata)} quiz attempts to {self.workdir}/attempts_metadata.csv")
+
+    async def _fetch_quiz_attempt_metadata(self):
+        """
+        Fetches metadata for all quiz attempts that should be archived
+
+        :return: list of dicts containing metadata for each quiz attempt
+        """
+        try:
+            r = requests.get(url=self.request.moodle_ws_url, params={
+                'wstoken': self.request.wstoken,
+                'moodlewsrestformat': 'json',
+                'wsfunction': Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA,
+                'courseid': self.request.courseid,
+                'cmid': self.request.cmid,
+                'quizid': self.request.quizid,
+                'attemptids[]': self.request.tasks["archive_quiz_attempts"]["attemptids"]
+            })
+            data = r.json()
+        except Exception:
+            raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.request.moodle_ws_url}" failed')
+
+        # Check if Moodle wsfunction returned an error
+        if 'errorcode' in data and 'debuginfo' in data:
+            raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
+
+        # Check if response is as expected
+        for attr in ['attempts', 'cmid', 'courseid', 'quizid']:
+            if attr not in data:
+                raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an incomplete response')
+
+        if not (
+            data['courseid'] == self.request.courseid and
+            data['cmid'] == self.request.cmid and
+            data['quizid'] == self.request.quizid
+        ):
+            raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an invalid response')
+
+        return data['attempts']
 
     async def _process_moodle_backups(self):
         try:

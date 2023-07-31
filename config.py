@@ -48,3 +48,6 @@ class Config:
 
     MOODLE_WSFUNCTION_UPDATE_JOB_STATUS = 'quiz_archiver_update_job_status'
     """Name of the Moodle webservice function to call to update the status of a job"""
+
+    MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA = 'quiz_archiver_get_attempts_metadata'
+    """Name of the Moodle webservice function to call to retrieve metadata about quiz attempts"""

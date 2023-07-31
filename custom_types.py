@@ -29,7 +29,7 @@ class JobArchiveRequest:
     Deserialized JSON request for creating an archive job
     """
 
-    API_VERSION = 1
+    API_VERSION = 2
 
     def __init__(self,
                  api_version: int,
@@ -81,6 +81,8 @@ class JobArchiveRequest:
 
         if self.tasks['archive_quiz_attempts'] is not None:
             if not isinstance(self.tasks['archive_quiz_attempts']['attemptids'], List):
+                return False
+            if not isinstance(self.tasks['archive_quiz_attempts']['fetch_metadata'], bool):
                 return False
 
         if self.tasks['archive_moodle_backups'] is not None:

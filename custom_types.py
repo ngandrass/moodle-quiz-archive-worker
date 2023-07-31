@@ -82,6 +82,8 @@ class JobArchiveRequest:
         if self.tasks['archive_quiz_attempts'] is not None:
             if not isinstance(self.tasks['archive_quiz_attempts']['attemptids'], List):
                 return False
+            if not isinstance(self.tasks['archive_quiz_attempts']['sections'], object):
+                return False
             if not isinstance(self.tasks['archive_quiz_attempts']['fetch_metadata'], bool):
                 return False
 

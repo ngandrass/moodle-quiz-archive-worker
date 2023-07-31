@@ -8,6 +8,7 @@ import os
 import tarfile
 import threading
 from datetime import datetime
+from json import JSONDecodeError
 from tempfile import TemporaryDirectory
 from uuid import UUID
 
@@ -220,10 +221,14 @@ class QuizArchiveJob:
                 'courseid': self.request.courseid,
                 'cmid': self.request.cmid,
                 'quizid': self.request.quizid,
-                'attemptid': attemptid
+                'attemptid': attemptid,
+                **{f'sections[{key}]': value for key, value in self.request.tasks["archive_quiz_attempts"]["sections"].items()}
             })
             data = r.json()
-        except Exception:
+        except JSONDecodeError:
+            raise ValueError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} at "{self.request.moodle_ws_url}" returned invalid JSON')
+        except Exception as e:
+            self.logger.debug(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} caused {type(e).__name__}: {str(e)}')
             raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} at "{self.request.moodle_ws_url}" failed')
 
         # Check if Moodle wsfunction returned an error

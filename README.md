@@ -1,5 +1,16 @@
 # moodle-quiz-archive-worker
 
+[![Latest Version](https://img.shields.io/github/v/release/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/releases)
+[![Maintenance Status](https://img.shields.io/maintenance/yes/9999)](https://github.com/ngandrass/moodle-quiz-archive-worker/)
+[![License](https://img.shields.io/github/license/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/blob/master/LICENSE)
+[![GitHub Issues](https://img.shields.io/github/issues/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/pulls)
+[![Donate with PayPal](https://img.shields.io/badge/PayPal-donate-orange)](https://www.paypal.me/ngandrass)
+[![Sponsor with GitHub](https://img.shields.io/badge/GitHub-sponsor-orange)](https://github.com/sponsors/ngandrass)
+[![GitHub Stars](https://img.shields.io/github/stars/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/network/members)
+[![GitHub Contributors](https://img.shields.io/github/contributors/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/graphs/contributors)
+
 Quiz archiver service to work in conjunction with the Moodle plugin `quiz_archiver`.
 
 This application processes quiz archive jobs. It renders Moodle quiz attempts

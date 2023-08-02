@@ -4,7 +4,7 @@ version = "1.0.5"
 description = ""
 authors = ["Niels Gandraß <niels@gandrass.de>"]
 readme = "README.md"
-packages = [{include = "moodle_quiz_archive_worker"}]
+packages = []
 
 [tool.poetry.dependencies]
 python = "^3.11"

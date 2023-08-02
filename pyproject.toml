@@ -14,7 +14,6 @@ requests = "^2.31.0"
 waitress = "^2.1.2"
 img2pdf = "^0.4.4"
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

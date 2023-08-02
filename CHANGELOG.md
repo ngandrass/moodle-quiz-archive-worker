@@ -1,3 +1,9 @@
+# Version 1.0.6 (2023-08-02)
+
+- Replace Pillow (PIL) PDF renderer with img2pdf to prevent JPEG conversion of attempt PNGs
+- Update Python dependencies
+
+
 # Version 1.0.5 (2023-07-31)
 
 - Allow to fetch quiz attempt metadata and write it to a CSV file inside the archive

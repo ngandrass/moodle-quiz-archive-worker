@@ -23,14 +23,60 @@ to allow integrity checks.
 
 # Installation
 
-1. Build the Docker image: `docker build -t quiz-archive-worker:latest`
-2. Run a container: `docker run quiz-archive-worker:latest`
+You can install this application in several ways, however, the easiest and
+preferred way is to use [Docker Compose](#docker-compose).
+
+## Docker Compose
+
+TODO
+
+
+## Docker
+
+1. Build the Docker image: `docker build -t moodle-quiz-archive-worker:latest .`
+2. Run a container: `docker run --rm -it -p 8080:8080 moodle-quiz-archive-worker:latest`
+
+You can change the host port the application is bound to by changing the first
+port number in the `-p` argument of the `docker run` command. Example:
+
+```shell
+docker run --rm -it -p 9000:8080 moodle-quiz-archive-worker:latest
+```
+
+You can change configuration settings by setting the respective environment
+variables. Example:
+
+```shell
+docker run --rm -it -e QUIZ_ARCHIVER_LOG_LEVEL=DEBUG -p 8080:8080 moodle-quiz-archive-worker:latest
+```
+
+For more details and all available configuration parameters see [Configuration](#configuration).
+
+
+## Manual Installation
+
+1. Install [Python](https://www.python.org/) version >= 3.11
+2. Install [Poetry](https://python-poetry.org/): `pip install poetry`
+3. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
+4. Switch into the repository directory: `cd moodle-quiz-archive-worker`
+5. Install app dependencies: `poetry install`
+6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install chromium`
+7. Run the application: `poetry run python moodle-quiz-archive-worker.py`
+
+You can change configuration settings by prepending the respective environment
+variables. Example:
+
+```shell
+QUIZ_ARCHIVER_SERVER_PORT=9000 poetry run python moodle-quiz-archive-worker.py
+```
+
+For more details and all available configuration parameters see [Configuration](#configuration).
 
 
 # Configuration
 
 Configuration parameters are located inside `config.py` and can be overwritten
-via the following environment variables:
+using the following environment variables:
 
 - `QUIZ_ARCHIVER_SERVER_HOST`: Host to bind to (default=`'0.0.0.0'`)
 - `QUIZ_ARCHIVER_SERVER_PORT`: Port to bind to (default=`8080`)

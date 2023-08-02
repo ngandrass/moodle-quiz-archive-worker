@@ -10,9 +10,9 @@ packages = []
 python = "^3.11"
 flask = "^2.3.2"
 playwright = "^1.34.0"
-pillow = "^9.5.0"
 requests = "^2.31.0"
 waitress = "^2.1.2"
+img2pdf = "^0.4.4"
 
 
 [build-system]

@@ -28,8 +28,8 @@ from json import JSONDecodeError
 from tempfile import TemporaryDirectory
 from uuid import UUID
 
+import img2pdf
 import requests
-from PIL import Image
 from playwright.async_api import async_playwright, ViewportSize
 
 from config import Config
@@ -188,6 +188,7 @@ class QuizArchiveJob:
             f.write(attempt_html)
 
         async with async_playwright() as p:
+            # Launch browser and render attempt to PNG
             browser = await p.chromium.launch(args=['--disable-web-security'])  # Pass --disable-web-security to ignore CORS errors
             context = await browser.new_context(viewport=ViewportSize(width=int(Config.REPORT_BASE_VIEWPORT_WIDTH), height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9))))
             page = await context.new_page()
@@ -199,13 +200,13 @@ class QuizArchiveJob:
             )
             await browser.close()
 
-            img = Image.open(io.BytesIO(screenshot))
-            img.convert(mode='RGB', palette=Image.ADAPTIVE).save(
-                fp=f"{self.workdir}/attempts/{report_name}.pdf",
-                format='PDF',
-                dpi=(300, 300),
-                quality=96
-            )
+            # Save attempt PNG as PDF
+            with open(f"{self.workdir}/attempts/{report_name}.pdf", "wb") as f:
+                f.write(img2pdf.convert(
+                    io.BytesIO(screenshot),
+                    creator=f"Moodle Quiz Archive Worker {Config.VERSION}",
+                    creationdate=datetime.now()
+                ))
 
             self.logger.info(f"Generated {report_name}")
 

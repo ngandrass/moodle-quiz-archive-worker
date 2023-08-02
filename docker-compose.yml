@@ -1,0 +1,14 @@
+services:
+  moodle-quiz-archive-worker:
+    image: moodle-quiz-archive-worker:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - QUIZ_ARCHIVER_LOG_LEVEL=INFO
+      - QUIZ_ARCHIVER_QUEUE_SIZE=8
+      - QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC=1800
+      - QUIZ_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES=512000000

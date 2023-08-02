@@ -11,7 +11,8 @@
 [![GitHub Forks](https://img.shields.io/github/forks/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/network/members)
 [![GitHub Contributors](https://img.shields.io/github/contributors/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/graphs/contributors)
 
-Quiz archiver service to work in conjunction with the Moodle plugin `quiz_archiver`.
+Quiz archiver service to work in conjunction with the Moodle plugin
+[quiz_archiver](https://github.com/ngandrass/moodle-quiz_archiver).
 
 This application processes quiz archive jobs. It renders Moodle quiz attempts
 inside a headless webbrowser and exports them to PDFs and HTMLs. Moodle backups

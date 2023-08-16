@@ -1,3 +1,11 @@
+# Version 1.0.7 (2023-08-16)
+
+- Optimize Docker build
+- Provide pre-built Docker images
+- Improve setup instructions / documentation
+- Update Python dependencies
+
+
 # Version 1.0.6 (2023-08-02)
 
 - Replace Pillow (PIL) PDF renderer with img2pdf to prevent JPEG conversion of attempt PNGs

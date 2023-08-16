@@ -1,11 +1,11 @@
 # moodle-quiz-archive-worker
 
 [![Latest Version](https://img.shields.io/github/v/release/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/releases)
-![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ngandrass/moodle-quiz-archive-worker/latest?label=Docker%20image)
-![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/ngandrass/moodle-quiz-archive-worker/docker-build-and-push-releases.yml)
+[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ngandrass/moodle-quiz-archive-worker/latest?label=Docker%20image)](https://hub.docker.com/r/ngandrass/moodle-quiz-archive-worker)
+[![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/ngandrass/moodle-quiz-archive-worker/docker-build-and-push-releases.yml)](https://github.com/ngandrass/moodle-quiz-archive-worker/actions)
 [![Maintenance Status](https://img.shields.io/maintenance/yes/9999)](https://github.com/ngandrass/moodle-quiz-archive-worker/)
 [![License](https://img.shields.io/github/license/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/blob/master/LICENSE)
-![Docker Pulls](https://img.shields.io/docker/pulls/ngandrass/moodle-quiz-archive-worker)
+[![Docker Pulls](https://img.shields.io/docker/pulls/ngandrass/moodle-quiz-archive-worker)](https://hub.docker.com/r/ngandrass/moodle-quiz-archive-worker)
 [![GitHub Issues](https://img.shields.io/github/issues/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/pulls)
 [![Donate with PayPal](https://img.shields.io/badge/PayPal-donate-orange)](https://www.paypal.me/ngandrass)

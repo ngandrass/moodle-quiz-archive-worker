@@ -38,9 +38,9 @@ RUN set -e && \
     chmod +x "${USER_HOME}/moodle-quiz-archive-worker.py"
 
 # Create app user
-RUN set -ex && \
-    groupadd --system --gid 1000 "${USER_NAME}" && \
-    useradd --system -g "${USER_NAME}" --uid 1000 --no-create-home --home-dir "${USER_HOME}" "${USER_NAME}" && \
+RUN set -e && \
+    groupadd --gid 1000 "${USER_NAME}" && \
+    useradd -g "${USER_NAME}" --uid 1000 --no-create-home --home-dir "${USER_HOME}" "${USER_NAME}" && \
     chown -R "${USER_NAME}" "${USER_HOME}"
 USER ${USER_NAME}
 

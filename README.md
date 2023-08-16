@@ -1,6 +1,8 @@
 # moodle-quiz-archive-worker
 
 [![Latest Version](https://img.shields.io/github/v/release/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/releases)
+![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ngandrass/moodle-quiz-archive-worker/latest?label=Docker%20image)
+![Docker Pulls](https://img.shields.io/docker/pulls/ngandrass/moodle-quiz-archive-worker)
 [![Maintenance Status](https://img.shields.io/maintenance/yes/9999)](https://github.com/ngandrass/moodle-quiz-archive-worker/)
 [![License](https://img.shields.io/github/license/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/blob/master/LICENSE)
 [![GitHub Issues](https://img.shields.io/github/issues/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/issues)
@@ -26,12 +28,28 @@ to allow integrity checks.
 You can install this application in several ways, however, the easiest and
 preferred way is to use [Docker Compose](#docker-compose).
 
+
 ## Docker Compose
 
 1. Install [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
-2. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
-3. Switch into the repository directory: `cd moodle-quiz-archive-worker`
-4. Run the application: `docker-compose up`
+2. Create a `docker-compose.yml` inside a `moodle-quiz-archive-worker` folder
+   with the following content:
+   ```yaml
+   services:
+     moodle-quiz-archive-worker:
+       image: ngandrass/moodle-quiz-archive-worker:latest
+       container_name: moodle-quiz-archive-worker
+       restart: always
+       ports:
+         - "8080:8080"
+       environment:
+         - QUIZ_ARCHIVER_LOG_LEVEL=INFO
+         - QUIZ_ARCHIVER_QUEUE_SIZE=8
+         - QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC=1800
+         - QUIZ_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES=512000000
+   ```
+3. From inside the `moodle-quiz-archive-worker` folder, run the application:
+   `docker compose up`
 
 You can change the host port by replacing the first port number in the `ports`
 argument and configuration values by setting the respective `environment`
@@ -40,20 +58,26 @@ configuration parameters see [Configuration](#configuration).
 
 ### Running the application in the background
 
-To run the application in the background, use the `-d` argument:
+To run the application in the background, append the `-d` argument:
 
 ```shell
-docker-compose up -d
+docker compose up -d
+```
+
+### Removing the application
+
+To remove all created containers, networks and volumes, run the following
+command from inside the `moodle-quiz-archive-worker` folder:
+
+```shell
+docker compose down
 ```
 
 
 ## Docker
 
 1. Install [Docker](https://www.docker.com/)
-2. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
-3. Switch into the repository directory: `cd moodle-quiz-archive-worker`
-4. Build the Docker image: `docker build -t moodle-quiz-archive-worker:latest .`
-5. Run a container: `docker run --rm -it -p 8080:8080 moodle-quiz-archive-worker:latest`
+2. Run a container: `docker run --rm -it -p 8080:8080 ngandrass/moodle-quiz-archive-worker:latest`
 
 You can change the host port the application is bound to by changing the first
 port number in the `-p` argument of the `docker run` command. Example:
@@ -70,6 +94,15 @@ docker run --rm -it -e QUIZ_ARCHIVER_LOG_LEVEL=DEBUG -p 8080:8080 moodle-quiz-ar
 ```
 
 For more details and all available configuration parameters see [Configuration](#configuration).
+
+
+### Building the image locally
+
+1. Install [Docker](https://www.docker.com/)
+2. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
+3. Switch into the repository directory: `cd moodle-quiz-archive-worker`
+4. Build the Docker image: `docker build -t moodle-quiz-archive-worker:latest .`
+5. Run a container: `docker run --rm -it -p 8080:8080 moodle-quiz-archive-worker:latest`
 
 
 ## Manual Installation

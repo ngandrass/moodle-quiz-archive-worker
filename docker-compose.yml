@@ -1,9 +1,7 @@
 services:
   moodle-quiz-archive-worker:
-    image: moodle-quiz-archive-worker:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ngandrass/moodle-quiz-archive-worker:latest
+    container_name: moodle-quiz-archive-worker
     restart: always
     ports:
       - "8080:8080"

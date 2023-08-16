@@ -387,6 +387,13 @@ class QuizArchiveJob:
             content_length = h.headers.get('Content-Length', None)
 
             if content_type != 'application/vnd.moodle.backup':
+                # Try to get JSON content if debug logging is enabled to allow debugging
+                if Config.LOG_LEVEL == logging.DEBUG:
+                    if content_type.startswith('application/json'):
+                        r = requests.get(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
+                        self.logger.debug(f'Backup file GET response: {r.text}')
+
+                # Normal error handling
                 raise RuntimeError(f'Backup Content-Type invalid. Expected "application/vnd.moodle.backup" but got "{content_type}"')
 
             if not content_length:

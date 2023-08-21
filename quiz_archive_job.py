@@ -31,7 +31,7 @@ import requests
 from playwright.async_api import async_playwright, ViewportSize
 
 from config import Config
-from custom_types import JobStatus, JobArchiveRequest
+from custom_types import JobStatus, JobArchiveRequest, ReportSignal
 
 
 class QuizArchiveJob:
@@ -192,6 +192,17 @@ class QuizArchiveJob:
             context = await browser.new_context(viewport=ViewportSize(width=int(Config.REPORT_BASE_VIEWPORT_WIDTH), height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9))))
             page = await context.new_page()
             await page.set_content(attempt_html)
+
+            # Wait for the page to report that is fully rendered, if enabled
+            if Config.REPORT_WAIT_FOR_READY_SIGNAL:
+                try:
+                    await self._wait_for_page_ready_signal(page)
+                except Exception:
+                    self.logger.error(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Aborting ...')
+                    raise RuntimeError()
+            else:
+                self.logger.debug('Not waiting for ready signal. Export immediately ...')
+
             await page.pdf(
                 path=f"{self.workdir}/attempts/{report_name}.pdf",
                 format=paper_format,
@@ -207,6 +218,38 @@ class QuizArchiveJob:
             await browser.close()
 
             self.logger.info(f"Generated {report_name}")
+
+    async def _wait_for_page_ready_signal(self, page):
+        """
+        Waits for the page to report that it is ready for export
+
+        :param page: Page object
+        :return: None
+        """
+        async with page.expect_console_message(lambda msg: msg.text == ReportSignal.READY_FOR_EXPORT.value, timeout=Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC * 1000) as cmsg_handler:
+            self.logger.debug('Injecting JS to wait for page rendering ...')
+            await page.evaluate('''
+                setTimeout(function() {
+                    const SIGNAL_PAGE_READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export";
+                    const SIGNAL_MATHJAX_FOUND = "x-quiz-archiver-mathjax-found";
+                    const SIGNAL_MATHJAX_NOT_FOUND = "x-quiz-archiver-mathjax-not-found";
+
+                    if (typeof window.MathJax !== 'undefined') {
+                        console.log(SIGNAL_MATHJAX_FOUND);
+                        window.MathJax.Hub.Queue(function () {
+                            console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
+                        });
+                        window.MathJax.Hub.processSectionDelay = 0;
+                    } else {
+                        console.log(SIGNAL_MATHJAX_NOT_FOUND);
+                        console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
+                    }
+                }, 1500);
+            ''')
+            self.logger.debug(f'Waiting for ready signal: {ReportSignal.READY_FOR_EXPORT}')
+
+            cmsg = await cmsg_handler.value
+            self.logger.debug(f'Received signal: {cmsg}')
 
     def get_report_name(self, attemptid: int):
         """

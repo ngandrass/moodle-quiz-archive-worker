@@ -18,10 +18,11 @@ Quiz archiver service to work in conjunction with the Moodle plugin
 [quiz_archiver](https://github.com/ngandrass/moodle-quiz_archiver).
 
 This application processes quiz archive jobs. It renders Moodle quiz attempts
-inside a headless webbrowser and exports them to PDFs and HTMLs. Moodle backups
-can optionally be included in the generated archive. The checksum for each file
-within the archive as well as the checksum of the archive itself is calculated
-to allow integrity checks.
+inside a headless webbrowser and exports them to PDFs and HTMLs, including full
+MathJax formulas and other complex elements that require JS processing. Moodle
+backups can optionally be included in the generated archive. The checksum for
+each file within the archive as well as the checksum of the archive itself is
+calculated to allow integrity checks.
 
 
 # Installation
@@ -140,6 +141,8 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC`: Number of seconds to wait between backup status queries (default=`30`)
 - `QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes Moodle backups are allowed to have (default=`(512 * 10e6)`)
 - `QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH`: Width of the viewport on attempt rendering in px (default=`1240`)
+- `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL`: Whether to wait for the ready signal from the report page JS before generating the export (default=`True`)
+- `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC`: Number of seconds to wait for the ready signal from the report page JS before generating the export (default=`15`)
 
 
 ## License

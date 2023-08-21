@@ -123,7 +123,7 @@ class QuizArchiveJob:
                         if threading.current_thread().stop_requested():
                             raise InterruptedError('Thread stop requested')
 
-                        asyncio.run(self._render_quiz_attempt(attemptid))
+                        asyncio.run(self._render_quiz_attempt(attemptid, self.request.tasks['archive_quiz_attempts']['paper_format']))
 
                 if self.request.tasks['archive_moodle_backups']:
                     asyncio.run(self._process_moodle_backups())
@@ -175,11 +175,12 @@ class QuizArchiveJob:
         self.set_status(JobStatus.FINISHED, notify_moodle=False)  # Do not notify Moodle as it marks this job as completed on its own after the file was processed
         self.logger.info(f"Finished job {self.id}")
 
-    async def _render_quiz_attempt(self, attemptid: int):
+    async def _render_quiz_attempt(self, attemptid: int, paper_format: str):
         """
         Renders a complete quiz attempt to a PDF file
 
         :param attemptid: ID of the quiz attempt to render
+        :param paper_format: Paper format to use for the PDF (e.g. 'A4')
         """
         report_name = self.get_report_name(attemptid)
         attempt_html = self._get_attempt_html_from_moodle(attemptid)
@@ -193,20 +194,19 @@ class QuizArchiveJob:
             context = await browser.new_context(viewport=ViewportSize(width=int(Config.REPORT_BASE_VIEWPORT_WIDTH), height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9))))
             page = await context.new_page()
             await page.set_content(attempt_html)
-            screenshot = await page.screenshot(
-                full_page=True,
-                caret="hide",
-                type="png"
+            await page.pdf(
+                path=f"{self.workdir}/attempts/{report_name}.pdf",
+                format=paper_format,
+                print_background=True,
+                display_header_footer=False,
+                margin={
+                    'top': '5mm',
+                    'right': '5mm',
+                    'bottom': '5mm',
+                    'left': '5mm'
+                }
             )
             await browser.close()
-
-            # Save attempt PNG as PDF
-            with open(f"{self.workdir}/attempts/{report_name}.pdf", "wb") as f:
-                f.write(img2pdf.convert(
-                    io.BytesIO(screenshot),
-                    creator=f"Moodle Quiz Archive Worker {Config.VERSION}",
-                    creationdate=datetime.now()
-                ))
 
             self.logger.info(f"Generated {report_name}")
 

@@ -18,7 +18,6 @@ import asyncio
 import csv
 import glob
 import hashlib
-import io
 import logging
 import os
 import tarfile
@@ -28,7 +27,6 @@ from json import JSONDecodeError
 from tempfile import TemporaryDirectory
 from uuid import UUID
 
-import img2pdf
 import requests
 from playwright.async_api import async_playwright, ViewportSize
 

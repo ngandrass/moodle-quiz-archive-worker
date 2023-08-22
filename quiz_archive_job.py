@@ -244,7 +244,7 @@ class QuizArchiveJob:
                         console.log(SIGNAL_MATHJAX_NOT_FOUND);
                         console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
                     }
-                }, 1500);
+                }, 1000);
             ''')
             self.logger.debug(f'Waiting for ready signal: {ReportSignal.READY_FOR_EXPORT}')
 

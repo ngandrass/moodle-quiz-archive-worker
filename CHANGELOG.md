@@ -1,3 +1,13 @@
+# Version 1.1.0 (2023-08-22)
+
+- Ensure full MathJax rendering before the PDF export is generated
+- Switch from Playwright screenshot to PDF procedure to native PDF print engine
+- Allow configuration of report page margins via `QUIZ_ARCHIVER_REPORT_PAGE_MARGIN` env variable
+- Remove img2pdf dependency
+- Add additional debug output to Moodle backup download stage
+- Update Python dependencies
+
+
 # Version 1.0.7 (2023-08-16)
 
 - Optimize Docker build

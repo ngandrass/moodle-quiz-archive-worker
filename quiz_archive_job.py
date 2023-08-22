@@ -25,10 +25,11 @@ import threading
 from datetime import datetime
 from json import JSONDecodeError
 from tempfile import TemporaryDirectory
+from typing import List
 from uuid import UUID
 
 import requests
-from playwright.async_api import async_playwright, ViewportSize
+from playwright.async_api import async_playwright, ViewportSize, BrowserContext
 
 from config import Config
 from custom_types import JobStatus, JobArchiveRequest, ReportSignal
@@ -110,19 +111,17 @@ class QuizArchiveJob:
                 self.workdir = tempdir
                 self.logger.debug(f"Using temporary working directory: {self.workdir}")
 
-                # Process tasks
+                # Process task: Archive quiz attempts
                 if self.request.tasks['archive_quiz_attempts']:
-                    # Quiz attempt metadata
                     if self.request.tasks['archive_quiz_attempts']['fetch_metadata']:
                         self._process_quiz_attempts_metadata()
 
-                    # Quiz attempts
-                    for attemptid in self.request.tasks['archive_quiz_attempts']['attemptids']:
-                        if threading.current_thread().stop_requested():
-                            raise InterruptedError('Thread stop requested')
+                    asyncio.run(self._render_quiz_attempts(
+                        attemptids=self.request.tasks['archive_quiz_attempts']['attemptids'],
+                        paper_format=self.request.tasks['archive_quiz_attempts']['paper_format'])
+                    )
 
-                        asyncio.run(self._render_quiz_attempt(attemptid, self.request.tasks['archive_quiz_attempts']['paper_format']))
-
+                # Process task: Archive Moodle backups
                 if self.request.tasks['archive_moodle_backups']:
                     asyncio.run(self._process_moodle_backups())
 
@@ -173,7 +172,34 @@ class QuizArchiveJob:
         self.set_status(JobStatus.FINISHED, notify_moodle=False)  # Do not notify Moodle as it marks this job as completed on its own after the file was processed
         self.logger.info(f"Finished job {self.id}")
 
-    async def _render_quiz_attempt(self, attemptid: int, paper_format: str):
+    async def _render_quiz_attempts(self, attemptids: List[int], paper_format: str):
+        """
+        Renders all quiz attempts to HTML and PDF files
+
+        :param attemptids: List of attemptids
+        :param paper_format: Paper format to use for the PDF (e.g. 'A4')
+        :return: None
+        """
+        os.makedirs(f'{self.workdir}/attempts', exist_ok=True)
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(args=['--disable-web-security'])  # Pass --disable-web-security to ignore CORS errors
+            context = await browser.new_context(viewport=ViewportSize(
+                width=int(Config.REPORT_BASE_VIEWPORT_WIDTH),
+                height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9)))
+            )
+            self.logger.debug("Spwaned new playwright Browser and BrowserContext")
+
+            for attemptid in attemptids:
+                if threading.current_thread().stop_requested():
+                    raise InterruptedError('Thread stop requested')
+                else:
+                    await self._render_quiz_attempt(context, attemptid, paper_format)
+
+            await browser.close()
+            self.logger.debug("Destroyed playwright Browser and BrowserContext")
+
+    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: str):
         """
         Renders a complete quiz attempt to a PDF file
 
@@ -181,43 +207,43 @@ class QuizArchiveJob:
         :param paper_format: Paper format to use for the PDF (e.g. 'A4')
         """
         report_name = self.get_report_name(attemptid)
+
+        # Retrieve and save attempt HTML
         attempt_html = self._get_attempt_html_from_moodle(attemptid)
-        os.makedirs(f'{self.workdir}/attempts', exist_ok=True)
         with open(f"{self.workdir}/attempts/{report_name}.html", "w+") as f:
             f.write(attempt_html)
 
-        async with async_playwright() as p:
-            # Launch browser and render attempt to PNG
-            browser = await p.chromium.launch(args=['--disable-web-security'])  # Pass --disable-web-security to ignore CORS errors
-            context = await browser.new_context(viewport=ViewportSize(width=int(Config.REPORT_BASE_VIEWPORT_WIDTH), height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9))))
-            page = await context.new_page()
-            await page.set_content(attempt_html)
+        # Render attempt HTML in browser
+        page = await bctx.new_page()
+        await page.set_content(attempt_html)
 
-            # Wait for the page to report that is fully rendered, if enabled
-            if Config.REPORT_WAIT_FOR_READY_SIGNAL:
-                try:
-                    await self._wait_for_page_ready_signal(page)
-                except Exception:
-                    self.logger.error(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Aborting ...')
-                    raise RuntimeError()
-            else:
-                self.logger.debug('Not waiting for ready signal. Export immediately ...')
+        # Wait for the page to report that is fully rendered, if enabled
+        if Config.REPORT_WAIT_FOR_READY_SIGNAL:
+            try:
+                await self._wait_for_page_ready_signal(page)
+            except Exception:
+                self.logger.error(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Aborting ...')
+                raise RuntimeError()
+        else:
+            self.logger.debug('Not waiting for ready signal. Export immediately ...')
 
-            await page.pdf(
-                path=f"{self.workdir}/attempts/{report_name}.pdf",
-                format=paper_format,
-                print_background=True,
-                display_header_footer=False,
-                margin={
-                    'top': Config.REPORT_PAGE_MARGIN,
-                    'right': Config.REPORT_PAGE_MARGIN,
-                    'bottom': Config.REPORT_PAGE_MARGIN,
-                    'left': Config.REPORT_PAGE_MARGIN,
-                }
-            )
-            await browser.close()
+        # Save attempt page as PDF
+        await page.pdf(
+            path=f"{self.workdir}/attempts/{report_name}.pdf",
+            format=paper_format,
+            print_background=True,
+            display_header_footer=False,
+            margin={
+                'top': Config.REPORT_PAGE_MARGIN,
+                'right': Config.REPORT_PAGE_MARGIN,
+                'bottom': Config.REPORT_PAGE_MARGIN,
+                'left': Config.REPORT_PAGE_MARGIN,
+            }
+        )
 
-            self.logger.info(f"Generated {report_name}")
+        # Cleanup and logging
+        await page.close()
+        self.logger.info(f"Generated {report_name}")
 
     async def _wait_for_page_ready_signal(self, page):
         """

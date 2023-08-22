@@ -1,3 +1,8 @@
+# Version 1.1.1 (XXXX-XX-XX)
+
+- Reuse Playwright BrowserContext between attempt renderings
+ 
+
 # Version 1.1.0 (2023-08-22)
 
 - Ensure full MathJax rendering before the PDF export is generated

@@ -53,6 +53,9 @@ class Config:
     REPORT_BASE_VIEWPORT_WIDTH = os.getenv('QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH', default=1240)
     """Width of the viewport created for rendering quiz attempts in pixel"""
 
+    REPORT_PAGE_MARGIN = os.getenv('QUIZ_ARCHIVER_REPORT_PAGE_MARGIN', default='5mm')
+    """Margin (top, bottom, left, right) of the report PDF pages including unit (mm, cm, in, px)"""
+
     REPORT_WAIT_FOR_READY_SIGNAL = os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL', default=True)
     """Whether to wait for the ready signal from the report page JS before generating the export"""
 

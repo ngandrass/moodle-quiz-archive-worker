@@ -141,6 +141,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC`: Number of seconds to wait between backup status queries (default=`30`)
 - `QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes Moodle backups are allowed to have (default=`(512 * 10e6)`)
 - `QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH`: Width of the viewport on attempt rendering in px (default=`1240`)
+- `QUIZ_ARCHIVER_REPORT_PAGE_MARGIN`: Margin (top, bottom, left, right) of the report PDF pages including unit (mm, cm, in, px) (default=`'5mm'`)
 - `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL`: Whether to wait for the ready signal from the report page JS before generating the export (default=`True`)
 - `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC`: Number of seconds to wait for the ready signal from the report page JS before generating the export (default=`15`)
 

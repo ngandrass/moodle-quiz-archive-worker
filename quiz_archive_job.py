@@ -209,10 +209,10 @@ class QuizArchiveJob:
                 print_background=True,
                 display_header_footer=False,
                 margin={
-                    'top': '5mm',
-                    'right': '5mm',
-                    'bottom': '5mm',
-                    'left': '5mm'
+                    'top': Config.REPORT_PAGE_MARGIN,
+                    'right': Config.REPORT_PAGE_MARGIN,
+                    'bottom': Config.REPORT_PAGE_MARGIN,
+                    'left': Config.REPORT_PAGE_MARGIN,
                 }
             )
             await browser.close()

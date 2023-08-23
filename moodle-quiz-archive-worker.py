@@ -171,7 +171,8 @@ def handle_archive_request():
         job_history.append(job)
         job.set_status(JobStatus.AWAITING_PROCESSING)
         app.logger.info(f"Enqueued job {job.get_id()} from {request.remote_addr}")
-    except TypeError:
+    except TypeError as e:
+        app.logger.debug(f'JSON is technically incomplete or missing a required parameter. TypeError: {str(e)}')
         return error_response('JSON is technically incomplete or missing a required parameter.', HTTPStatus.BAD_REQUEST)
     except ValueError as e:
         return error_response(f'JSON data is invalid: {str(e)}', HTTPStatus.BAD_REQUEST)

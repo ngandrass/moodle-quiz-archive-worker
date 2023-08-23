@@ -35,31 +35,31 @@ class Config:
     SERVER_PORT = os.getenv('QUIZ_ARCHIVER_SERVER_PORT', default='8080')
     """Port for Flask to listen on"""
 
-    QUEUE_SIZE = os.getenv('QUIZ_ARCHIVER_QUEUE_SIZE', default=8)
+    QUEUE_SIZE = int(os.getenv('QUIZ_ARCHIVER_QUEUE_SIZE', default=8))
     """Maximum number of requests that are queued before returning an error."""
 
-    HISTORY_SIZE = os.getenv('QUIZ_ARCHIVER_HISTORY_SIZE', default=128)
+    HISTORY_SIZE = int(os.getenv('QUIZ_ARCHIVER_HISTORY_SIZE', default=128))
     """Maximum number of jobs to keep in the history before forgetting about them."""
 
-    REQUEST_TIMEOUT_SEC = os.getenv('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(30 * 60))
+    REQUEST_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(30 * 60)))
     """Number of seconds before execution of a single request is aborted."""
 
-    BACKUP_STATUS_RETRY_SEC = os.getenv('QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30)
+    BACKUP_STATUS_RETRY_SEC = int(os.getenv('QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30))
     """Number of seconds between status checks of pending backups via the Moodle API"""
 
-    BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES = os.getenv('QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES', default=(512 * 10e6))
+    BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES = int(os.getenv('QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES', default=(512 * 10e6)))
     """Maximum number of bytes a backup is allowed to have for downloading"""
 
-    REPORT_BASE_VIEWPORT_WIDTH = os.getenv('QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH', default=1240)
+    REPORT_BASE_VIEWPORT_WIDTH = int(os.getenv('QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH', default=1240))
     """Width of the viewport created for rendering quiz attempts in pixel"""
 
     REPORT_PAGE_MARGIN = os.getenv('QUIZ_ARCHIVER_REPORT_PAGE_MARGIN', default='5mm')
     """Margin (top, bottom, left, right) of the report PDF pages including unit (mm, cm, in, px)"""
 
-    REPORT_WAIT_FOR_READY_SIGNAL = os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL', default=True)
+    REPORT_WAIT_FOR_READY_SIGNAL = bool(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL', default=True))
     """Whether to wait for the ready signal from the report page JS before generating the export"""
 
-    REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC = os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC', default=15)
+    REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC', default=15))
     """Number of seconds to wait for the ready signal from the report page JS before considering the export as failed"""
 
     MOODLE_WSFUNCTION_ARCHIVE = 'quiz_archiver_generate_attempt_report'

@@ -18,7 +18,7 @@ Quiz archiver service to work in conjunction with the Moodle plugin
 [quiz_archiver](https://github.com/ngandrass/moodle-quiz_archiver).
 
 This application processes quiz archive jobs. It renders Moodle quiz attempts
-inside a headless webbrowser and exports them to PDFs and HTMLs, including full
+inside a headless webbrowser and exports them to PDF/HTML files, including
 MathJax formulas and other complex elements that require JS processing. Moodle
 backups can optionally be included in the generated archive. The checksum for
 each file within the archive as well as the checksum of the archive itself is

@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.1.2 (2023-11-08)
+
+- Update Python dependencies
+
+
 ## Version 1.1.1 (2023-08-23)
 
 - Improve performance: Reuse Playwright `BrowserContext` between attempt renderings.

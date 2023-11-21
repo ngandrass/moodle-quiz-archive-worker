@@ -206,11 +206,15 @@ class QuizArchiveJob:
         :param attemptid: ID of the quiz attempt to render
         :param paper_format: Paper format to use for the PDF (e.g. 'A4')
         """
+        attempt_dir = f"{self.workdir}/attempts/{self.get_attempt_dir_name(attemptid)}"
         report_name = self.get_report_name(attemptid)
+
+        # Initialize attempt subdirectory
+        os.makedirs(attempt_dir, exist_ok=True)
 
         # Retrieve and save attempt HTML
         attempt_html = self._get_attempt_html_from_moodle(attemptid)
-        with open(f"{self.workdir}/attempts/{report_name}.html", "w+") as f:
+        with open(f"{attempt_dir}/{report_name}.html", "w+") as f:
             f.write(attempt_html)
 
         # Render attempt HTML in browser
@@ -229,7 +233,7 @@ class QuizArchiveJob:
 
         # Save attempt page as PDF
         await page.pdf(
-            path=f"{self.workdir}/attempts/{report_name}.pdf",
+            path=f"{attempt_dir}/{report_name}.pdf",
             format=paper_format,
             print_background=True,
             display_header_footer=False,
@@ -277,6 +281,15 @@ class QuizArchiveJob:
             cmsg = await cmsg_handler.value
             self.logger.debug(f'Received signal: {cmsg}')
 
+    def get_attempt_dir_name(self, attemptid: int):
+        """
+        Returns the name of the directory for a quiz attempt
+
+        :param attemptid: ID of the quiz attempt
+        :return: string directory name
+        """
+        return f"cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
+
     def get_report_name(self, attemptid: int):
         """
         Returns the report name for a quiz attempt
@@ -284,7 +297,7 @@ class QuizArchiveJob:
         :param attemptid: ID of the quiz attempt
         :return: string report name
         """
-        return f"quiz_attempt_report_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
+        return f"quiz_attempt_report_{self.get_attempt_dir_name(attemptid)}"
 
     def _get_attempt_html_from_moodle(self, attemptid: int) -> str:
         """
@@ -345,9 +358,9 @@ class QuizArchiveJob:
         metadata = asyncio.run(self._fetch_quiz_attempt_metadata())
         self.logger.debug(f"Quiz attempt metadata: {metadata}")
 
-        # Add report filename to each metadata entry
+        # Add path to each entry for metadata processing
         for entry in metadata:
-            entry['report_filename'] = f"{self.get_report_name(entry['attemptid'])}.pdf"
+            entry['path'] = f"/attempts/{self.get_attempt_dir_name(entry['attemptid'])}"
 
         # Write metadata to CSV file
         with open(f'{self.workdir}/attempts_metadata.csv', 'w+') as f:

@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.1.3 (2023-11-21)
+
+- Group attempt data in subdirectories for each attempt
+- Update Python dependencies
+
+
 ## Version 1.1.2 (2023-11-08)
 
 - Update Python dependencies

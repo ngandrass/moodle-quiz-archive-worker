@@ -18,14 +18,16 @@ import asyncio
 import csv
 import glob
 import hashlib
+import json
 import logging
 import os
 import tarfile
 import threading
 from datetime import datetime
 from json import JSONDecodeError
+from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Tuple
 from uuid import UUID
 
 import requests
@@ -212,8 +214,8 @@ class QuizArchiveJob:
         # Initialize attempt subdirectory
         os.makedirs(attempt_dir, exist_ok=True)
 
-        # Retrieve and save attempt HTML
-        attempt_html = self._get_attempt_html_from_moodle(attemptid)
+        # Retrieve and save attempt data
+        attempt_html, attempt_attachments = self._get_attempt_data_from_moodle(attemptid)
         with open(f"{attempt_dir}/{report_name}.html", "w+") as f:
             f.write(attempt_html)
 
@@ -261,6 +263,22 @@ class QuizArchiveJob:
         # Cleanup and logging
         await page.close()
         self.logger.info(f"Generated {report_name}")
+
+        # Save attempt attachments
+        if attempt_attachments:
+            self.logger.debug(f"Saving {len(attempt_attachments)} attachments ...")
+            for attachment in attempt_attachments:
+                target_dir = f"{attempt_dir}/attachments/{attachment['slot']}"
+
+                downloaded_bytes = self._download_moodle_file(
+                    download_url=attachment['downloadurl'],
+                    path=Path(target_dir),
+                    filename=attachment['filename'],
+                    sha1sum_expected=attachment['contenthash'],
+                    maxsize_bytes=Config.QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES
+                )
+
+                self.logger.info(f'Downloaded {downloaded_bytes} bytes of quiz slot {attachment["slot"]} attachment {attachment["filename"]} to {target_dir}')
 
     async def _wait_for_page_ready_signal(self, page):
         """
@@ -312,16 +330,18 @@ class QuizArchiveJob:
         """
         return f"quiz_attempt_report_{self.get_attempt_dir_name(attemptid)}"
 
-    def _get_attempt_html_from_moodle(self, attemptid: int) -> str:
+    def _get_attempt_data_from_moodle(self, attemptid: int) -> Tuple[str, List]:
         """
-        Requests the HTML DOM for a quiz attempt from the Moodle webservice API
+        Requests the attempt data (HTML DOM, attachment metadata) for a quiz
+        attempt from the Moodle webservice API
 
         :param attemptid: ID of the attempt to request
         :raises ConnectionError if the request to the Moodle webservice API
         failed or the response could not be parsed
         :raises RuntimeError if the Moodle webservice API reported an error
         :raises ValueError if the response from the Moodle webservice API was incomplete
-        :return: string HTML DOM report for the requested attemptid
+        :return: Tuple[str, List] consisting of HTML DOM report and a List of attachments
+                 for the requested attemptid
         """
         try:
             r = requests.get(url=self.request.moodle_ws_url, params={
@@ -332,6 +352,7 @@ class QuizArchiveJob:
                 'cmid': self.request.cmid,
                 'quizid': self.request.quizid,
                 'attemptid': attemptid,
+                'attachments': self.request.tasks["archive_quiz_attempts"]["sections"]["attachments"],
                 **{f'sections[{key}]': value for key, value in self.request.tasks["archive_quiz_attempts"]["sections"].items()}
             })
             data = r.json()
@@ -346,7 +367,7 @@ class QuizArchiveJob:
             raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
 
         # Check if response is as expected
-        for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'report']:
+        for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'report', 'attachments']:
             if attr not in data:
                 raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an incomplete response')
 
@@ -354,12 +375,14 @@ class QuizArchiveJob:
             data['attemptid'] == attemptid and
             data['courseid'] == self.request.courseid and
             data['cmid'] == self.request.cmid and
-            data['quizid'] == self.request.quizid
+            data['quizid'] == self.request.quizid and
+            isinstance(data['report'], str) and
+            isinstance(data['attachments'], list)
         ):
             raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid response')
 
         # Looks fine - Data seems valid :)
-        return data['report']
+        return data['report'], data['attachments']
 
     def _process_quiz_attempts_metadata(self):
         """
@@ -501,9 +524,37 @@ class QuizArchiveJob:
             raise ConnectionError(f'Failed to retrieve HEAD for backup {backupid} at: {download_url}. {str(e)}')
 
         # Download backup
+        downloaded_bytes = self._download_moodle_file(
+            download_url,
+            Path(f'{self.workdir}/backups'),
+            filename,
+            maxsize_bytes=Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES,
+        )
+
+        self.logger.info(f'Downloaded {downloaded_bytes} bytes of backup {backupid} to {self.workdir}/{filename}')
+
+    def _download_moodle_file(
+            self,
+            download_url: str,
+            path: Path,
+            filename: str,
+            sha1sum_expected: str = None,
+            maxsize_bytes: int = Config.DOWNLOAD_MAX_FILESIZE_BYTES
+    ) -> int:
+        """
+        Downloads a file from Moodle and saves it to the specified path. Downloads
+        are performed in chunks.
+
+        :param download_url: The URL to download the file from
+        :param path: The path to store the downloaded file into
+        :param filename: The name of the file to store
+        :param sha1sum_expected: SHA1 sum of the file contents to check against, ignored if None
+        :param maxsize_bytes: Maximum number of bytes before the download is forcefully aborted
+        :return: Number of bytes downloaded
+        """
         try:
-            os.makedirs(f'{self.workdir}/backups', exist_ok=True)
-            with open(f'{self.workdir}/backups/{filename}', 'wb+') as f:
+            os.makedirs(path, exist_ok=True)
+            with open(path.joinpath(filename), 'wb+') as f:
                 r = requests.get(url=download_url, params={
                     'token': self.request.wstoken,
                     'forcedownload': 1
@@ -512,17 +563,38 @@ class QuizArchiveJob:
                 chunksize = int(32 * 10e6)  # 32 MB
                 downloaded_bytes = 0
                 for chunk in r.iter_content(chunksize):
-                    if downloaded_bytes > Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES:
-                        raise RuntimeError(f'Downloading backup file was larger than expected and exceeded the maximum file size limit of {Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES} bytes')
+                    if downloaded_bytes > maxsize_bytes:
+                        raise RuntimeError(f'Downloaded Moodle file was larger than expected and exceeded the maximum file size limit of {maxsize_bytes} bytes')
                     downloaded_bytes = downloaded_bytes + f.write(chunk)
         except RuntimeError as e:
             raise e
         except IOError:
-            raise RuntimeError(f'Encountered internal IOError while writing the backup file from {download_url} to {filename}')
+            raise RuntimeError(f'Encountered internal IOError while writing a downloading Moodle file from {download_url} to {filename}')
         except Exception:
-            ConnectionError(f'Failed to download backup file from: {download_url}')
+            ConnectionError(f'Failed to download Moodle file from: {download_url}')
 
-        self.logger.info(f'Downloaded {downloaded_bytes} bytes of backup {backupid} to {self.workdir}/{filename}')
+        # Check if we downloaded a Moodle error message
+        if os.path.getsize(path.joinpath(filename)) < 10 * 10e3:  # 10 KB
+            with open(path.joinpath(filename), 'r') as f:
+                try:
+                    data = json.load(f)
+                    if 'errorcode' in data and 'debuginfo' in data:
+                        self.logger.debug(f'Downloaded JSON response: {data}')
+                        raise RuntimeError(f'Moodle file download failed with "{data["errorcode"]}"')
+                except JSONDecodeError:
+                    pass
+
+        # Check SHA1 sum
+        if sha1sum_expected:
+            with open(path.joinpath(filename), 'rb') as f:
+                sha1sum = hashlib.sha1()
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    sha1sum.update(byte_block)
+
+            if sha1sum.hexdigest() != sha1sum_expected:
+                raise RuntimeError(f'Moodle file download failed. Expected SHA1 sum "{sha1sum_expected}" but got "{sha1sum.hexdigest()}"')
+
+        self.logger.info(f'Downloaded {downloaded_bytes} bytes to {self.workdir}/{filename}')
 
     def _push_artifact_to_moodle(self, artifact_filename: str, artifact_sha256sum: str):
         with open(artifact_filename, "rb") as f:

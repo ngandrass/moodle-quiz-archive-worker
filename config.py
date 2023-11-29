@@ -47,8 +47,14 @@ class Config:
     BACKUP_STATUS_RETRY_SEC = int(os.getenv('QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30))
     """Number of seconds between status checks of pending backups via the Moodle API"""
 
+    DOWNLOAD_MAX_FILESIZE_BYTES = int(os.getenv('QUIZ_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES', default=(1024 * 10e6)))
+    """Maximum number of bytes a generic Moodle file is allowed to have for downloading"""
+
     BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES = int(os.getenv('QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES', default=(512 * 10e6)))
     """Maximum number of bytes a backup is allowed to have for downloading"""
+
+    QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES = int(os.getenv('QUIZ_ARCHIVER_QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES', default=(128 * 10e6)))
+    """Maximum number of bytes a question attachment is allowed to have for downloading"""
 
     REPORT_BASE_VIEWPORT_WIDTH = int(os.getenv('QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH', default=1240))
     """Width of the viewport created for rendering quiz attempts in pixel"""

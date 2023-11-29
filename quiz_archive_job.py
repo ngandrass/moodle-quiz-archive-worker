@@ -29,7 +29,7 @@ from typing import List
 from uuid import UUID
 
 import requests
-from playwright.async_api import async_playwright, ViewportSize, BrowserContext
+from playwright.async_api import async_playwright, ViewportSize, BrowserContext, Route
 
 from config import Config
 from custom_types import JobStatus, JobArchiveRequest, ReportSignal
@@ -223,8 +223,16 @@ class QuizArchiveJob:
             page.on('console', lambda msg: self.logger.debug(f'Playwright console message: {msg.text}'))
             page.on('pageerror', lambda err: self.logger.debug(f'Playwright page error: {err}'))
 
-        # Render attempt HTML in browser
-        await page.set_content(attempt_html)
+        # Create mock responder to serve attempt HTML
+        # This is done to avoid CORS errors when loading the attempt HTML and to
+        # prevent errors when dynamically loading JavaScript modules via
+        # requireJS. Using the base URL of the corresponding Moodle LMS seems to
+        # work absolutely fine for now.
+        async def mock_responder(route: Route):
+            await route.fulfill(body=attempt_html, content_type='text/html')
+
+        await page.route(f"{self.request.moodle_base_url}/mock/attempt", mock_responder)
+        await page.goto(f"{self.request.moodle_base_url}/mock/attempt")
 
         # Wait for the page to report that is fully rendered, if enabled
         if Config.REPORT_WAIT_FOR_READY_SIGNAL:

@@ -54,10 +54,11 @@ class JobArchiveRequest:
     Deserialized JSON request for creating an archive job
     """
 
-    API_VERSION = 3
+    API_VERSION = 4
 
     def __init__(self,
                  api_version: int,
+                 moodle_base_url: str,
                  moodle_ws_url: str,
                  moodle_upload_url: str,
                  wstoken: str,
@@ -67,9 +68,10 @@ class JobArchiveRequest:
                  task_archive_quiz_attempts: any,
                  task_moodle_backups: any):
         if api_version != self.API_VERSION:
-            raise ValueError(f'API version mismatch. Expected: {self.API_VERSION}, Got: {api_version}.')
+            raise ValueError(f'API version mismatch. Expected: {self.API_VERSION}, Got: {api_version}. Please update your quiz-archive-worker!')
 
         self.api_version = api_version
+        self.moodle_base_url = moodle_base_url
         self.moodle_ws_url = moodle_ws_url
         self.moodle_upload_url = moodle_upload_url
         self.wstoken = wstoken
@@ -104,6 +106,9 @@ class JobArchiveRequest:
 
     def _validate_self(self):
         """Validates this object based on current values"""
+        if not isinstance(self.moodle_base_url, str) or self.moodle_base_url is None:
+            return False
+
         if not isinstance(self.moodle_ws_url, str) or self.moodle_ws_url is None:
             return False
 

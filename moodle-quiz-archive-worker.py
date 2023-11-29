@@ -155,7 +155,7 @@ def handle_archive_request():
         # Check arguments
         if not request.is_json:
             return error_response('Request must be JSON.', HTTPStatus.BAD_REQUEST)
-        job_request = JobArchiveRequest(**request.get_json())
+        job_request = JobArchiveRequest.from_json(request.get_json())
 
         # Check queue capacity early
         if job_queue.full():

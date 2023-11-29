@@ -84,6 +84,24 @@ class JobArchiveRequest:
         if not self._validate_self():
             raise ValueError('Validation of request payload failed')
 
+    @staticmethod
+    def from_json(json: dict) -> 'JobArchiveRequest':
+        """
+        Creates a new JobArchiveRequest object from a JSON dictionary
+
+        :param json: Deserialized request JSON
+        :return: JobArchiveRequest object
+        """
+        # Catch API version missmatch early
+        if 'api_version' not in json:
+            raise ValueError('API version missing in request payload')
+        if not isinstance(json['api_version'], int):
+            raise ValueError('API version must be an integer')
+        if json['api_version'] != JobArchiveRequest.API_VERSION:
+            raise ValueError(f'API version mismatch. Expected: {JobArchiveRequest.API_VERSION}, Got: {json["api_version"]}. Please update your quiz-archive-worker!')
+
+        return JobArchiveRequest(**json)
+
     def _validate_self(self):
         """Validates this object based on current values"""
         if not isinstance(self.moodle_ws_url, str) or self.moodle_ws_url is None:

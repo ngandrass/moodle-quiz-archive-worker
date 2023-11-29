@@ -217,8 +217,13 @@ class QuizArchiveJob:
         with open(f"{attempt_dir}/{report_name}.html", "w+") as f:
             f.write(attempt_html)
 
-        # Render attempt HTML in browser
+        # Prepare new page
         page = await bctx.new_page()
+        if Config.LOG_LEVEL == logging.DEBUG:
+            page.on('console', lambda msg: self.logger.debug(f'Playwright console message: {msg.text}'))
+            page.on('pageerror', lambda err: self.logger.debug(f'Playwright page error: {err}'))
+
+        # Render attempt HTML in browser
         await page.set_content(attempt_html)
 
         # Wait for the page to report that is fully rendered, if enabled

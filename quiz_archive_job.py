@@ -574,14 +574,14 @@ class QuizArchiveJob:
             ConnectionError(f'Failed to download Moodle file from: {download_url}')
 
         # Check if we downloaded a Moodle error message
-        if os.path.getsize(path.joinpath(filename)) < 10 * 10e3:  # 10 KB
+        if downloaded_bytes < 10240:  # 10 KiB
             with open(path.joinpath(filename), 'r') as f:
                 try:
                     data = json.load(f)
                     if 'errorcode' in data and 'debuginfo' in data:
                         self.logger.debug(f'Downloaded JSON response: {data}')
                         raise RuntimeError(f'Moodle file download failed with "{data["errorcode"]}"')
-                except JSONDecodeError:
+                except (JSONDecodeError, UnicodeDecodeError):
                     pass
 
         # Check SHA1 sum

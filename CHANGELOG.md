@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 1.2.0 (2023-11-30)
+
+- Download quiz attempt artifacts, if present (e.g., essay file submissions)
+- Validate checksums of downloaded Moodle files
+- Load attempt HTML via mock request to prevent CORS errors and dynamic JS loading problems
+- Catch API version mismatches early to allow proper reporting via Moodle UI
+- Refactor backup download code into generic Moodle file download function
+- Log Playwright browser console output on debug level
+- Update Python dependencies
+
+
 ## Version 1.1.3 (2023-11-21)
 
 - Group attempt data in subdirectories for each attempt

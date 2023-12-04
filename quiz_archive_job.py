@@ -355,8 +355,11 @@ class QuizArchiveJob:
                 'attachments': self.request.tasks["archive_quiz_attempts"]["sections"]["attachments"],
                 **{f'sections[{key}]': value for key, value in self.request.tasks["archive_quiz_attempts"]["sections"].items()}
             })
-            data = r.json()
-        except JSONDecodeError:
+            # Moodle 4.3 seems to return an additional "</body></html>" at the end of the response which causes the JSON parser to fail
+            response = r.text.lstrip('<html><body>').rstrip('</body></html>')
+            data = json.loads(response)
+        except JSONDecodeError as e:
+            self.logger.debug(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} response: {r.text}')
             raise ValueError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} at "{self.request.moodle_ws_url}" returned invalid JSON')
         except Exception as e:
             self.logger.debug(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} caused {type(e).__name__}: {str(e)}')

@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.2.1 (2023-12-04)
+
+- Fix Moodle 4.3 webservice JSON response parsing
+
+
 ## Version 1.2.0 (2023-11-30)
 
 - Download quiz attempt artifacts, if present (e.g., essay file submissions)

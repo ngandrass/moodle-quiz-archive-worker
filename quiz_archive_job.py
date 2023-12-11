@@ -216,8 +216,12 @@ class QuizArchiveJob:
 
         # Retrieve and save attempt data
         attempt_html, attempt_attachments = self._get_attempt_data_from_moodle(attemptid)
-        with open(f"{attempt_dir}/{report_name}.html", "w+") as f:
-            f.write(attempt_html)
+        if self.request.tasks['archive_quiz_attempts']['keep_html_files']:
+            with open(f"{attempt_dir}/{report_name}.html", "w+") as f:
+                f.write(attempt_html)
+            self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {attempt_dir}/{report_name}.html")
+        else:
+            self.logger.debug(f"Skipping HTML DOM saving of quiz attempt {attemptid}")
 
         # Prepare new page
         page = await bctx.new_page()

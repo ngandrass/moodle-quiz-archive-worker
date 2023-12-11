@@ -54,7 +54,7 @@ class JobArchiveRequest:
     Deserialized JSON request for creating an archive job
     """
 
-    API_VERSION = 4
+    API_VERSION = 5
 
     def __init__(self,
                  api_version: int,
@@ -135,6 +135,8 @@ class JobArchiveRequest:
             if not isinstance(self.tasks['archive_quiz_attempts']['fetch_metadata'], bool):
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['paper_format'], str) or self.tasks['archive_quiz_attempts']['paper_format'] not in ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Letter', 'Legal', 'Tabloid', 'Ledger']:
+                return False
+            if not isinstance(self.tasks['archive_quiz_attempts']['keep_html_files'], bool):
                 return False
 
         if self.tasks['archive_moodle_backups'] is not None:

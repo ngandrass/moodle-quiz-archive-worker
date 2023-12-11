@@ -23,7 +23,6 @@ import logging
 import os
 import tarfile
 import threading
-from datetime import datetime
 from json import JSONDecodeError
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -50,6 +49,7 @@ class QuizArchiveJob:
         self.status = JobStatus.UNINITIALIZED
         self.request = job_request
         self.workdir = None
+        self.archived_attempts = {}
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
 
     def __eq__(self, other):
@@ -115,13 +115,13 @@ class QuizArchiveJob:
 
                 # Process task: Archive quiz attempts
                 if self.request.tasks['archive_quiz_attempts']:
-                    if self.request.tasks['archive_quiz_attempts']['fetch_metadata']:
-                        self._process_quiz_attempts_metadata()
-
                     asyncio.run(self._render_quiz_attempts(
                         attemptids=self.request.tasks['archive_quiz_attempts']['attemptids'],
                         paper_format=self.request.tasks['archive_quiz_attempts']['paper_format'])
                     )
+
+                    if self.request.tasks['archive_quiz_attempts']['fetch_metadata']:
+                        self._process_quiz_attempts_metadata()
 
                 # Process task: Archive Moodle backups
                 if self.request.tasks['archive_moodle_backups']:
@@ -146,7 +146,7 @@ class QuizArchiveJob:
                 self.logger.info("Generating final archive ...")
                 with TemporaryDirectory() as tardir:
                     # Add files
-                    archive_file = f'{tardir}/quiz_archive_cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}.tar.gz'
+                    archive_file = f'{tardir}/{self.request.archive_filename}.tar.gz'
                     with tarfile.open(archive_file, 'w:gz') as tar:
                         tar.add(self.workdir, arcname="")
 
@@ -208,18 +208,18 @@ class QuizArchiveJob:
         :param attemptid: ID of the quiz attempt to render
         :param paper_format: Paper format to use for the PDF (e.g. 'A4')
         """
-        attempt_dir = f"{self.workdir}/attempts/{self.get_attempt_dir_name(attemptid)}"
-        report_name = self.get_report_name(attemptid)
+        # Retrieve attempt data
+        attempt_name, attempt_html, attempt_attachments = self._get_attempt_data_from_moodle(attemptid)
 
-        # Initialize attempt subdirectory
+        # Prepare attempt dir
+        attempt_dir = f"{self.workdir}/attempts/{attempt_name}"
         os.makedirs(attempt_dir, exist_ok=True)
 
-        # Retrieve and save attempt data
-        attempt_html, attempt_attachments = self._get_attempt_data_from_moodle(attemptid)
+        # Save HTML DOM, if desired
         if self.request.tasks['archive_quiz_attempts']['keep_html_files']:
-            with open(f"{attempt_dir}/{report_name}.html", "w+") as f:
+            with open(f"{attempt_dir}/{attempt_name}.html", "w+") as f:
                 f.write(attempt_html)
-            self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {attempt_dir}/{report_name}.html")
+            self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {attempt_dir}/{attempt_name}.html")
         else:
             self.logger.debug(f"Skipping HTML DOM saving of quiz attempt {attemptid}")
 
@@ -252,7 +252,7 @@ class QuizArchiveJob:
 
         # Save attempt page as PDF
         await page.pdf(
-            path=f"{attempt_dir}/{report_name}.pdf",
+            path=f"{attempt_dir}/{attempt_name}.pdf",
             format=paper_format,
             print_background=True,
             display_header_footer=False,
@@ -266,7 +266,7 @@ class QuizArchiveJob:
 
         # Cleanup and logging
         await page.close()
-        self.logger.info(f"Generated {report_name}")
+        self.logger.info(f"Generated \"{attempt_name}\"")
 
         # Save attempt attachments
         if attempt_attachments:
@@ -283,6 +283,9 @@ class QuizArchiveJob:
                 )
 
                 self.logger.info(f'Downloaded {downloaded_bytes} bytes of quiz slot {attachment["slot"]} attachment {attachment["filename"]} to {target_dir}')
+
+        # Keep track of processes attempts
+        self.archived_attempts[attemptid] = attempt_name
 
     async def _wait_for_page_ready_signal(self, page):
         """
@@ -316,25 +319,7 @@ class QuizArchiveJob:
             cmsg = await cmsg_handler.value
             self.logger.debug(f'Received signal: {cmsg}')
 
-    def get_attempt_dir_name(self, attemptid: int):
-        """
-        Returns the name of the directory for a quiz attempt
-
-        :param attemptid: ID of the quiz attempt
-        :return: string directory name
-        """
-        return f"cid{self.request.courseid}_cmid{self.request.cmid}_qid{self.request.quizid}_aid{attemptid}"
-
-    def get_report_name(self, attemptid: int):
-        """
-        Returns the report name for a quiz attempt
-
-        :param attemptid: ID of the quiz attempt
-        :return: string report name
-        """
-        return f"quiz_attempt_report_{self.get_attempt_dir_name(attemptid)}"
-
-    def _get_attempt_data_from_moodle(self, attemptid: int) -> Tuple[str, List]:
+    def _get_attempt_data_from_moodle(self, attemptid: int) -> Tuple[str, str, List]:
         """
         Requests the attempt data (HTML DOM, attachment metadata) for a quiz
         attempt from the Moodle webservice API
@@ -344,8 +329,8 @@ class QuizArchiveJob:
         failed or the response could not be parsed
         :raises RuntimeError if the Moodle webservice API reported an error
         :raises ValueError if the response from the Moodle webservice API was incomplete
-        :return: Tuple[str, List] consisting of HTML DOM report and a List of attachments
-                 for the requested attemptid
+        :return: Tuple[str, str, List] consisting of the attempt name, the HTML DOM
+                 report and a List of attachments for the requested attemptid
         """
         try:
             r = requests.get(url=self.request.moodle_ws_url, params={
@@ -356,6 +341,7 @@ class QuizArchiveJob:
                 'cmid': self.request.cmid,
                 'quizid': self.request.quizid,
                 'attemptid': attemptid,
+                'filenamepattern': self.request.tasks["archive_quiz_attempts"]["filename_pattern"],
                 'attachments': self.request.tasks["archive_quiz_attempts"]["sections"]["attachments"],
                 **{f'sections[{key}]': value for key, value in self.request.tasks["archive_quiz_attempts"]["sections"].items()}
             })
@@ -374,7 +360,7 @@ class QuizArchiveJob:
             raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
 
         # Check if response is as expected
-        for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'report', 'attachments']:
+        for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'filename', 'report', 'attachments']:
             if attr not in data:
                 raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an incomplete response')
 
@@ -383,13 +369,14 @@ class QuizArchiveJob:
             data['courseid'] == self.request.courseid and
             data['cmid'] == self.request.cmid and
             data['quizid'] == self.request.quizid and
+            isinstance(data['filename'], str) and
             isinstance(data['report'], str) and
             isinstance(data['attachments'], list)
         ):
             raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid response')
 
         # Looks fine - Data seems valid :)
-        return data['report'], data['attachments']
+        return data['filename'], data['report'], data['attachments']
 
     def _process_quiz_attempts_metadata(self):
         """
@@ -403,7 +390,7 @@ class QuizArchiveJob:
 
         # Add path to each entry for metadata processing
         for entry in metadata:
-            entry['path'] = f"/attempts/{self.get_attempt_dir_name(entry['attemptid'])}"
+            entry['path'] = f"/attempts/{self.archived_attempts[entry['attemptid']]}"
 
         # Write metadata to CSV file
         with open(f'{self.workdir}/attempts_metadata.csv', 'w+') as f:
@@ -602,6 +589,7 @@ class QuizArchiveJob:
                 raise RuntimeError(f'Moodle file download failed. Expected SHA1 sum "{sha1sum_expected}" but got "{sha1sum.hexdigest()}"')
 
         self.logger.info(f'Downloaded {downloaded_bytes} bytes to {self.workdir}/{filename}')
+        return downloaded_bytes
 
     def _push_artifact_to_moodle(self, artifact_filename: str, artifact_sha256sum: str):
         with open(artifact_filename, "rb") as f:
@@ -616,7 +604,7 @@ class QuizArchiveJob:
                     'itemid': 0
                 })
                 response = r.json()
-            except Exception:
+            except Exception as e:
                 raise ConnectionError(f'Failed to upload artifact to "{self.request.moodle_upload_url}". Exception: {str(e)}. Response: {r.text}')
 
         # Check if upload failed

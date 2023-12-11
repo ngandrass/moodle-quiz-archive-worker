@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 from enum import StrEnum
 from typing import List
 
@@ -65,6 +66,7 @@ class JobArchiveRequest:
                  courseid: int,
                  cmid: int,
                  quizid: int,
+                 archive_filename: str,
                  task_archive_quiz_attempts: any,
                  task_moodle_backups: any):
         if api_version != self.API_VERSION:
@@ -78,6 +80,7 @@ class JobArchiveRequest:
         self.courseid = int(courseid)
         self.cmid = int(cmid)
         self.quizid = int(quizid)
+        self.archive_filename = archive_filename
         self.tasks = {
             'archive_quiz_attempts': task_archive_quiz_attempts,
             'archive_moodle_backups': task_moodle_backups
@@ -127,6 +130,17 @@ class JobArchiveRequest:
         if not isinstance(self.quizid, int) or self.quizid < 0:
             return False
 
+        if not isinstance(self.archive_filename, str) or self.archive_filename is None:
+            return False
+        else:
+            # Do not allow paths
+            if not os.path.basename(self.archive_filename) == self.archive_filename:
+                return False
+
+            # Do not allow forbidden characters
+            if any(c in self.archive_filename for c in ["\0", "\\", "/", ":", "*", "?", "\"", "<", ">", "|", "."]):
+                return False
+
         if self.tasks['archive_quiz_attempts'] is not None:
             if not isinstance(self.tasks['archive_quiz_attempts']['attemptids'], List):
                 return False
@@ -137,6 +151,8 @@ class JobArchiveRequest:
             if not isinstance(self.tasks['archive_quiz_attempts']['paper_format'], str) or self.tasks['archive_quiz_attempts']['paper_format'] not in ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Letter', 'Legal', 'Tabloid', 'Ledger']:
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['keep_html_files'], bool):
+                return False
+            if not isinstance(self.tasks['archive_quiz_attempts']['filename_pattern'], str) or self.tasks['archive_quiz_attempts']['filename_pattern'] is None:
                 return False
 
         if self.tasks['archive_moodle_backups'] is not None:

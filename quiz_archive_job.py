@@ -301,9 +301,17 @@ class QuizArchiveJob:
                     const SIGNAL_PAGE_READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export";
                     const SIGNAL_MATHJAX_FOUND = "x-quiz-archiver-mathjax-found";
                     const SIGNAL_MATHJAX_NOT_FOUND = "x-quiz-archiver-mathjax-not-found";
+                    const SIGNAL_MATHJAX_NO_FORMULAS_ON_PAGE = "x-quiz-archiver-mathjax-no-formulas-on-page";
 
                     if (typeof window.MathJax !== 'undefined') {
                         console.log(SIGNAL_MATHJAX_FOUND);
+
+                        if (document.getElementsByClassName('filter_mathjaxloader_equation').length == 0) {
+                            console.log(SIGNAL_MATHJAX_NO_FORMULAS_ON_PAGE);
+                            console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
+                            return;
+                        }
+
                         window.MathJax.Hub.Queue(function () {
                             console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
                         });

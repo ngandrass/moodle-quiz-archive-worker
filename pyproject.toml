@@ -8,10 +8,10 @@ packages = []
 
 [tool.poetry.dependencies]
 python = "^3.11"
-flask = "^2.3.2"
-playwright = "^1.34.0"
-requests = "^2.31.0"
-waitress = "^2.1.2"
+flask = "^3.0"
+playwright = "^1.40"
+requests = "^2.31"
+waitress = "^2.1"
 
 [build-system]
 requires = ["poetry-core"]

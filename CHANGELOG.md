@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 1.3.0 (2023-12-14)
+
+- Base archive filename and attempt report names on API parameters
+- Allow HTML reports to be excluded from created archives using an API parameter
+- Fix render timeout on instances where `filter_mathjaxloader` is enabled but attempt does not contain any MathJax formulas
+- Update Python dependencies
+
+
 ## Version 1.2.1 (2023-12-04)
 
 - Fix Moodle 4.3 webservice JSON response parsing

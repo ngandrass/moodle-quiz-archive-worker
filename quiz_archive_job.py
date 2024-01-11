@@ -245,8 +245,11 @@ class QuizArchiveJob:
             try:
                 await self._wait_for_page_ready_signal(page)
             except Exception:
-                self.logger.error(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Aborting ...')
-                raise RuntimeError()
+                if Config.REPORT_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT:
+                    self.logger.warning(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Continuing ...')
+                else:
+                    self.logger.error(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Aborting ...')
+                    raise RuntimeError()
         else:
             self.logger.debug('Not waiting for ready signal. Export immediately ...')
 

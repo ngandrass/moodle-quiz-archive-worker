@@ -68,6 +68,9 @@ class Config:
     REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC', default=15))
     """Number of seconds to wait for the ready signal from the report page JS before considering the export as failed"""
 
+    REPORT_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT = bool(os.getenv('QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT', default=False))
+    """Whether to continue with the export if the ready signal was not received in time"""
+
     MOODLE_WSFUNCTION_ARCHIVE = 'quiz_archiver_generate_attempt_report'
     """Name of the Moodle webservice function to call to trigger an quiz attempt export"""
 

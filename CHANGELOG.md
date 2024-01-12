@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.3.1 (2024-01-12)
+
+- Add `QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT` option to allow jobs to continue even though a PDF generation experienced a timeout (*USE WITH CAUTION!*)
+- Update Python dependencies
+
+
 ## Version 1.3.0 (2023-12-14)
 
 - Base archive filename and attempt report names on API parameters

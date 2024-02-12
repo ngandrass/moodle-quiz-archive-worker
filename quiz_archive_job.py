@@ -190,7 +190,7 @@ class QuizArchiveJob:
                 width=int(Config.REPORT_BASE_VIEWPORT_WIDTH),
                 height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9)))
             )
-            self.logger.debug("Spwaned new playwright Browser and BrowserContext")
+            self.logger.debug("Spawned new playwright Browser and BrowserContext")
 
             for attemptid in attemptids:
                 if threading.current_thread().stop_requested():

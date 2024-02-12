@@ -55,7 +55,7 @@ class InterruptableThread(threading.Thread):
 
 
 def queue_processing_loop():
-    app.logger.info("Spwaned queue worker thread")
+    app.logger.info("Spawned queue worker thread")
 
     while getattr(threading.current_thread(), "do_run", True):
         # Start job execution

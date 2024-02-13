@@ -11,7 +11,7 @@ python = "^3.11"
 flask = "^3.0"
 playwright = "^1.40"
 requests = "^2.31"
-waitress = "^2.1"
+waitress = "^3.0"
 pytest = "^8.0.0"
 coverage = "^7.4.1"
 

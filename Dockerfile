@@ -35,7 +35,7 @@ RUN set -e && \
     pip3 install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-root --only main && \
-    chmod +x "${USER_HOME}/moodle-quiz-archive-worker.py"
+    chmod +x "${USER_HOME}/main.py"
 
 # Create app user
 RUN set -e && \
@@ -50,4 +50,4 @@ RUN set -ex && \
 
 # Run definition
 EXPOSE 8080
-CMD ["/bin/sh", "-c", "/app/main.py"]
+CMD ["/bin/sh", "-c", "${USER_HOME}/main.py"]

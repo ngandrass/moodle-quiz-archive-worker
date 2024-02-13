@@ -27,7 +27,7 @@ import requests
 import waitress
 from flask import Flask, make_response, request, jsonify
 
-from .config import Config
+from config import Config
 from .quiz_archive_job import QuizArchiveJob
 from .custom_types import WorkerStatus, JobArchiveRequest, JobStatus
 

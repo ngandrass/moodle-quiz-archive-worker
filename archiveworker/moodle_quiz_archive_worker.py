@@ -27,9 +27,9 @@ import requests
 import waitress
 from flask import Flask, make_response, request, jsonify
 
-from config import Config
-from quiz_archive_job import QuizArchiveJob
-from custom_types import WorkerStatus, JobArchiveRequest, JobStatus
+from .config import Config
+from .quiz_archive_job import QuizArchiveJob
+from .custom_types import WorkerStatus, JobArchiveRequest, JobStatus
 
 app = Flask(__name__)
 job_queue = queue.Queue(maxsize=Config.QUEUE_SIZE)
@@ -191,9 +191,9 @@ def handle_archive_request():
     return jsonify({'jobid': job.get_id(), 'status': job.get_status()}), HTTPStatus.OK
 
 
-def main():
+def run():
     """
-    Main entry point of the application
+    Runs the application
     :return:
     """
     logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
@@ -204,6 +204,3 @@ def main():
 
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)
 
-
-if __name__ == "__main__":
-    main()

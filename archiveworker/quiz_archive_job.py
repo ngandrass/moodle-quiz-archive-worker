@@ -32,8 +32,8 @@ from uuid import UUID
 import requests
 from playwright.async_api import async_playwright, ViewportSize, BrowserContext, Route
 
-from config import Config
-from custom_types import JobStatus, JobArchiveRequest, ReportSignal
+from .config import Config
+from .custom_types import JobStatus, JobArchiveRequest, ReportSignal
 
 
 class QuizArchiveJob:

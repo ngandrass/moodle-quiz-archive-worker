@@ -50,4 +50,4 @@ RUN set -ex && \
 
 # Run definition
 EXPOSE 8080
-CMD ["/bin/sh", "-c", "/app/moodle-quiz-archive-worker.py"]
+CMD ["/bin/sh", "-c", "/app/main.py"]

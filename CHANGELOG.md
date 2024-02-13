@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 1.3.2 (2024-02-13)
+
+- Refactor project structure to prepare for unit testing and code coverage
+- Fix typos and improve logging (#2 #3 - Thanks to @aceArt-GmbH)
+- Update Python dependencies
+
+
 ## Version 1.3.1 (2024-01-12)
 
 - Add `QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT` option to allow jobs to continue even though a PDF generation experienced a timeout (*USE WITH CAUTION!*)

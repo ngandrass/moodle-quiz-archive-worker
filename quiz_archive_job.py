@@ -367,8 +367,12 @@ class QuizArchiveJob:
             raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} at "{self.request.moodle_ws_url}" failed')
 
         # Check if Moodle wsfunction returned an error
-        if 'errorcode' in data and 'debuginfo' in data:
-            raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
+        if 'errorcode' in data:
+            if 'debuginfo' in data:
+                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
+            if 'message' in data:
+                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}". Message: {data["message"]}')
+            raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}".')
 
         # Check if response is as expected
         for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'filename', 'report', 'attachments']:

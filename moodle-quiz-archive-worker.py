@@ -163,7 +163,7 @@ def handle_archive_request():
 
         # Probe moodle API (wstoken validity)
         if not probe_moodle_webservice_api(job_request.moodle_ws_url, job_request.wstoken):
-            return error_response(f'Could not establish a connection to Moodle webservice API at "{job_request.moodle_ws_url}" using the prodived wstoken.', HTTPStatus.BAD_REQUEST)
+            return error_response(f'Could not establish a connection to Moodle webservice API at "{job_request.moodle_ws_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
 
         # Enqueue request
         job = QuizArchiveJob(uuid.uuid1(), job_request)

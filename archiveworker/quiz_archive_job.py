@@ -401,7 +401,6 @@ class QuizArchiveJob:
         """
         # Fetch metadata for all quiz attempts that should be archived
         metadata = asyncio.run(self._fetch_quiz_attempt_metadata())
-        self.logger.debug(f"Quiz attempt metadata: {metadata}")
 
         # Add path to each entry for metadata processing
         for entry in metadata:
@@ -425,39 +424,54 @@ class QuizArchiveJob:
         """
         Fetches metadata for all quiz attempts that should be archived
 
+        Metadata is fetched in batches of 100 attempts to avoid hitting the
+        maximum URL length of the Moodle webservice API
+
         :return: list of dicts containing metadata for each quiz attempt
         """
-        try:
-            r = requests.get(url=self.request.moodle_ws_url, params={
-                'wstoken': self.request.wstoken,
-                'moodlewsrestformat': 'json',
-                'wsfunction': Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA,
-                'courseid': self.request.courseid,
-                'cmid': self.request.cmid,
-                'quizid': self.request.quizid,
-                'attemptids[]': self.request.tasks["archive_quiz_attempts"]["attemptids"]
-            })
-            data = r.json()
-        except Exception:
-            raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.request.moodle_ws_url}" failed')
+        # Slice attemptids into batches
+        attemptids = self.request.tasks['archive_quiz_attempts']['attemptids']
+        batchsize = 100
+        batches = [attemptids[i:i + batchsize] for i in range(0, len(attemptids), batchsize)]
 
-        # Check if Moodle wsfunction returned an error
-        if 'errorcode' in data and 'debuginfo' in data:
-            raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
+        # Fetch metadata for each batch
+        metadata = []
+        for batch in batches:
+            try:
+                r = requests.get(url=self.request.moodle_ws_url, params={
+                    'wstoken': self.request.wstoken,
+                    'moodlewsrestformat': 'json',
+                    'wsfunction': Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA,
+                    'courseid': self.request.courseid,
+                    'cmid': self.request.cmid,
+                    'quizid': self.request.quizid,
+                    'attemptids[]': batch
+                })
+                data = r.json()
+            except Exception:
+                raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.request.moodle_ws_url}" failed')
 
-        # Check if response is as expected
-        for attr in ['attempts', 'cmid', 'courseid', 'quizid']:
-            if attr not in data:
-                raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an incomplete response')
+            # Check if Moodle wsfunction returned an error
+            if 'errorcode' in data and 'debuginfo' in data:
+                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
 
-        if not (
-            data['courseid'] == self.request.courseid and
-            data['cmid'] == self.request.cmid and
-            data['quizid'] == self.request.quizid
-        ):
-            raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an invalid response')
+            # Check if response is as expected
+            for attr in ['attempts', 'cmid', 'courseid', 'quizid']:
+                if attr not in data:
+                    raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an incomplete response')
 
-        return data['attempts']
+            if not (
+                data['courseid'] == self.request.courseid and
+                data['cmid'] == self.request.cmid and
+                data['quizid'] == self.request.quizid
+            ):
+                raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an invalid response')
+
+            # Data seems valid
+            metadata.extend(data['attempts'])
+            self.logger.debug(f"Fetched metadata for {len(metadata)} of {len(self.request.tasks['archive_quiz_attempts']['attemptids'])} quiz attempts")
+
+        return metadata
 
     async def _process_moodle_backups(self):
         try:

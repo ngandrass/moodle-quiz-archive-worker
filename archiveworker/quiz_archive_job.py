@@ -167,7 +167,7 @@ class QuizArchiveJob:
             self.set_status(JobStatus.TIMEOUT, notify_moodle=True)
             return
         except Exception as e:
-            self.logger.error(f"Job failed with error: {str(e)}")
+            self.logger.error(f"Job failed with error: {type(e).__name__}: {str(e)}")
             self.set_status(JobStatus.FAILED, notify_moodle=True)
             return
 

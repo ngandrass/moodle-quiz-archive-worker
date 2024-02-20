@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 1.3.3 (2024-02-20)
+
+- Process quiz attempt metadata in batches to allow archiving of quizzes with a large number of attempts
+- Improve error reporting on generic job failures
+- Update Python dependencies
+
+
 ## Version 1.3.2 (2024-02-13)
 
 - Refactor project structure to prepare for unit testing and code coverage

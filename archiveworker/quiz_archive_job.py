@@ -449,6 +449,7 @@ class QuizArchiveJob:
                 })
                 data = r.json()
             except Exception:
+                app.logger.debug(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.request.moodle_ws_url}')
                 raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.request.moodle_ws_url}" failed')
 
             # Check if Moodle wsfunction returned an error

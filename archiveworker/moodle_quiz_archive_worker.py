@@ -93,8 +93,8 @@ def probe_moodle_webservice_api(moodlw_ws_url: str, wstoken: str) -> bool:
         })
 
         data = r.json()
-    except Exception:
-        raise ConnectionError()
+    except Exception as e:
+        raise ConnectionError(f'probe_moodle_webservice_api failed {str(e)}')
 
     if data['errorcode'] == 'invalidparameter':
         # Moodle returns error 'invalidparameter' if the webservice is invoked
@@ -173,13 +173,17 @@ def handle_archive_request():
         app.logger.debug(f'JSON is technically incomplete or missing a required parameter. TypeError: {str(e)}')
         return error_response('JSON is technically incomplete or missing a required parameter.', HTTPStatus.BAD_REQUEST)
     except ValueError as e:
+        app.logger.debug(f'JSON data is invalid: {str(e)}')
         return error_response(f'JSON data is invalid: {str(e)}', HTTPStatus.BAD_REQUEST)
-    except ConnectionError:
+    except ConnectionError as e:
+        app.logger.debug(f'Connection to Moodle webservice failed. Cannot process request. Aborting: {str(e)}')
         return error_response('Connection to Moodle webservice failed. Cannot process request. Aborting.', HTTPStatus.BAD_REQUEST)
     except queue.Full:
         job = None
+        app.logger.debug(f'Maximum number of queued jobs exceeded.')
         return error_response('Maximum number of queued jobs exceeded.', HTTPStatus.TOO_MANY_REQUESTS)
     except Exception:
+        app.logger.debug(f'Invalid request.')
         return error_response(f'Invalid request.', HTTPStatus.BAD_REQUEST)
     finally:
         if not job:
@@ -201,4 +205,3 @@ def run():
     queue_processing_thread.start()
 
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)
-

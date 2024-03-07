@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.3.4 (2024-03-07)
+
+- Add additional debug output (#4 - Thanks to @PM84)
+- Update Python dependencies
+
+
 ## Version 1.3.3 (2024-02-20)
 
 - Process quiz attempt metadata in batches to allow archiving of quizzes with a large number of attempts

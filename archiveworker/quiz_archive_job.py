@@ -190,6 +190,7 @@ class QuizArchiveJob:
                 width=int(Config.REPORT_BASE_VIEWPORT_WIDTH),
                 height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9)))
             )
+            context.set_default_navigation_timeout(Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC * 1000)
             self.logger.debug("Spawned new playwright Browser and BrowserContext")
 
             for attemptid in attemptids:
@@ -237,8 +238,12 @@ class QuizArchiveJob:
         async def mock_responder(route: Route):
             await route.fulfill(body=attempt_html, content_type='text/html')
 
-        await page.route(f"{self.request.moodle_base_url}/mock/attempt", mock_responder)
-        await page.goto(f"{self.request.moodle_base_url}/mock/attempt")
+        try:
+            await page.route(f"{self.request.moodle_base_url}/mock/attempt", mock_responder)
+            await page.goto(f"{self.request.moodle_base_url}/mock/attempt")
+        except Exception:
+            self.logger.error(f'Page did not load after {Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC} seconds. Aborting ...')
+            raise
 
         # Wait for the page to report that is fully rendered, if enabled
         if Config.REPORT_WAIT_FOR_READY_SIGNAL:

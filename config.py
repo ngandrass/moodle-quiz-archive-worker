@@ -71,6 +71,9 @@ class Config:
     REPORT_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT = bool(os.getenv('QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT', default=False))
     """Whether to continue with the export if the ready signal was not received in time"""
 
+    REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC', default=30))
+    """Number of seconds to wait for the report page to load before aborting the job"""
+
     MOODLE_WSFUNCTION_ARCHIVE = 'quiz_archiver_generate_attempt_report'
     """Name of the Moodle webservice function to call to trigger an quiz attempt export"""
 

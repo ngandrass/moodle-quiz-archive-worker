@@ -147,6 +147,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL`: Whether to wait for the ready signal from the report page JS before generating the export (default=`True`)
 - `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC`: Number of seconds to wait for the ready signal from the report page JS before generating the export (default=`15`)
 - `QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT`: Whether to continue with the export if the ready signal was not received in time (default=`False`)
+- `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC`: Number of seconds to wait for the report page to load before aborting the job (default=`30`)
 
 
 ## License

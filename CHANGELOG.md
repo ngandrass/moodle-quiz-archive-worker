@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.3.5 (2024-04-09)
+
+- Add configuration option `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC` to allow for longer page navigation timeouts (#5 - Thanks to @krostas1983)
+- Update Python dependencies
+
+
 ## Version 1.3.4 (2024-03-07)
 
 - Add additional debug output (#4 - Thanks to @PM84)

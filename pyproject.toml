@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "moodle-quiz-archive-worker"
-version = "1.3.5"
+version = "1.3.6"
 description = "Quiz archiver service to work in conjunction with the Moodle plugin 'quiz_archiver'"
 authors = ["Niels Gandraß <niels@gandrass.de>"]
 readme = "README.md"

@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.3.6 (2024-04-23)
+
+- Update Python dependencies
+  - Fix CVE-2024-3651 in `idna` package, a dependency of the `requests` package
+
+
 ## Version 1.3.5 (2024-04-09)
 
 - Add configuration option `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC` to allow for longer page navigation timeouts (#5 - Thanks to @krostas1983)

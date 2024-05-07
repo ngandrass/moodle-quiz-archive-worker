@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.3.7 (2024-05-07)
+
+- Update Python dependencies
+  - Fix CVE-2024-34069 in `werkzeug` package, a dependency of the `flask` package
+   
+
 ## Version 1.3.6 (2024-04-23)
 
 - Update Python dependencies

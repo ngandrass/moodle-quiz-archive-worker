@@ -147,8 +147,9 @@ class QuizArchiveJob:
                 with TemporaryDirectory() as tardir:
                     # Add files
                     archive_file = f'{tardir}/{self.request.archive_filename}.tar.gz'
-                    with tarfile.open(archive_file, 'w:gz') as tar:
-                        tar.add(self.workdir, arcname="")
+                    with tarfile.open(archive_file, 'w:gz', format=tarfile.USTAR_FORMAT) as tar:
+                        # ^-- Historic USTAR format is used to ensure compatibility with Moodle's file API
+                        tar.add(self.workdir, arcname='')
 
                     # Calculate checksum
                     with open(archive_file, 'rb') as f:

@@ -1,5 +1,14 @@
 # Changelog
 
+## Version 1.3.8 (2024-05-29)
+
+- Switch artifact archive format from `PAX_FORMAT` to `USTAR_FORMAT` to prevent
+  problems when extracted using the ancient tar implementation within Moodle
+- Update Docker container Python base to 3.12
+- Update Python dependencies
+  - Fix CVE-2024-35195 in `requests` package
+
+
 ## Version 1.3.7 (2024-05-07)
 
 - Update Python dependencies

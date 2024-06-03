@@ -18,31 +18,27 @@ import asyncio
 import csv
 import glob
 import hashlib
-import json
 import logging
 import os
 import tarfile
 import threading
-from json import JSONDecodeError
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Tuple
+from typing import List
 from uuid import UUID
 
 import requests
 from playwright.async_api import async_playwright, ViewportSize, BrowserContext, Route
 
 from config import Config
-from .custom_types import JobStatus, JobArchiveRequest, ReportSignal
+from .custom_types import JobStatus, JobArchiveRequest, ReportSignal, BackupStatus
+from .moodle_api import MoodleAPI
 
 
 class QuizArchiveJob:
     """
     A single archive job that is processed by the quiz archive worker
     """
-
-    MOODLE_UPLOAD_FILE_FIELDS = ['component', 'contextid', 'userid', 'filearea', 'filename', 'filepath', 'itemid']
-    """Keys that are present in the response for each file, received after uploading a file to Moodle"""
 
     def __init__(self, jobid: UUID, job_request: JobArchiveRequest):
         self.id = jobid
@@ -51,6 +47,11 @@ class QuizArchiveJob:
         self.workdir = None
         self.archived_attempts = {}
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
+        self.moodle_api = MoodleAPI(
+            ws_rest_url=self.request.moodle_ws_url,
+            ws_upload_url=self.request.moodle_upload_url,
+            wstoken=self.request.wstoken
+        )
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -60,16 +61,31 @@ class QuizArchiveJob:
         else:
             return False
 
-    def to_json(self) -> object:
+    def to_json(self) -> dict:
+        """
+        Returns a JSON serializable representation of this job
+
+        :return: JSON serializable representation of this job
+        """
         return {
             'id': self.id,
             'status': self.status
         }
 
     def get_id(self) -> UUID:
+        """
+        Returns the UUID of this job
+
+        :return: UUID of this job
+        """
         return self.id
 
     def get_status(self) -> JobStatus:
+        """
+        Returns the current status of this job
+
+        :return: Current job status
+        """
         return self.status
 
     def set_status(self, status: JobStatus, notify_moodle: bool = False) -> None:
@@ -84,22 +100,9 @@ class QuizArchiveJob:
         self.status = status
 
         if notify_moodle:
-            try:
-                r = requests.get(url=self.request.moodle_ws_url, params={
-                    'wstoken': self.request.wstoken,
-                    'moodlewsrestformat': 'json',
-                    'wsfunction': Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
-                    'jobid': str(self.id),
-                    'status': str(self.status)
-                })
-                data = r.json()
+            self.moodle_api.update_job_status(jobid=self.id, status=self.status)
 
-                if data['status'] != 'OK':
-                    self.logger.warning(f'Moodle API rejected to update job status to new value: {self.status}')
-            except Exception:
-                self.logger.warning('Failed to update job status via Moodle API. Connection error.')
-
-    def execute(self):
+    def execute(self) -> None:
         """
         Executes this job
 
@@ -115,13 +118,13 @@ class QuizArchiveJob:
 
                 # Process task: Archive quiz attempts
                 if self.request.tasks['archive_quiz_attempts']:
-                    asyncio.run(self._render_quiz_attempts(
+                    asyncio.run(self._process_quiz_attempts(
                         attemptids=self.request.tasks['archive_quiz_attempts']['attemptids'],
                         paper_format=self.request.tasks['archive_quiz_attempts']['paper_format'])
                     )
 
                     if self.request.tasks['archive_quiz_attempts']['fetch_metadata']:
-                        self._process_quiz_attempts_metadata()
+                        asyncio.run(self._process_quiz_attempts_metadata())
 
                 # Process task: Archive Moodle backups
                 if self.request.tasks['archive_moodle_backups']:
@@ -175,7 +178,7 @@ class QuizArchiveJob:
         self.set_status(JobStatus.FINISHED, notify_moodle=False)  # Do not notify Moodle as it marks this job as completed on its own after the file was processed
         self.logger.info(f"Finished job {self.id}")
 
-    async def _render_quiz_attempts(self, attemptids: List[int], paper_format: str):
+    async def _process_quiz_attempts(self, attemptids: List[int], paper_format: str) -> None:
         """
         Renders all quiz attempts to HTML and PDF files
 
@@ -203,15 +206,24 @@ class QuizArchiveJob:
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")
 
-    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: str):
+    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: str) -> None:
         """
         Renders a complete quiz attempt to a PDF file
 
         :param attemptid: ID of the quiz attempt to render
         :param paper_format: Paper format to use for the PDF (e.g. 'A4')
+        :return: None
         """
         # Retrieve attempt data
-        attempt_name, attempt_html, attempt_attachments = self._get_attempt_data_from_moodle(attemptid)
+        attempt_name, attempt_html, attempt_attachments = self.moodle_api.get_attempt_data(
+            self.request.courseid,
+            self.request.cmid,
+            self.request.quizid,
+            attemptid,
+            self.request.tasks['archive_quiz_attempts']['sections'],
+            self.request.tasks['archive_quiz_attempts']['filename_pattern'],
+            self.request.tasks['archive_quiz_attempts']['sections']['attachments']
+        )
 
         # Prepare attempt dir
         attempt_dir = f"{self.workdir}/attempts/{attempt_name}"
@@ -283,10 +295,10 @@ class QuizArchiveJob:
             for attachment in attempt_attachments:
                 target_dir = f"{attempt_dir}/attachments/{attachment['slot']}"
 
-                downloaded_bytes = self._download_moodle_file(
+                downloaded_bytes = self.moodle_api.download_moodle_file(
                     download_url=attachment['downloadurl'],
-                    path=Path(target_dir),
-                    filename=attachment['filename'],
+                    target_path=Path(target_dir),
+                    target_filename=attachment['filename'],
                     sha1sum_expected=attachment['contenthash'],
                     maxsize_bytes=Config.QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES
                 )
@@ -296,14 +308,17 @@ class QuizArchiveJob:
         # Keep track of processes attempts
         self.archived_attempts[attemptid] = attempt_name
 
-    async def _wait_for_page_ready_signal(self, page):
+    async def _wait_for_page_ready_signal(self, page) -> None:
         """
         Waits for the page to report that it is ready for export
 
         :param page: Page object
         :return: None
         """
-        async with page.expect_console_message(lambda msg: msg.text == ReportSignal.READY_FOR_EXPORT.value, timeout=Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC * 1000) as cmsg_handler:
+        async with page.expect_console_message(
+                lambda msg: msg.text == ReportSignal.READY_FOR_EXPORT.value,
+                timeout=Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC * 1000
+        ) as cmsg_handler:
             self.logger.debug('Injecting JS to wait for page rendering ...')
             await page.evaluate('''
                 setTimeout(function() {
@@ -336,77 +351,19 @@ class QuizArchiveJob:
             cmsg = await cmsg_handler.value
             self.logger.debug(f'Received signal: {cmsg}')
 
-    def _get_attempt_data_from_moodle(self, attemptid: int) -> Tuple[str, str, List]:
-        """
-        Requests the attempt data (HTML DOM, attachment metadata) for a quiz
-        attempt from the Moodle webservice API
-
-        :param attemptid: ID of the attempt to request
-        :raises ConnectionError if the request to the Moodle webservice API
-        failed or the response could not be parsed
-        :raises RuntimeError if the Moodle webservice API reported an error
-        :raises ValueError if the response from the Moodle webservice API was incomplete
-        :return: Tuple[str, str, List] consisting of the attempt name, the HTML DOM
-                 report and a List of attachments for the requested attemptid
-        """
-        try:
-            r = requests.get(url=self.request.moodle_ws_url, params={
-                'wstoken': self.request.wstoken,
-                'moodlewsrestformat': 'json',
-                'wsfunction': Config.MOODLE_WSFUNCTION_ARCHIVE,
-                'courseid': self.request.courseid,
-                'cmid': self.request.cmid,
-                'quizid': self.request.quizid,
-                'attemptid': attemptid,
-                'filenamepattern': self.request.tasks["archive_quiz_attempts"]["filename_pattern"],
-                'attachments': self.request.tasks["archive_quiz_attempts"]["sections"]["attachments"],
-                **{f'sections[{key}]': value for key, value in self.request.tasks["archive_quiz_attempts"]["sections"].items()}
-            })
-            # Moodle 4.3 seems to return an additional "</body></html>" at the end of the response which causes the JSON parser to fail
-            response = r.text.lstrip('<html><body>').rstrip('</body></html>')
-            data = json.loads(response)
-        except JSONDecodeError as e:
-            self.logger.debug(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} response: {r.text}')
-            raise ValueError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} at "{self.request.moodle_ws_url}" returned invalid JSON')
-        except Exception as e:
-            self.logger.debug(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} caused {type(e).__name__}: {str(e)}')
-            raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} at "{self.request.moodle_ws_url}" failed')
-
-        # Check if Moodle wsfunction returned an error
-        if 'errorcode' in data:
-            if 'debuginfo' in data:
-                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
-            if 'message' in data:
-                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}". Message: {data["message"]}')
-            raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}".')
-
-        # Check if response is as expected
-        for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'filename', 'report', 'attachments']:
-            if attr not in data:
-                raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an incomplete response')
-
-        if not (
-            data['attemptid'] == attemptid and
-            data['courseid'] == self.request.courseid and
-            data['cmid'] == self.request.cmid and
-            data['quizid'] == self.request.quizid and
-            isinstance(data['filename'], str) and
-            isinstance(data['report'], str) and
-            isinstance(data['attachments'], list)
-        ):
-            raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid response')
-
-        # Looks fine - Data seems valid :)
-        return data['filename'], data['report'], data['attachments']
-
-    def _process_quiz_attempts_metadata(self):
+    async def _process_quiz_attempts_metadata(self) -> None:
         """
         Fetches metadata for all quiz attempts that should be archived and writes it to a CSV file
 
         :return: None
         """
         # Fetch metadata for all quiz attempts that should be archived
-        metadata = asyncio.run(self._fetch_quiz_attempt_metadata())
+        metadata = self.moodle_api.get_attempts_metadata(
+            self.request.courseid,
+            self.request.cmid,
+            self.request.quizid,
+            self.request.tasks['archive_quiz_attempts']['attemptids']
+        )
 
         # Add path to each entry for metadata processing
         for entry in metadata:
@@ -426,61 +383,12 @@ class QuizArchiveJob:
 
         self.logger.info(f"Wrote metadata for {len(metadata)} quiz attempts to CSV file")
 
-    async def _fetch_quiz_attempt_metadata(self):
+    async def _process_moodle_backups(self) -> None:
         """
-        Fetches metadata for all quiz attempts that should be archived
+        Waits for completion of all Moodle backups and downloads them after successful completion
 
-        Metadata is fetched in batches of 100 attempts to avoid hitting the
-        maximum URL length of the Moodle webservice API
-
-        :return: list of dicts containing metadata for each quiz attempt
+        :return: None
         """
-        # Slice attemptids into batches
-        attemptids = self.request.tasks['archive_quiz_attempts']['attemptids']
-        batchsize = 100
-        batches = [attemptids[i:i + batchsize] for i in range(0, len(attemptids), batchsize)]
-
-        # Fetch metadata for each batch
-        metadata = []
-        for batch in batches:
-            try:
-                r = requests.get(url=self.request.moodle_ws_url, params={
-                    'wstoken': self.request.wstoken,
-                    'moodlewsrestformat': 'json',
-                    'wsfunction': Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA,
-                    'courseid': self.request.courseid,
-                    'cmid': self.request.cmid,
-                    'quizid': self.request.quizid,
-                    'attemptids[]': batch
-                })
-                data = r.json()
-            except Exception:
-                app.logger.debug(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.request.moodle_ws_url}')
-                raise ConnectionError(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.request.moodle_ws_url}" failed')
-
-            # Check if Moodle wsfunction returned an error
-            if 'errorcode' in data and 'debuginfo' in data:
-                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned error "{data["errorcode"]}". Message: {data["debuginfo"]}')
-
-            # Check if response is as expected
-            for attr in ['attempts', 'cmid', 'courseid', 'quizid']:
-                if attr not in data:
-                    raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an incomplete response')
-
-            if not (
-                data['courseid'] == self.request.courseid and
-                data['cmid'] == self.request.cmid and
-                data['quizid'] == self.request.quizid
-            ):
-                raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} returned an invalid response')
-
-            # Data seems valid
-            metadata.extend(data['attempts'])
-            self.logger.debug(f"Fetched metadata for {len(metadata)} of {len(self.request.tasks['archive_quiz_attempts']['attemptids'])} quiz attempts")
-
-        return metadata
-
-    async def _process_moodle_backups(self):
         try:
             async with asyncio.TaskGroup() as tg:
                 for backup in self.request.tasks['archive_moodle_backups']:
@@ -490,191 +398,78 @@ class QuizArchiveJob:
             for e in eg.exceptions:
                 raise e
 
-    async def _process_moodle_backup(self, backupid: str, filename: str, download_url: str):
+    async def _process_moodle_backup(self, backupid: str, filename: str, download_url: str) -> None:
+        """
+        Waits for a single Moodle backup to finish and downloads it after successful completion
+
+        :param backupid: Moodle ID of the backup
+        :param filename: Filename to save the backup as
+        :param download_url: Moodle URL to download the backup from
+        :return: None
+        :raises InterruptedError: If the thread was requested to stop
+        :raises RuntimeError: If the backup download failed
+        """
         self.logger.debug(f'Processing Moodle backup with id {backupid}')
 
         # Wait for backup to finish
         while True:
-            try:
-                self.logger.debug(f'Requesting status for backup {backupid}')
-                r = requests.get(url=self.request.moodle_ws_url, params={
-                    'wstoken': self.request.wstoken,
-                    'moodlewsrestformat': 'json',
-                    'wsfunction': Config.MOODLE_WSFUNCTION_GET_BACKUP,
-                    'jobid': self.get_id(),
-                    'backupid': backupid
-                })
-                response = r.json()
-            except Exception:
-                raise ConnectionError(f'Failed to get status of backup {backupid}')
-
-            if 'errorcode' in response and 'debuginfo' in response:
-                raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_BACKUP} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
-
-            if response['status'] == 'SUCCESS':
-                self.logger.debug(f'Backup {backupid} finished successfully.')
-                break
-
-            if response['status'] != 'E_BACKUP_PENDING':
-                raise RuntimeError(f'Retrieving status of backup "{backupid}" failed with {response["status"]}. Aborting.')
+            status = self.moodle_api.get_backup_status(self.id, backupid)
 
             if threading.current_thread().stop_requested():
                 raise InterruptedError('Thread stop requested')
+
+            if status == BackupStatus.SUCCESS:
+                break
 
             self.logger.info(f'Backup {backupid} not finished yet. Waiting {Config.BACKUP_STATUS_RETRY_SEC} seconds before retrying ...')
             await asyncio.sleep(Config.BACKUP_STATUS_RETRY_SEC)
 
         # Check backup filesize
-        try:
-            self.logger.debug(f'Requesting status for backup {backupid}')
-            h = requests.head(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
-            self.logger.debug(f'Backup file HEAD request headers: {h.headers}')
-            content_type = h.headers.get('Content-Type', None)
-            content_length = h.headers.get('Content-Length', None)
+        content_type, content_length = self.moodle_api.get_remote_file_metadata(download_url)
 
-            if content_type != 'application/vnd.moodle.backup':
-                # Try to get JSON content if debug logging is enabled to allow debugging
-                if Config.LOG_LEVEL == logging.DEBUG:
-                    if content_type.startswith('application/json'):
-                        r = requests.get(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
-                        self.logger.debug(f'Backup file GET response: {r.text}')
+        if content_type != 'application/vnd.moodle.backup':
+            # Try to get JSON content if debug logging is enabled to allow debugging
+            if Config.LOG_LEVEL == logging.DEBUG:
+                if content_type.startswith('application/json'):
+                    r = requests.get(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
+                    self.logger.debug(f'Backup file GET response: {r.text}')
 
-                # Normal error handling
-                raise RuntimeError(f'Backup Content-Type invalid. Expected "application/vnd.moodle.backup" but got "{content_type}"')
+            # Normal error handling
+            raise RuntimeError(f'Backup Content-Type invalid. Expected "application/vnd.moodle.backup" but got "{content_type}"')
 
-            if not content_length:
-                raise RuntimeError(f'Backup filesize could not be determined')
-            elif int(content_length) > Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES:
-                raise RuntimeError(f'Backup filesize of {content_length} bytes exceeds maximum allowed filesize {Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES} bytes')
-            else:
-                self.logger.debug(f'Backup {backupid} filesize')
-        except RuntimeError as e:
-            raise e
-        except Exception as e:
-            raise ConnectionError(f'Failed to retrieve HEAD for backup {backupid} at: {download_url}. {str(e)}')
+        if not content_length:
+            raise RuntimeError(f'Backup filesize could not be determined')
+        elif int(content_length) > Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES:
+            raise RuntimeError(f'Backup filesize of {content_length} bytes exceeds maximum allowed filesize {Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES} bytes')
+        else:
+            self.logger.debug(f'Backup {backupid} filesize')
 
         # Download backup
-        downloaded_bytes = self._download_moodle_file(
-            download_url,
-            Path(f'{self.workdir}/backups'),
-            filename,
+        downloaded_bytes = self.moodle_api.download_moodle_file(
+            download_url=download_url,
+            target_path=Path(f'{self.workdir}/backups'),
+            target_filename=filename,
             maxsize_bytes=Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES,
         )
 
         self.logger.info(f'Downloaded {downloaded_bytes} bytes of backup {backupid} to {self.workdir}/{filename}')
 
-    def _download_moodle_file(
-            self,
-            download_url: str,
-            path: Path,
-            filename: str,
-            sha1sum_expected: str = None,
-            maxsize_bytes: int = Config.DOWNLOAD_MAX_FILESIZE_BYTES
-    ) -> int:
+    def _push_artifact_to_moodle(self, artifact_file: Path, artifact_sha256sum: str) -> None:
         """
-        Downloads a file from Moodle and saves it to the specified path. Downloads
-        are performed in chunks.
+        Pushes the given artifact file to Moodle and requests its processing
 
-        :param download_url: The URL to download the file from
-        :param path: The path to store the downloaded file into
-        :param filename: The name of the file to store
-        :param sha1sum_expected: SHA1 sum of the file contents to check against, ignored if None
-        :param maxsize_bytes: Maximum number of bytes before the download is forcefully aborted
-        :return: Number of bytes downloaded
+        :param artifact_file: Path to the artifact file to upload
+        :param artifact_sha256sum: SHA256 checksum of the artifact file
+        :return: None
+        :raises ConnectionError: If the connection to the Moodle API failed
+        :raises RuntimeError: If the Moodle webservice API reported an error
+        :raises ValueError: If the response from the Moodle API after file
+        upload was invalid and the artifact could therefore not be processed
         """
-        try:
-            os.makedirs(path, exist_ok=True)
-            with open(path.joinpath(filename), 'wb+') as f:
-                r = requests.get(url=download_url, params={
-                    'token': self.request.wstoken,
-                    'forcedownload': 1
-                }, stream=True)
-
-                chunksize = int(32 * 10e6)  # 32 MB
-                downloaded_bytes = 0
-                for chunk in r.iter_content(chunksize):
-                    if downloaded_bytes > maxsize_bytes:
-                        raise RuntimeError(f'Downloaded Moodle file was larger than expected and exceeded the maximum file size limit of {maxsize_bytes} bytes')
-                    downloaded_bytes = downloaded_bytes + f.write(chunk)
-        except RuntimeError as e:
-            raise e
-        except IOError:
-            raise RuntimeError(f'Encountered internal IOError while writing a downloading Moodle file from {download_url} to {filename}')
-        except Exception:
-            ConnectionError(f'Failed to download Moodle file from: {download_url}')
-
-        # Check if we downloaded a Moodle error message
-        if downloaded_bytes < 10240:  # 10 KiB
-            with open(path.joinpath(filename), 'r') as f:
-                try:
-                    data = json.load(f)
-                    if 'errorcode' in data and 'debuginfo' in data:
-                        self.logger.debug(f'Downloaded JSON response: {data}')
-                        raise RuntimeError(f'Moodle file download failed with "{data["errorcode"]}"')
-                except (JSONDecodeError, UnicodeDecodeError):
-                    pass
-
-        # Check SHA1 sum
-        if sha1sum_expected:
-            with open(path.joinpath(filename), 'rb') as f:
-                sha1sum = hashlib.sha1()
-                for byte_block in iter(lambda: f.read(4096), b""):
-                    sha1sum.update(byte_block)
-
-            if sha1sum.hexdigest() != sha1sum_expected:
-                raise RuntimeError(f'Moodle file download failed. Expected SHA1 sum "{sha1sum_expected}" but got "{sha1sum.hexdigest()}"')
-
-        self.logger.info(f'Downloaded {downloaded_bytes} bytes to {self.workdir}/{filename}')
-        return downloaded_bytes
-
-    def _push_artifact_to_moodle(self, artifact_filename: str, artifact_sha256sum: str):
-        with open(artifact_filename, "rb") as f:
-            try:
-                file_stats = os.stat(artifact_filename)
-                filesize = file_stats.st_size
-                self.logger.info(f'Uploading artifact "{artifact_filename}" (size: {filesize} bytes) (sha256sum: {artifact_sha256sum}) to "{self.request.moodle_upload_url}"')
-
-                r = requests.post(self.request.moodle_upload_url, files={'file_1': f}, data={
-                    'token': self.request.wstoken,
-                    'filepath': '/',
-                    'itemid': 0
-                })
-                response = r.json()
-            except Exception as e:
-                raise ConnectionError(f'Failed to upload artifact to "{self.request.moodle_upload_url}". Exception: {str(e)}. Response: {r.text}')
-
-        # Check if upload failed
-        if 'errorcode' in response and 'debuginfo' in response:
-            self.logger.debug(f'Upload response: {response}')
-            raise RuntimeError(f'Moodle webservice upload returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
-
-        # Validate response
-        upload_metadata = response[0]
-        for key in self.MOODLE_UPLOAD_FILE_FIELDS:
-            if key not in upload_metadata:
-                self.logger.debug(f'Upload response: {response}')
-                raise ValueError(f'Moodle webservice upload returned an invalid response')
-
-        # Call wsfunction to process artifact
-        try:
-            r = requests.get(url=self.request.moodle_ws_url, params={
-                'wstoken': self.request.wstoken,
-                'moodlewsrestformat': 'json',
-                'wsfunction': Config.MOODLE_WSFUNCTION_PROESS_UPLOAD,
-                'jobid': self.get_id(),
-                'artifact_sha256sum': artifact_sha256sum,
-                **dict((f'artifact_{key}', upload_metadata[key]) for key in self.MOODLE_UPLOAD_FILE_FIELDS)
-            })
-            response = r.json()
-        except Exception:
-            ConnectionError(f'Failed to call upload processing hook "{Config.MOODLE_WSFUNCTION_PROESS_UPLOAD}" at "{self.request.moodle_ws_url}"')
-
-        # Check if Moodle wsfunction returned an error
-        if 'errorcode' in response and 'debuginfo' in response:
-            raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
-
-        # Check that everything went smoothly on the Moodle side (not that we could change anything here...)
-        if response['status'] != 'OK':
-            raise RuntimeError(f'Moodle webservice failed to process uploaded artifact with status: {response["status"]}')
-
+        upload_medata = self.moodle_api.upload_file(Path(artifact_file))
+        self.moodle_api.process_uploaded_artifact(
+            jobid=self.id,
+            sha256sum=artifact_sha256sum,
+            **upload_medata
+        )
         self.logger.info('Processed uploaded artifact successfully.')

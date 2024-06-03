@@ -41,6 +41,15 @@ class JobStatus(StrEnum):
     TIMEOUT = 'TIMEOUT'
 
 
+class BackupStatus(StrEnum):
+    """
+    Status values a Moodle backup can have
+    """
+    PENDING = 'E_BACKUP_PENDING'
+    FAILED = 'E_BACKUP_FAILED'
+    SUCCESS = 'SUCCESS'
+
+
 class ReportSignal(StrEnum):
     """
     Signals that can be emitted by the report page JS

@@ -52,16 +52,16 @@ class TestBasicAPIWithMockedMoodleAPI:
     @classmethod
     def setup_class(cls):
         cls.mocks = {
-            'check_connection': {'patcher': patch('archiveworker.moodle_api.MoodleAPI.check_connection')},
+            'check_connection': patch('archiveworker.moodle_api.MoodleAPI.check_connection', return_value=True),
         }
 
-        cls.mocks['check_connection']['mock'] = cls.mocks['check_connection']['patcher'].start()
-        cls.mocks['check_connection']['mock'].return_value = True
+        for m in cls.mocks.values():
+            m.start()
 
     @classmethod
     def teardown_class(cls):
         for m in cls.mocks.values():
-            m['patcher'].stop()
+            m.stop()
 
     def test_index(self, client):
         """

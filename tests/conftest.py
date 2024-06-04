@@ -76,3 +76,115 @@ def job_valid_empty():
         'task_archive_quiz_attempts': None,
         'task_moodle_backups': None,
     }
+
+
+class MoodleAPIMockBase:
+    """
+    Base class for Moodle API mocks
+    """
+
+    CLS_ROOT = 'archiveworker.moodle_api.MoodleAPI'
+
+    def __init__(self):
+        self.patchers = {
+            'check_connection': patch(self.CLS_ROOT+'.check_connection', new=self.check_connection),
+            'update_job_status': patch(self.CLS_ROOT+'.update_job_status', new=self.update_job_status),
+            'get_backup_status': patch(self.CLS_ROOT+'.get_backup_status', new=self.get_backup_status),
+            'get_remote_file_metadata': patch(self.CLS_ROOT+'.get_remote_file_metadata', new=self.get_remote_file_metadata),
+            'download_moodle_file': patch(self.CLS_ROOT+'.download_moodle_file', new=self.download_moodle_file),
+            'get_attempts_metadata': patch(self.CLS_ROOT+'.get_attempts_metadata', new=self.get_attempts_metadata),
+            'get_attempt_data': patch(self.CLS_ROOT+'.get_attempt_data', new=self.get_attempt_data),
+            'upload_file': patch(self.CLS_ROOT+'.upload_file', new=self.upload_file),
+            'process_uploaded_artifact': patch(self.CLS_ROOT+'.process_uploaded_artifact', new=self.process_uploaded_artifact),
+        }
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
+    def __del__(self):
+        self.stop()
+
+    def start(self):
+        """
+        Start all patchers. Calls to patched functions will be redirected to the
+        mock methods, defined in this class.
+
+        :return: None
+        """
+        for p in self.patchers.values():
+            p.start()
+
+    def stop(self):
+        """
+        Stop all patchers. Calls to patched functions will be redirected to the
+        original methods.
+
+        :return: None
+        """
+        for p in self.patchers.values():
+            p.stop()
+
+    def check_connection(self):
+        return True
+
+    def update_job_status(self, jobid: UUID, status: JobStatus) -> bool:
+        return True
+
+    def get_backup_status(self, jobid: UUID, backupid: str) -> BackupStatus:
+        return BackupStatus.SUCCESS
+
+    def get_remote_file_metadata(self, download_url: str) -> Tuple[str, int]:
+        return 'artifact.tar.gz', 1024
+
+    def download_moodle_file(
+            self,
+            download_url: str,
+            target_path: Path,
+            target_filename: str,
+            sha1sum_expected: str = None,
+            maxsize_bytes: int = Config.DOWNLOAD_MAX_FILESIZE_BYTES
+    ) -> int:
+        raise NotImplementedError('download_moodle_file')
+
+    def get_attempts_metadata(self, courseid: int, cmid: int, quizid: int, attemptids: List[int]) -> List[Dict[str, str]]:
+        raise NotImplementedError('get_attempts_metadata')
+
+    def get_attempt_data(
+            self,
+            courseid: int,
+            cmid: int,
+            quizid: int,
+            attemptid: int,
+            sections: dict,
+            filenamepattern: str,
+            attachments: bool
+    ) -> Tuple[str, str, List[Dict[str, str]]]:
+        raise NotImplementedError('get_attempt_data')
+
+    def upload_file(self, file: Path) -> Dict[str, str]:
+        return {
+            'component': 'user',
+            'contextid': 1,
+            'userid': 2,
+            'filearea': 'draft',
+            'filename': 'artifact.tar.gz',
+            'filepath': '/',
+            'itemid': 1000,
+        }
+
+    def process_uploaded_artifact(
+            self,
+            jobid: UUID,
+            component: str,
+            contextid: int,
+            userid: int,
+            filearea: str,
+            filename: str,
+            filepath: str,
+            itemid: int,
+            sha256sum: str
+    ) -> bool:
+        return True

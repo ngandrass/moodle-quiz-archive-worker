@@ -14,10 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import threading
+import time
+from pathlib import Path
+from typing import Tuple, List, Dict
+from unittest.mock import patch
+from uuid import UUID
+
 import pytest
 
-from archiveworker.custom_types import JobArchiveRequest
-from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history
+from archiveworker.custom_types import JobArchiveRequest, JobStatus, BackupStatus
+from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history, InterruptableThread
+from config import Config
 
 
 @pytest.fixture()
@@ -26,6 +34,15 @@ def app():
     app.config.update({
         "TESTING": True,
     })
+
+    # Kill all still existing threads
+    for t in threading.enumerate():
+        if isinstance(t, InterruptableThread):
+            print(f"Cleaning up thread: {t.name} ...", end='')
+            t.stop()
+            job_queue.put_nowait(None)
+            t.join()
+            print(' OK.')
 
     # Ensure an empty queue and history on each run
     job_queue.queue.clear()

@@ -166,15 +166,22 @@ def handle_archive_request():
     return jsonify({'jobid': job.get_id(), 'status': job.get_status()}), HTTPStatus.OK
 
 
-def run():
+def start_processing_thread() -> None:
+    """
+    Starts the queue processing thread.
+    :return: None
+    """
+    queue_processing_thread = InterruptableThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
+    queue_processing_thread.start()
+
+
+def run() -> None:
     """
     Runs the application
-    :return:
+    :return: None
     """
     logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 
-    queue_processing_thread = InterruptableThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
-    queue_processing_thread.start()
-
+    start_processing_thread()
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

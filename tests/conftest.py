@@ -15,7 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from archiveworker.moodle_quiz_archive_worker import app as original_app
+
+from archiveworker.custom_types import JobArchiveRequest
+from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history
 
 
 @pytest.fixture()
@@ -25,11 +27,11 @@ def app():
         "TESTING": True,
     })
 
-    # other setup can go here
+    # Ensure an empty queue and history on each run
+    job_queue.queue.clear()
+    job_history.clear()
 
     yield app
-
-    # clean up / reset resources here
 
 
 @pytest.fixture()
@@ -40,3 +42,20 @@ def client(app):
 @pytest.fixture()
 def runner(app):
     return app.test_cli_runner()
+
+
+@pytest.fixture()
+def job_valid_empty():
+    return {
+        'api_version': JobArchiveRequest.API_VERSION,
+        'moodle_base_url': 'http://localhost',
+        'moodle_ws_url': 'http://localhost/webservice/rest/server.php',
+        'moodle_upload_url': 'http://localhost/webservice/upload.php',
+        'wstoken': 'opensesame',
+        'courseid': 1,
+        'cmid': 1,
+        'quizid': 1,
+        'archive_filename': 'archive',
+        'task_archive_quiz_attempts': None,
+        'task_moodle_backups': None,
+    }

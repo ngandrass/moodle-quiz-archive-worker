@@ -150,6 +150,23 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC`: Number of seconds to wait for the report page to load before aborting the job (default=`30`)
 
 
+# Development
+
+Development dependencies are not installed by default. To install them, run:
+
+```shell
+poetry install --with dev
+```
+
+## Running Unit Tests
+
+Unit tests are handled by `pytest`. To run all test suites execute:
+
+```shell
+poetry run pytest
+```
+
+
 ## License
 
 2024 Niels Gandraß <niels@gandrass.de>

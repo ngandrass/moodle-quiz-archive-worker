@@ -17,7 +17,6 @@ import os
 import shutil
 import tempfile
 import threading
-import time
 import uuid
 from pathlib import Path
 from typing import Tuple, List, Dict, Union
@@ -26,7 +25,7 @@ from uuid import UUID
 
 import pytest
 
-from archiveworker.custom_types import JobArchiveRequest, JobStatus, BackupStatus, WorkerThreadInterrupter
+from archiveworker.custom_types import JobStatus, BackupStatus, WorkerThreadInterrupter
 from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history, InterruptableThread
 from config import Config
 
@@ -62,23 +61,6 @@ def client(app):
 @pytest.fixture()
 def runner(app):
     return app.test_cli_runner()
-
-
-@pytest.fixture()
-def job_valid_empty():
-    return {
-        'api_version': JobArchiveRequest.API_VERSION,
-        'moodle_base_url': 'http://localhost',
-        'moodle_ws_url': 'http://localhost/webservice/rest/server.php',
-        'moodle_upload_url': 'http://localhost/webservice/upload.php',
-        'wstoken': 'opensesame',
-        'courseid': 1,
-        'cmid': 1,
-        'quizid': 1,
-        'archive_filename': 'archive',
-        'task_archive_quiz_attempts': None,
-        'task_moodle_backups': None,
-    }
 
 
 class TestUtils:

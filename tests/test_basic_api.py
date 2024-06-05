@@ -19,6 +19,7 @@ import pytest
 from unittest.mock import patch
 from uuid import UUID
 
+from . import fixtures
 from .conftest import client
 
 from config import Config
@@ -30,15 +31,14 @@ class TestBasicAPI:
     Tests for basic API endpoint behavior
     """
 
-    def test_moodle_api_connection_probe_failure(self, client, job_valid_empty):
+    def test_moodle_api_connection_probe_failure(self, client):
         """
         Tests that the API rejects the job when the Moodle API connection probe fails
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
-        response = client.post('/archive', json=job_valid_empty)
+        response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
 
         assert response.status_code == 400
         assert 'Could not establish a connection to Moodle webservice API' in response.json['error']
@@ -99,12 +99,11 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['status'] == WorkerStatus.IDLE
         assert response.json['queue_len'] == 0
 
-    def test_status_active(self, client, job_valid_empty):
+    def test_status_active(self, client):
         """
         Tests that the worker reports as active when a job is enqueued
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
         # Ensure that the worker is idle before starting
@@ -113,7 +112,7 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['status'] == WorkerStatus.IDLE
 
         # Enqueue a job
-        response = client.post('/archive', json=job_valid_empty)
+        response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
         assert response.status_code == 200
 
         # Check that the worker reports as active
@@ -122,12 +121,11 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['status'] == WorkerStatus.ACTIVE
         assert response.json['queue_len'] == 1
 
-    def test_status_busy(self, client, job_valid_empty):
+    def test_status_busy(self, client):
         """
         Tests that the worker reports as busy when the queue is full
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
         # Ensure that the worker is idle before starting
@@ -137,7 +135,7 @@ class TestBasicAPIWithMockedMoodleAPI:
 
         # Enqueue jobs until the queue is full
         for n in range(Config.QUEUE_SIZE):
-            response = client.post('/archive', json=job_valid_empty)
+            response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
             assert response.status_code == 200
 
         # Check that the worker reports as busy
@@ -146,18 +144,17 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['status'] == WorkerStatus.BUSY
         assert response.json['queue_len'] == Config.QUEUE_SIZE
 
-    def test_job_status(self, client, job_valid_empty):
+    def test_job_status(self, client):
         """
         Tests that the worker reports the status of a job
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
         # Create three test jobs
         jobids = []
         for n in range(3):
-            response = client.post('/archive', json=job_valid_empty)
+            response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
             assert response.status_code == 200
             jobids.append(response.json['jobid'])
 
@@ -178,15 +175,14 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.status_code == 404
         assert 'not found' in response.json['error']
 
-    def test_queue_job(self, client, job_valid_empty):
+    def test_queue_job(self, client):
         """
         Tests queueing a basic job
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
-        response = client.post('/archive', json=job_valid_empty)
+        response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
         print(f"Response: {response.json}")
 
         # Validate basic response structure
@@ -198,55 +194,53 @@ class TestBasicAPIWithMockedMoodleAPI:
         uuid_obj = UUID(response.json['jobid'])
         assert str(uuid_obj) == response.json['jobid']
 
-    def test_queue_jobs(self, client, job_valid_empty):
+    def test_queue_jobs(self, client):
         """
         Tests queueing multiple jobs until the queue has reached its maximum size
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
         for n in range(Config.QUEUE_SIZE):
             print(f"Queueing job {n} ... ", end='')
-            response = client.post('/archive', json=job_valid_empty)
+            response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
             print(f"{response.status_code}.")
 
             assert response.status_code == 200
 
-    def test_queue_overflowing(self, client, job_valid_empty):
+    def test_queue_overflowing(self, client):
         """
         Tests queueing a job when the queue is already full
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
         for n in range(Config.QUEUE_SIZE):
             print(f"Queueing job {n} ... ", end='')
-            response = client.post('/archive', json=job_valid_empty)
+            response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
             print(f"{response.status_code}.")
 
             assert response.status_code == 200, 'Job queueing failed while there should be capacity left.'
 
         # Try to queue another job
         print(f"Queueing job {Config.QUEUE_SIZE} ... ", end='')
-        response = client.post('/archive', json=job_valid_empty)
+        response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
         print(f"{response.status_code}.")
 
         assert response.status_code == 429, 'Job queueing succeeded while the queue should be full.'
         assert 'Maximum number of queued jobs exceeded' in response.json['error']
 
-    def test_queue_job_invalid_api_version(self, client, job_valid_empty):
+    def test_queue_job_invalid_api_version(self, client):
         """
         Tests queueing a job with an invalid API version
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job request without tasks
         :return: None
         """
-        job_valid_empty['api_version'] = 0
+        job = fixtures.empty_job.ARCHIVE_API_REQUEST.copy()
+        job['api_version'] = 0
 
-        response = client.post('/archive', json=job_valid_empty)
+        response = client.post('/archive', json=job)
 
         assert response.status_code == 400
         assert 'API version mismatch' in response.json['error']
@@ -263,7 +257,7 @@ class TestBasicAPIWithMockedMoodleAPI:
         'task_archive_quiz_attempts',
         'task_moodle_backups'
     ])
-    def test_queue_job_request_missing_parameter(self, client, job_valid_empty, key):
+    def test_queue_job_request_missing_parameter(self, client, key):
         """
         Tests queueing a job with an invalid request
 
@@ -271,7 +265,7 @@ class TestBasicAPIWithMockedMoodleAPI:
         :param key: Key to remove from the job request
         :return: None
         """
-        job = job_valid_empty
+        job = fixtures.empty_job.ARCHIVE_API_REQUEST.copy()
         job.pop(key)
         response = client.post('/archive', json=job)
 

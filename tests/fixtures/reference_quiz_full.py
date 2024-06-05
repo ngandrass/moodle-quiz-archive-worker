@@ -20,11 +20,12 @@ import shutil
 from pathlib import Path
 from typing import Tuple, List, Dict
 
+from archiveworker.custom_types import JobArchiveRequest
 from config import Config
 from tests.conftest import MoodleAPIMockBase
 
 ARCHIVE_API_REQUEST = {
-    "api_version": 5,
+    "api_version": JobArchiveRequest.API_VERSION,
     "moodle_base_url": "http://localhost",
     "moodle_ws_url": "http://localhost/webservice/rest/server.php",
     "moodle_upload_url": "http://localhost/webservice/upload.php",

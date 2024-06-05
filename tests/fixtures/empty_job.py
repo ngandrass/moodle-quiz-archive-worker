@@ -13,8 +13,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+from archiveworker.custom_types import JobArchiveRequest
 from tests.conftest import MoodleAPIMockBase
+
+ARCHIVE_API_REQUEST = {
+    'api_version': JobArchiveRequest.API_VERSION,
+    'moodle_base_url': 'http://localhost',
+    'moodle_ws_url': 'http://localhost/webservice/rest/server.php',
+    'moodle_upload_url': 'http://localhost/webservice/upload.php',
+    'wstoken': 'opensesame',
+    'courseid': 1,
+    'cmid': 1,
+    'quizid': 1,
+    'archive_filename': 'archive',
+    'task_archive_quiz_attempts': None,
+    'task_moodle_backups': None,
+}
 
 
 class MoodleAPIMock(MoodleAPIMockBase):

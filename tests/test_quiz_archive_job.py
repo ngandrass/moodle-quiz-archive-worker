@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import csv
 import os
 import tarfile
@@ -94,7 +95,7 @@ class TestQuizArchiveJob:
             # Extract artifact and validate contents
             with tarfile.open(job_artifact, 'r:gz') as tar:
                 with tempfile.TemporaryDirectory() as tempdir:
-                    tar.extractall(tempdir)
+                    tar.extractall(tempdir, filter=tarfile.tar_filter)
 
                     # Validate attempt reports
                     for attemptid in fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids']:

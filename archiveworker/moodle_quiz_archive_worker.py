@@ -27,7 +27,7 @@ from flask import Flask, make_response, request, jsonify
 from config import Config
 from .moodle_api import MoodleAPI
 from .quiz_archive_job import QuizArchiveJob
-from .custom_types import WorkerStatus, JobArchiveRequest, JobStatus
+from .custom_types import WorkerStatus, JobArchiveRequest, JobStatus, WorkerThreadInterrupter
 
 app = Flask(__name__)
 job_queue = queue.Queue(maxsize=Config.QUEUE_SIZE)
@@ -58,6 +58,10 @@ def queue_processing_loop():
     while getattr(threading.current_thread(), "do_run", True):
         # Start job execution
         job = job_queue.get()
+        if isinstance(job, WorkerThreadInterrupter):
+            app.logger.info("Received interrupt signal. Terminating queue worker thread")
+            return
+
         t = InterruptableThread(target=job.execute)
         t.start()
         t.join(Config.REQUEST_TIMEOUT_SEC)

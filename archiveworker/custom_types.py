@@ -19,6 +19,14 @@ from enum import StrEnum
 from typing import List
 
 
+class WorkerThreadInterrupter:
+    """
+    Job / Task to queue for interrupting a worker thread
+    """
+    def execute(self) -> None:
+        return
+
+
 class WorkerStatus(StrEnum):
     """
     Status values that the quiz archive worker can report

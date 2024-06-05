@@ -17,6 +17,7 @@ import os
 import shutil
 import tempfile
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Tuple, List, Dict, Union
@@ -25,7 +26,7 @@ from uuid import UUID
 
 import pytest
 
-from archiveworker.custom_types import JobArchiveRequest, JobStatus, BackupStatus
+from archiveworker.custom_types import JobArchiveRequest, JobStatus, BackupStatus, WorkerThreadInterrupter
 from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history, InterruptableThread
 from config import Config
 
@@ -42,7 +43,7 @@ def app():
         if isinstance(t, InterruptableThread):
             print(f"Cleaning up thread: {t.name} ...", end='')
             t.stop()
-            job_queue.put_nowait(None)
+            job_queue.put_nowait(WorkerThreadInterrupter())
             t.join()
             print(' OK.')
 

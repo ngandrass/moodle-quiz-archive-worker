@@ -166,6 +166,26 @@ Unit tests are handled by `pytest`. To run all test suites execute:
 poetry run pytest
 ```
 
+If you want to see the console output of the tests, as well as logger calls, you
+need to specify `-s` (for test output) and `--log-cli-level=DEBUG` (for app
+logging). Example:
+
+```shell
+poetry run pytest -s --log-cli-level=DEBUG
+```
+
+## Running Coverage Checks
+
+Code coverage is evaluated using the `coverage` Python package. To run coverage
+checks run the following commands:
+
+```shell
+poetry run coverage run -m pytest
+poetry run coverage html
+```
+
+The coverage report is then available in the `htmlcov` directory.
+
 
 ## License
 

@@ -367,7 +367,7 @@ class QuizArchiveJob:
 
         # Add path to each entry for metadata processing
         for entry in metadata:
-            entry['path'] = f"/attempts/{self.archived_attempts[entry['attemptid']]}"
+            entry['path'] = f"/attempts/{self.archived_attempts[int(entry['attemptid'])]}"
 
         # Write metadata to CSV file
         with open(f'{self.workdir}/attempts_metadata.csv', 'w+') as f:

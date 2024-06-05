@@ -41,7 +41,15 @@ class TestQuizArchiveJob:
         Config.REPORT_WAIT_FOR_READY_SIGNAL = cls.wait_for_readysignal_orig
 
     @pytest.mark.timeout(5)
-    def test_basic_job_processing_flow(self, client, job_valid_empty):
+    def test_basic_job_processing_flow(self, client, job_valid_empty) -> None:
+        """
+        Tests processing of "empty" jobs (no actual data to archive nor backups
+        to store).
+
+        :param client: Flask test client
+        :param job_valid_empty: Valid job JSON without any tasks
+        :return: None
+        """
         with fixtures.empty_job.MoodleAPIMock():
             # Create new job but do not process it yet
             jobs = []
@@ -66,7 +74,14 @@ class TestQuizArchiveJob:
                         assert False, f"Unexpected status: {r.json['status']}"
 
     @pytest.mark.timeout(30)
-    def test_render_quiz_attempt(self, client):
+    def test_archive_full_quiz(self, client) -> None:
+        """
+        Tests the full quiz archiving process with all tasks enabled. Data is
+        taken from the reference quiz fixture.
+
+        :param client: Flask test client
+        :return: None
+        """
         with fixtures.reference_quiz_full.MoodleAPIMock() as mock:
             # Create job and process it
             r = client.post('/archive', json=fixtures.reference_quiz_full.ARCHIVE_API_REQUEST)
@@ -88,7 +103,7 @@ class TestQuizArchiveJob:
             job_uploads = mock.get_uploaded_files()
             assert len(job_uploads) == 1, 'Expected exactly one uploaded artifact'
             job_artifact = job_uploads[1]['file']
-            assert job_artifact.is_file(), 'Uploaded artifact is not a vailid file'
+            assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
             assert os.path.getsize(job_artifact) > 1024*1024, 'Artifact size too small (<1 MB)'
             assert os.path.getsize(job_artifact) < 1024*1024*10, 'Artifact size too large (>10 MB)'
 
@@ -116,7 +131,7 @@ class TestQuizArchiveJob:
                     TestUtils.assert_is_file_with_size(attemptsmetafile, 128, 10*1024)
                     TestUtils.assert_is_file_with_size(attemptsmetafile+'.sha256', 64, 64)
 
-                    attemptids_to_find = fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids']
+                    attemptids_to_find = fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids'].copy()
                     with open(attemptsmetafile, 'r') as f:
                         for row in csv.DictReader(f, skipinitialspace=True):
                             for key in ["attemptid", "userid", "username", "firstname", "lastname", "timestart", "timefinish", "attempt", "state", "path"]:
@@ -126,3 +141,103 @@ class TestQuizArchiveJob:
                             attemptids_to_find.remove(int(row['attemptid']))
 
                     assert len(attemptids_to_find) == 0, 'Not all attempt IDs found in attempt metadata csv file'
+
+    @pytest.mark.timeout(5)
+    def test_archive_backups_only(self, client) -> None:
+        """
+        Tests the quiz archiving process with only the backup task enabled. No
+        attempt PDFs should be generated here.
+
+        :param client: Flask test client
+        :return: None
+        """
+        with fixtures.reference_quiz_single_attempt.MoodleAPIMock() as mock:
+            # Create job and process it
+            jobjson = fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST.copy()
+            jobjson['task_archive_quiz_attempts'] = None
+            r = client.post('/archive', json=jobjson)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_thread()
+
+            # Wait for job to be processed
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break
+
+            # Validate that an artifact was uploaded
+            job_uploads = mock.get_uploaded_files()
+            job_artifact = job_uploads[1]['file']
+            assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
+
+            # Extract artifact and validate contents
+            with tarfile.open(job_artifact, 'r:gz') as tar:
+                with tempfile.TemporaryDirectory() as tempdir:
+                    tar.extractall(tempdir, filter=tarfile.tar_filter)
+
+                    # Validate attempt reports
+                    assert not os.path.exists(os.path.join(tempdir, 'attempts/')), 'Unexpected attempts directory in artifact'
+                    assert not os.path.exists(os.path.join(tempdir, 'attempts_metadata.csv')), 'Unexpected attempts metadata file in artifact'
+
+                    # Validate Moodle backups
+                    for backup in fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST['task_moodle_backups']:
+                        backupfile = os.path.join(tempdir, 'backups/', backup['filename'])
+                        TestUtils.assert_is_file_with_size(backupfile, 500*1024, 10000*1024)
+                        TestUtils.assert_is_file_with_size(backupfile+'.sha256', 64, 64)
+
+    @pytest.mark.timeout(30)
+    def test_archive_attempts_only(self, client) -> None:
+        """
+        Tests the quiz archiving process with only the attempt archiving task.
+        No Moodle backups should be included in the artifact.
+
+        Also tests that the keep_html_files option is respected.
+
+        :param client: Flask test client
+        :return: None
+        """
+        with fixtures.reference_quiz_single_attempt_no_backups.MoodleAPIMock() as mock:
+            # Create job and process it
+            r = client.post('/archive', json=fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_thread()
+
+            # Wait for job to be processed
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break
+
+            # Validate that an artifact was uploaded
+            job_uploads = mock.get_uploaded_files()
+            job_artifact = job_uploads[1]['file']
+            assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
+
+            # Extract artifact and validate contents
+            with tarfile.open(job_artifact, 'r:gz') as tar:
+                with tempfile.TemporaryDirectory() as tempdir:
+                    tar.extractall(tempdir, filter=tarfile.tar_filter)
+
+                    # Validate Moodle backups
+                    assert not os.path.exists(os.path.join(tempdir, 'backups/')), 'Unexpected backups directory in artifact'
+
+                    # Validate attempt reports
+                    attemptid = fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids'][0]
+                    fbase = os.path.join(tempdir, f'attempts/attempt-{attemptid}/attempt-{attemptid}')
+                    TestUtils.assert_is_file_with_size(fbase+'.pdf', 200*1024, 2000*1024)
+                    TestUtils.assert_is_file_with_size(fbase+'.pdf.sha256', 64, 64)
+                    assert not os.path.isfile(fbase+'.html'), 'Unexpected HTML file in artifact'
+                    assert not os.path.isfile(fbase+'.html.sha256'), 'Unexpected HTML SHA256 file in artifact'
+
+                    # Validate attempts metadata file
+                    TestUtils.assert_is_file_with_size(os.path.join(tempdir, 'attempts_metadata.csv'), 128, 10*1024)

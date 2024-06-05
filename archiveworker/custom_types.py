@@ -74,6 +74,8 @@ class JobArchiveRequest:
 
     API_VERSION = 5
 
+    PAPER_FORMATS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Letter', 'Legal', 'Tabloid', 'Ledger']
+
     def __init__(self,
                  api_version: int,
                  moodle_base_url: str,
@@ -158,21 +160,21 @@ class JobArchiveRequest:
             if any(c in self.archive_filename for c in ["\0", "\\", "/", ":", "*", "?", "\"", "<", ">", "|", "."]):
                 return False
 
-        if self.tasks['archive_quiz_attempts'] is not None:
+        if self.tasks['archive_quiz_attempts']:
             if not isinstance(self.tasks['archive_quiz_attempts']['attemptids'], List):
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['sections'], object):
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['fetch_metadata'], bool):
                 return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['paper_format'], str) or self.tasks['archive_quiz_attempts']['paper_format'] not in ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Letter', 'Legal', 'Tabloid', 'Ledger']:
+            if not isinstance(self.tasks['archive_quiz_attempts']['paper_format'], str) or self.tasks['archive_quiz_attempts']['paper_format'] not in self.PAPER_FORMATS:
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['keep_html_files'], bool):
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['filename_pattern'], str) or self.tasks['archive_quiz_attempts']['filename_pattern'] is None:
                 return False
 
-        if self.tasks['archive_moodle_backups'] is not None:
+        if self.tasks['archive_moodle_backups']:
             if not isinstance(self.tasks['archive_moodle_backups'], List):
                 return False
             for backup in self.tasks['archive_moodle_backups']:

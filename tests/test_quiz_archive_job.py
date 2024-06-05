@@ -41,20 +41,19 @@ class TestQuizArchiveJob:
         Config.REPORT_WAIT_FOR_READY_SIGNAL = cls.wait_for_readysignal_orig
 
     @pytest.mark.timeout(5)
-    def test_basic_job_processing_flow(self, client, job_valid_empty) -> None:
+    def test_basic_job_processing_flow(self, client) -> None:
         """
         Tests processing of "empty" jobs (no actual data to archive nor backups
         to store).
 
         :param client: Flask test client
-        :param job_valid_empty: Valid job JSON without any tasks
         :return: None
         """
         with fixtures.empty_job.MoodleAPIMock():
             # Create new job but do not process it yet
             jobs = []
             for i in range(3):
-                r = client.post('/archive', json=job_valid_empty)
+                r = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
                 assert r.status_code == 200
                 assert r.json['status'] == JobStatus.AWAITING_PROCESSING
                 jobs.append(r.json['jobid'])
@@ -72,6 +71,34 @@ class TestQuizArchiveJob:
                         continue
                     if r.json['status'] not in (JobStatus.RUNNING, JobStatus.AWAITING_PROCESSING):
                         assert False, f"Unexpected status: {r.json['status']}"
+
+    @pytest.mark.timeout(5)
+    def test_job_timeout(self, client) -> None:
+        """
+        Tests that an overdue job is terminated and marked as failed.
+
+        :return: None
+        """
+        Config.REQUEST_TIMEOUT_SEC = 0
+
+        # Enqueue a job
+        with fixtures.empty_job.MoodleAPIMock():
+            r = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            # Start processing thread
+            start_processing_thread()
+
+            # Wait for job to be processed
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                print(r.json['status'])
+                if r.json['status'] == JobStatus.TIMEOUT:
+                    break
+                if r.json['status'] == JobStatus.FINISHED:
+                    assert False, 'Job should have timed out'
 
     @pytest.mark.timeout(30)
     def test_archive_full_quiz(self, client) -> None:

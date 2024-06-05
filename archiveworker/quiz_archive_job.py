@@ -241,7 +241,11 @@ class QuizArchiveJob:
         page = await bctx.new_page()
         if Config.LOG_LEVEL == logging.DEBUG:
             page.on('console', lambda msg: self.logger.debug(f'Playwright console message: {msg.text}'))
-            page.on('pageerror', lambda err: self.logger.debug(f'Playwright page error: {err}'))
+            page.on('pageerror', lambda msg: self.logger.debug(f'Playwright page error: {msg}'))
+            page.on('crash', lambda msg: self.logger.debug(f'Playwright page crash: {msg}'))
+            page.on('requestfailed', lambda req: self.logger.debug(f'Playwright request failed: {req.url}'))
+            page.on('domcontentloaded', lambda _: self.logger.debug('Playwright DOM content loaded'))
+            # page.on('requestfinished', lambda req: self.logger.debug(f'Playwright request finished: {req.url}'))
 
         # Create mock responder to serve attempt HTML
         # This is done to avoid CORS errors when loading the attempt HTML and to

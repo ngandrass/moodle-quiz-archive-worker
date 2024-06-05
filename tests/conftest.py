@@ -50,6 +50,10 @@ def app():
     job_queue.queue.clear()
     job_history.clear()
 
+    # Enforce some config values for tests
+    Config.REPORT_WAIT_FOR_READY_SIGNAL = False
+    Config.REQUEST_TIMEOUT_SEC = 30
+
     yield app
 
 

@@ -13,11 +13,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+import os
+import shutil
+import tempfile
 import threading
-import time
+import uuid
 from pathlib import Path
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union
 from unittest.mock import patch
 from uuid import UUID
 
@@ -78,6 +80,30 @@ def job_valid_empty():
     }
 
 
+class TestUtils:
+    """
+    Util function for tests
+    """
+
+    @classmethod
+    def assert_is_file_with_size(cls, file: Union[str, Path], min_size: int = None, max_size: int = None) -> None:
+        """
+        Asserts that the file exists and has the expected size.
+
+        :param file: Path to file
+        :param min_size: Minimum expected file size in bytes
+        :param max_size: Maximum expected file size in bytes
+        :return: None
+        """
+        assert os.path.isfile(file), f"File not found: {file}"
+
+        fsize = os.path.getsize(file)
+        if min_size:
+            assert fsize >= min_size, f"File size too small: {fsize} bytes (at least {min_size} bytes required)"
+        if max_size:
+            assert fsize <= max_size, f"File size too large: {fsize} bytes (max {max_size} bytes allowed)"
+
+
 class MoodleAPIMockBase:
     """
     Base class for Moodle API mocks
@@ -86,6 +112,9 @@ class MoodleAPIMockBase:
     CLS_ROOT = 'archiveworker.moodle_api.MoodleAPI'
 
     def __init__(self):
+        self.upload_tempdir = None
+        self.uploaded_files = {}
+        self.upload_fileid_ptr = 1
         self.patchers = {
             'check_connection': patch(self.CLS_ROOT+'.check_connection', new=self.check_connection),
             'update_job_status': patch(self.CLS_ROOT+'.update_job_status', new=self.update_job_status),
@@ -100,6 +129,7 @@ class MoodleAPIMockBase:
 
     def __enter__(self):
         self.start()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
@@ -107,27 +137,48 @@ class MoodleAPIMockBase:
     def __del__(self):
         self.stop()
 
-    def start(self):
+    def start(self) -> None:
         """
         Start all patchers. Calls to patched functions will be redirected to the
         mock methods, defined in this class.
 
         :return: None
         """
+        self.upload_tempdir = tempfile.TemporaryDirectory()
+        self.uploaded_files = {}
+        self.upload_fileid_ptr = 1
+
         for p in self.patchers.values():
             p.start()
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stop all patchers. Calls to patched functions will be redirected to the
         original methods.
 
         :return: None
         """
+        if self.upload_tempdir:
+            self.upload_tempdir.cleanup()
+            self.upload_tempdir = None
+
         for p in self.patchers.values():
             p.stop()
 
-    def check_connection(self):
+    def get_uploaded_files(self) -> Dict[int, Dict[str, Union[str, Path]]]:
+        """
+        Retrieves the metadata array with pointers to all uploaded files.
+
+        Note: Files are uploaded to a temporary directory that is deleted when
+        the mocking is stopped or this object is destroyed.
+
+        :return: Dict of uploaded files
+        """
+        return self.uploaded_files
+
+    # v-- API function mocks below --v
+
+    def check_connection(self) -> bool:
         return True
 
     def update_job_status(self, jobid: UUID, status: JobStatus) -> bool:
@@ -137,7 +188,7 @@ class MoodleAPIMockBase:
         return BackupStatus.SUCCESS
 
     def get_remote_file_metadata(self, download_url: str) -> Tuple[str, int]:
-        return 'artifact.tar.gz', 1024
+        return 'application/vnd.moodle.backup', 1048576
 
     def download_moodle_file(
             self,
@@ -165,15 +216,34 @@ class MoodleAPIMockBase:
         raise NotImplementedError('get_attempt_data')
 
     def upload_file(self, file: Path) -> Dict[str, str]:
-        return {
-            'component': 'user',
-            'contextid': 1,
-            'userid': 2,
-            'filearea': 'draft',
-            'filename': 'artifact.tar.gz',
-            'filepath': '/',
-            'itemid': 1000,
+        if not file.is_file():
+            raise FileNotFoundError(f'File not found: {file}')
+
+        # Copy file to local tempdir
+        pathuuid = uuid.uuid4().hex
+        target_path = os.path.join(self.upload_tempdir.name, pathuuid)
+        os.makedirs(target_path)
+
+        target_file = Path(os.path.join(target_path, file.name))
+        shutil.copy2(file, target_file)
+
+        # Store file metadata and generate Moodle-ish response. The field itemid
+        # corresponds to the index inside self.uploaded_files.
+        self.uploaded_files[self.upload_fileid_ptr] = {
+            'file': target_file,
+            'metadata': {
+                'component': 'user',
+                'contextid': 1,
+                'userid': 2,
+                'filearea': 'draft',
+                'filename': file.name,
+                'filepath': '/',
+                'itemid': self.upload_fileid_ptr,
+            },
         }
+        self.upload_fileid_ptr += 1
+
+        return self.uploaded_files[self.upload_fileid_ptr - 1]['metadata']
 
     def process_uploaded_artifact(
             self,

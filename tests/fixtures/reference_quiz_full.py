@@ -13,8 +13,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import csv
+import os
+import shutil
+from pathlib import Path
 from typing import Tuple, List, Dict
 
+from config import Config
 from tests.conftest import MoodleAPIMockBase
 
 ARCHIVE_API_REQUEST = {
@@ -92,3 +98,43 @@ class MoodleAPIMock(MoodleAPIMockBase):
                 return f'attempt-{attemptid}', f.read(), []
 
         super().get_attempt_data(courseid, cmid, quizid, attemptid, sections, filenamepattern, attachments)
+
+    def get_attempts_metadata(
+            self,
+            courseid: int,
+            cmid: int,
+            quizid: int,
+            attemptids: List[int]
+    ) -> List[Dict[str, str]]:
+        metadata = []
+        with open(f'{self.RESOURCE_BASE}/attempts_metadata.csv', 'r') as f:
+            for row in csv.DictReader(f, skipinitialspace=True):
+                if int(row['attemptid']) in attemptids:
+                    metadata.append({key: value for key, value in row.items()})
+
+        return metadata
+
+    def download_moodle_file(
+            self,
+            download_url: str,
+            target_path: Path,
+            target_filename: str,
+            sha1sum_expected: str = None,
+            maxsize_bytes: int = Config.DOWNLOAD_MAX_FILESIZE_BYTES
+    ) -> int:
+        # Lookup file
+        target_file = os.path.join(target_path, target_filename)
+        source_file = None
+        if download_url == ARCHIVE_API_REQUEST['task_moodle_backups'][0]['file_download_url']:
+            source_file = f'{self.RESOURCE_BASE}/backups/{ARCHIVE_API_REQUEST['task_moodle_backups'][0]["filename"]}'
+        if download_url == ARCHIVE_API_REQUEST['task_moodle_backups'][1]['file_download_url']:
+            source_file = f'{self.RESOURCE_BASE}/backups/{ARCHIVE_API_REQUEST['task_moodle_backups'][1]["filename"]}'
+
+        # Handle unexpected download URLs
+        if not source_file:
+            raise RuntimeError(f'Unexpected download URL: {download_url}')
+
+        # "Download" file to target location
+        os.makedirs(target_path, exist_ok=True)
+        shutil.copy2(source_file, target_file)
+        return os.path.getsize(target_file)

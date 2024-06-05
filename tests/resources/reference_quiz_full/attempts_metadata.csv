@@ -1,0 +1,4 @@
+"attemptid","userid","username","firstname","lastname","timestart","timefinish","attempt","state","path"
+25,8,"anon2","anonfirstname2","anonlastname2",1701169729,1701169823,1,"finished","/attempts/attempt-25-anon2_2024-06-04-16-08-58"
+23,9,"anon3","anonfirstname3","anonlastname3",1701169952,1701170066,1,"finished","/attempts/attempt-23-anon3_2024-06-04-16-09-00"
+24,10,"anon4","anonfirstname4","anonlastname4",1701170083,1701170281,1,"finished","/attempts/attempt-24-anon4_2024-06-04-16-08-57"

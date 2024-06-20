@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 1.3.10 (2024-06-20)
+
+- Optimize Docker image: Explicitly set run user group and perform additional apt cleanup
+- Update Python dependencies
+  - Fix CVE-2024-37891 in `urllib3` package
+
+
 ## Version 1.3.9 (2024-06-05)
 
 - Create unit tests for archive creation, attempt rendering, backup storage, basic API logic, and more

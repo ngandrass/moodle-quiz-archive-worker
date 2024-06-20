@@ -17,6 +17,7 @@
 FROM python:3.12
 
 ENV USER_NAME archiveworker
+ENV USER_GROUP archiveworker
 ENV USER_HOME /app
 
 RUN set -e && \
@@ -27,6 +28,7 @@ WORKDIR ${USER_HOME}
 RUN set -e && \
     apt-get update && \
     apt-get install -y $(apt-cache depends chromium | grep Depends | grep --invert-match "Depends: <" | sed "s/.*Depends:\ //" | tr '\n' ' ') && \
+    apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install poetry and app requirements
@@ -39,10 +41,10 @@ RUN set -e && \
 
 # Create app user
 RUN set -e && \
-    groupadd --gid 1000 "${USER_NAME}" && \
+    groupadd --gid 1000 "${USER_GROUP}" && \
     useradd -g "${USER_NAME}" --uid 1000 --no-create-home --home-dir "${USER_HOME}" "${USER_NAME}" && \
     chown -R "${USER_NAME}" "${USER_HOME}"
-USER ${USER_NAME}
+USER ${USER_NAME}:${USER_GROUP}
 
 # Initialize playwright (download browsers). THIS MUST BE PERFORMED AS THE APP USER!
 RUN set -ex && \

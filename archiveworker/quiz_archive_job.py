@@ -20,6 +20,7 @@ import glob
 import hashlib
 import logging
 import os
+import re
 import tarfile
 import threading
 from pathlib import Path
@@ -255,15 +256,40 @@ class QuizArchiveJob:
         async def mock_responder(route: Route):
             await route.fulfill(body=attempt_html, content_type='text/html')
 
-        async def login_redirection_intercepter(route: Route):
+        # Aborts navigations to login page
+        async def login_redirection_interceptor(route: Route):
             self.logger.warning(f'Prevented belated redirection to: {route.request.url}')
             await route.abort('blockedbyclient')
+
+        # Removes javascript code that redirects to the login page
+        # This can happen if ajax requests fail with permission errors due to missing sessions.
+        # We alter the javascript code because we cannot prevent the redirection event once it is fired. Intercepting
+        # the request after it fired may lead to situations where the HTML DOM of the attempt page is already
+        # destructed, leading to empty pages and thus to blank PDF files.
+        async def javascript_redirection_patcher(route: Route):
+            # Perform request
+            response = await route.fetch()
+
+            # Remove code that redirects to the login page
+            body_original = await response.text()
+            body_patched = re.sub(
+                r'window\.location\s*=\s*URL\.relativeUrl\(\"/login/index.php\"\)',
+                'console.warn("Prevented redirect to /login/index.php")',
+                body_original
+            )
+
+            if body_patched != body_original:
+                self.logger.debug(f'Disabled javascript login page redirection code in {route.request.url}')
+
+            # Return the patched response
+            await route.fulfill(response=response, body=body_patched)
 
         try:
             # Register custom route handlers
             await page.route(f"{self.request.moodle_base_url}/mock/attempt", mock_responder)
             if Config.REPORT_PREVENT_REDIRECT_TO_LOGIN:
-                await page.route('**/login/*.php', login_redirection_intercepter)
+                await page.route('**/login/*.php', login_redirection_interceptor)
+                await page.route('**/*.js', javascript_redirection_patcher)
 
             # Load attempt HTML
             await page.goto(f"{self.request.moodle_base_url}/mock/attempt")

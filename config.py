@@ -41,7 +41,7 @@ class Config:
     HISTORY_SIZE = int(os.getenv('QUIZ_ARCHIVER_HISTORY_SIZE', default=128))
     """Maximum number of jobs to keep in the history before forgetting about them."""
 
-    REQUEST_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(00 * 60)))
+    REQUEST_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(60 * 60)))
     """Number of seconds before execution of a single request is aborted."""
 
     BACKUP_STATUS_RETRY_SEC = int(os.getenv('QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30))

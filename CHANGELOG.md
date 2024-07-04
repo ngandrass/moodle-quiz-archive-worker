@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.4.0 (XXXX-XX-XX)
+
+- Prevent belated redirects away from attempt report page (e.g. to login page)
+- Increase defaults for job and attempt export timeouts
+
+
 ## Version 1.3.10 (2024-06-20)
 
 - Optimize Docker image: Explicitly set run user group and perform additional apt cleanup

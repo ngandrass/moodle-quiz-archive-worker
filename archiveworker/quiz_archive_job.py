@@ -255,8 +255,17 @@ class QuizArchiveJob:
         async def mock_responder(route: Route):
             await route.fulfill(body=attempt_html, content_type='text/html')
 
+        async def login_redirection_intercepter(route: Route):
+            self.logger.warning(f'Prevented belated redirection to: {route.request.url}')
+            await route.abort('blockedbyclient')
+
         try:
+            # Register custom route handlers
             await page.route(f"{self.request.moodle_base_url}/mock/attempt", mock_responder)
+            if Config.REPORT_PREVENT_REDIRECT_TO_LOGIN:
+                await page.route('**/login/*.php', login_redirection_intercepter)
+
+            # Load attempt HTML
             await page.goto(f"{self.request.moodle_base_url}/mock/attempt")
         except Exception:
             self.logger.error(f'Page did not load after {Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC} seconds. Aborting ...')

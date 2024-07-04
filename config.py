@@ -41,7 +41,7 @@ class Config:
     HISTORY_SIZE = int(os.getenv('QUIZ_ARCHIVER_HISTORY_SIZE', default=128))
     """Maximum number of jobs to keep in the history before forgetting about them."""
 
-    REQUEST_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(30 * 60)))
+    REQUEST_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(00 * 60)))
     """Number of seconds before execution of a single request is aborted."""
 
     BACKUP_STATUS_RETRY_SEC = int(os.getenv('QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30))
@@ -65,7 +65,7 @@ class Config:
     REPORT_WAIT_FOR_READY_SIGNAL = bool(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL', default=True))
     """Whether to wait for the ready signal from the report page JS before generating the export"""
 
-    REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC', default=15))
+    REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC', default=30))
     """Number of seconds to wait for the ready signal from the report page JS before considering the export as failed"""
 
     REPORT_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT = bool(os.getenv('QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT', default=False))

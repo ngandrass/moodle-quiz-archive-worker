@@ -306,7 +306,7 @@ class QuizArchiveJob:
                     self.logger.warning(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Continuing ...')
                 else:
                     self.logger.error(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds. Aborting ...')
-                    raise RuntimeError()
+                    raise RuntimeError(f'Ready signal not received after {Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC} seconds.')
         else:
             self.logger.debug('Not waiting for ready signal. Export immediately ...')
 

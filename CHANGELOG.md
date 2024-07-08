@@ -1,9 +1,13 @@
 # Changelog
 
-## Version 1.4.0 (XXXX-XX-XX)
+## Version 1.4.0 (2024-07-08)
 
 - Prevent belated redirects away from attempt report page (e.g. to login page)
 - Increase defaults for job and attempt export timeouts
+- Improve pytest unit tests
+- Improve verbosity of error messages on job timeout due to missing "ready signals"
+- Update Python dependencies
+  - Address CVE-2024-39689 in `certifi` package
 
 
 ## Version 1.3.10 (2024-06-20)

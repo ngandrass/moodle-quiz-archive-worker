@@ -267,22 +267,30 @@ class QuizArchiveJob:
         # the request after it fired may lead to situations where the HTML DOM of the attempt page is already
         # destructed, leading to empty pages and thus to blank PDF files.
         async def javascript_redirection_patcher(route: Route):
-            # Perform request
-            response = await route.fetch()
+            try:
+                # Perform request
+                response = await route.fetch(timeout=Config.REQUEST_TIMEOUT_SEC if not Config.UNIT_TESTS_RUNNING else 0.1)
 
-            # Remove code that redirects to the login page
-            body_original = await response.text()
-            body_patched = re.sub(
-                r'window\.location\s*=\s*URL\.relativeUrl\(\"/login/index.php\"\)',
-                'console.warn("Prevented redirect to /login/index.php")',
-                body_original
-            )
+                # Remove code that redirects to the login page
+                body_original = await response.text()
+                body_patched = re.sub(
+                    r'window\.location\s*=\s*URL\.relativeUrl\(\"/login/index.php\"\)',
+                    'console.warn("Prevented redirect to /login/index.php")',
+                    body_original
+                )
 
-            if body_patched != body_original:
-                self.logger.debug(f'Disabled javascript login page redirection code in {route.request.url}')
+                if body_patched != body_original:
+                    self.logger.debug(f'Disabled javascript login page redirection code in {route.request.url}')
 
-            # Return the patched response
-            await route.fulfill(response=response, body=body_patched)
+                # Return the patched response
+                await route.fulfill(response=response, body=body_patched)
+            except Exception as e:
+                if Config.UNIT_TESTS_RUNNING:
+                    self.logger.info(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
+                    await route.abort()
+                else:
+                    self.logger.error(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
+                    raise RuntimeError(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
 
         try:
             # Register custom route handlers

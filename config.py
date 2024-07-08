@@ -29,6 +29,9 @@ class Config:
     LOG_LEVEL = logging.getLevelNamesMapping()[os.getenv('QUIZ_ARCHIVER_LOG_LEVEL', default='INFO')]
     """Python Logger logging level"""
 
+    UNIT_TESTS_RUNNING = False
+    """Whether unit tests are currently running. This should always be kept at `False` and is only changed by pytest."""
+
     SERVER_HOST = os.getenv('QUIZ_ARCHIVER_SERVER_HOST', default='0.0.0.0')
     """Host for Flask to bind to"""
 

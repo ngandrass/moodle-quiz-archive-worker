@@ -51,6 +51,7 @@ def app():
     job_history.clear()
 
     # Enforce some config values for tests
+    Config.UNIT_TESTS_RUNNING = True
     Config.REPORT_WAIT_FOR_READY_SIGNAL = False
     Config.REQUEST_TIMEOUT_SEC = 30
 

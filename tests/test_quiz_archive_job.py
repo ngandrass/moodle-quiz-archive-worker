@@ -268,3 +268,34 @@ class TestQuizArchiveJob:
 
                     # Validate attempts metadata file
                     TestUtils.assert_is_file_with_size(os.path.join(tempdir, 'attempts_metadata.csv'), 128, 10*1024)
+
+    @pytest.mark.timeout(30)
+    def test_archive_attempts_image_resize(self, client) -> None:
+        """
+        Tests the quiz archiving process with image resizing enabled. The
+        reference quiz fixture contains images that should be resized.
+
+        :param client: Flask test client
+        :return: None
+        """
+        with fixtures.reference_quiz_single_attempt.MoodleAPIMock() as mock:
+            # Create job and process it
+            jobjson = fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST.copy()
+            jobjson['task_archive_quiz_attempts']['image_resize'] = {
+                'width': 256,
+                'height': 256
+            }
+            r = client.post('/archive', json=jobjson)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_thread()
+
+            # Wait for job to be processed
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break

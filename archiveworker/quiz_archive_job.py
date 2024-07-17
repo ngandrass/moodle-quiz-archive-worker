@@ -29,7 +29,9 @@ from typing import List
 from uuid import UUID
 
 import requests
+from PIL.Image import Resampling
 from playwright.async_api import async_playwright, ViewportSize, BrowserContext, Route
+from pypdf import PdfWriter
 
 from config import Config
 from .custom_types import JobStatus, JobArchiveRequest, ReportSignal, BackupStatus
@@ -203,6 +205,12 @@ class QuizArchiveJob:
                     raise InterruptedError('Thread stop requested')
                 else:
                     await self._render_quiz_attempt(context, attemptid, paper_format)
+                    if self.request.tasks['archive_quiz_attempts']['image_resize']:
+                        await self._compress_pdf(
+                            file=Path(f"{self.workdir}/attempts/{self.archived_attempts[attemptid]}/{self.archived_attempts[attemptid]}.pdf"),
+                            image_maxwidth=self.request.tasks['archive_quiz_attempts']['image_resize']['width'],
+                            image_maxheight=self.request.tasks['archive_quiz_attempts']['image_resize']['height']
+                        )
 
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")
@@ -397,6 +405,40 @@ class QuizArchiveJob:
 
             cmsg = await cmsg_handler.value
             self.logger.debug(f'Received signal: {cmsg}')
+
+    async def _compress_pdf(self, file: Path, image_maxwidth: int, image_maxheight: int) -> None:
+        """
+        Compresses a PDF file by resizing images and compressing content streams.
+        Replaces the given file.
+
+        :param file: Path to the PDF file to compress
+        :return: None
+        """
+
+        # Dev notes:
+        # (1) Changing the image quality / JPEG compression intensity does not affect file size a lot for normal
+        # use cases and can even cause inflation if images are already compressed. Therefore, we skip it.
+        # (2) Page content stream compression did not much in our tests, but it's basically free, so we keep it.
+        # (3) Re-writing the whole file after compression, as suggested by pypdf, does change nothing for us, since it
+        # is already re-written during the image processing step.
+        # (4) By far the most size reduction is achieved by the image resizing if people upload high-res images. If not,
+        # the file size is already quite small. Therefore, we only resize if necessary / profitable.
+
+        self.logger.debug(f"Compressing PDF file: {file} (size: {os.path.getsize(file)} bytes)")
+        writer = PdfWriter(clone_from=file)
+
+        for page in writer.pages:
+            for img in page.images:
+                if img.image.width > image_maxwidth or img.image.height > image_maxheight:
+                    self.logger.debug(f"  -> Resizing image from {img.image.width}x{img.image.height} px to fit into {image_maxwidth}x{image_maxheight} px")
+                    img.image.thumbnail(size=(image_maxwidth, image_maxheight), resample=Resampling.LANCZOS)
+                    img.replace(img.image)
+
+            page.compress_content_streams(level=6)
+
+        with open(file, "wb") as f:
+            writer.write(f)
+            self.logger.debug(f"  -> Saved compressed PDF as: {file} (size: {os.path.getsize(file)} bytes)")
 
     async def _process_quiz_attempts_metadata(self) -> None:
         """

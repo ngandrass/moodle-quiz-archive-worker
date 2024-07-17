@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import csv
+import logging
 import os
 import tarfile
 import tempfile
@@ -270,21 +271,26 @@ class TestQuizArchiveJob:
                     TestUtils.assert_is_file_with_size(os.path.join(tempdir, 'attempts_metadata.csv'), 128, 10*1024)
 
     @pytest.mark.timeout(30)
-    def test_archive_attempts_image_resize(self, client) -> None:
+    def test_archive_attempts_image_resize(self, client, caplog) -> None:
         """
         Tests the quiz archiving process with image resizing enabled. The
         reference quiz fixture contains images that should be resized.
 
         :param client: Flask test client
+        :param caplog: Pytest log capturing fixture
         :return: None
         """
         with fixtures.reference_quiz_single_attempt.MoodleAPIMock() as mock:
+            # Setup logging
+            caplog.set_level(logging.DEBUG)
+
             # Create job and process it
-            jobjson = fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST.copy()
+            jobjson = fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST.copy()
             jobjson['task_archive_quiz_attempts']['image_resize'] = {
                 'width': 256,
                 'height': 256
             }
+            jobjson['task_archive_quiz_attempts']['keep_html_files'] = False
             r = client.post('/archive', json=jobjson)
             assert r.status_code == 200
             jobid = r.json['jobid']
@@ -299,3 +305,6 @@ class TestQuizArchiveJob:
 
                 if r.json['status'] == JobStatus.FINISHED:
                     break
+
+            # Ensure that the image resize task was executed
+            assert '-> Resizing image' in caplog.text

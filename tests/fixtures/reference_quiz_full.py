@@ -48,7 +48,8 @@ ARCHIVE_API_REQUEST = {
         },
         "paper_format": "A4",
         "keep_html_files": True,
-        "filename_pattern": "attempt-${attemptid}-${username}_${date}-${time}"
+        "filename_pattern": "attempt-${attemptid}-${username}_${date}-${time}",
+        "image_resize": False,
     },
     "task_moodle_backups": [
         {

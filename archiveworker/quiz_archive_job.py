@@ -295,7 +295,7 @@ class QuizArchiveJob:
         try:
             # Register custom route handlers
             await page.route(f"{self.request.moodle_base_url}/mock/attempt", mock_responder)
-            if Config.REPORT_PREVENT_REDIRECT_TO_LOGIN:
+            if Config.PREVENT_REDIRECT_TO_LOGIN:
                 await page.route('**/login/*.php', login_redirection_interceptor)
                 await page.route('**/*.js', javascript_redirection_patcher)
 

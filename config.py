@@ -77,7 +77,7 @@ class Config:
     REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC = int(os.getenv('QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC', default=30))
     """Number of seconds to wait for the report page to load before aborting the job"""
 
-    REPORT_PREVENT_REDIRECT_TO_LOGIN = bool(os.getenv('QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN', default=True))
+    PREVENT_REDIRECT_TO_LOGIN = bool(os.getenv('QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN', default=True))
     """Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests due to with permission errors."""
 
     MOODLE_WSFUNCTION_ARCHIVE = 'quiz_archiver_generate_attempt_report'

@@ -12,6 +12,7 @@ flask = "^3.0"
 playwright = "^1.44"
 requests = "^2.32"
 waitress = "^3.0"
+pypdf = "^4.3.0"
 
 [tool.poetry.group.dev]
 optional = true

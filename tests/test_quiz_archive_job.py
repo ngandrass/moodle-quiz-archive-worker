@@ -307,4 +307,4 @@ class TestQuizArchiveJob:
                     break
 
             # Ensure that the image resize task was executed
-            assert '-> Resizing image' in caplog.text
+            assert '-> Resizing image on page' in caplog.text

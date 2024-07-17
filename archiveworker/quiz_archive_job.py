@@ -430,7 +430,7 @@ class QuizArchiveJob:
         for page in writer.pages:
             for img in page.images:
                 if img.image.width > image_maxwidth or img.image.height > image_maxheight:
-                    self.logger.debug(f"  -> Resizing image from {img.image.width}x{img.image.height} px to fit into {image_maxwidth}x{image_maxheight} px")
+                    self.logger.debug(f"  -> Resizing image on page {page.page_number} from {img.image.width}x{img.image.height} px to fit into {image_maxwidth}x{image_maxheight} px")
                     img.image.thumbnail(size=(image_maxwidth, image_maxheight), resample=Resampling.LANCZOS)
                     img.replace(img.image)
 

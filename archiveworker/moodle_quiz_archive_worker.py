@@ -187,5 +187,9 @@ def run() -> None:
     logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 
+    # Reduce noise from 3rd party library loggers
+    if Config.LOG_LEVEL == logging.DEBUG:
+        logging.getLogger("PIL").setLevel('INFO')
+
     start_processing_thread()
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

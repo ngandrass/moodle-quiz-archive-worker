@@ -456,7 +456,12 @@ class QuizArchiveJob:
 
                 # Compress images
                 self.logger.debug(f"  -> Replacing image {img_idx} on page {page.page_number} with quality {image_quality}")
-                img.replace(img.image, quality=image_quality)
+                img.replace(
+                    img.image,
+                    quality=image_quality,
+                    optimize=True,
+                    progressive=False
+                )
 
             self.logger.debug(f" -> Compressing PDF content streams on page {page.page_number} with level {pdf_compression_level}")
             page.compress_content_streams(level=pdf_compression_level)

@@ -180,7 +180,7 @@ class JobArchiveRequest:
                     return False
                 if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['height'], int) or self.tasks['archive_quiz_attempts']['image_optimize']['height'] < 1:
                     return False
-                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['quality'], int) or 0 <= self.tasks['archive_quiz_attempts']['image_optimize']['height'] <= 100:
+                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['quality'], int) or not 0 <= self.tasks['archive_quiz_attempts']['image_optimize']['quality'] <= 100:
                     return False
 
         if self.tasks['archive_moodle_backups']:

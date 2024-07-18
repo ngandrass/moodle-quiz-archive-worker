@@ -286,9 +286,10 @@ class TestQuizArchiveJob:
 
             # Create job and process it
             jobjson = fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST.copy()
-            jobjson['task_archive_quiz_attempts']['image_resize'] = {
-                'width': 256,
-                'height': 256
+            jobjson['task_archive_quiz_attempts']['image_optimize'] = {
+                'width': 64,
+                'height': 64,
+                'quality': 85
             }
             jobjson['task_archive_quiz_attempts']['keep_html_files'] = False
             r = client.post('/archive', json=jobjson)
@@ -307,4 +308,7 @@ class TestQuizArchiveJob:
                     break
 
             # Ensure that the image resize task was executed
-            assert '-> Resizing image on page' in caplog.text
+            assert '-> Resizing image' in caplog.text
+            assert '-> Replacing image' in caplog.text
+            assert '-> Compressing PDF content streams on page' in caplog.text
+

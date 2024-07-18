@@ -41,7 +41,7 @@ ARCHIVE_API_REQUEST = {
         "paper_format": "A4",
         "keep_html_files": False,
         "filename_pattern": "attempt-${attemptid}-${username}_${date}-${time}",
-        "image_resize": False,
+        "image_optimize": False,
     },
     "task_moodle_backups": False,
     "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12"

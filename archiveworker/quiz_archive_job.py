@@ -205,11 +205,13 @@ class QuizArchiveJob:
                     raise InterruptedError('Thread stop requested')
                 else:
                     await self._render_quiz_attempt(context, attemptid, paper_format)
-                    if self.request.tasks['archive_quiz_attempts']['image_resize']:
+                    if self.request.tasks['archive_quiz_attempts']['image_optimize']:
                         await self._compress_pdf(
                             file=Path(f"{self.workdir}/attempts/{self.archived_attempts[attemptid]}/{self.archived_attempts[attemptid]}.pdf"),
-                            image_maxwidth=self.request.tasks['archive_quiz_attempts']['image_resize']['width'],
-                            image_maxheight=self.request.tasks['archive_quiz_attempts']['image_resize']['height']
+                            pdf_compression_level=6,
+                            image_maxwidth=self.request.tasks['archive_quiz_attempts']['image_optimize']['width'],
+                            image_maxheight=self.request.tasks['archive_quiz_attempts']['image_optimize']['height'],
+                            image_quality=self.request.tasks['archive_quiz_attempts']['image_optimize']['quality']
                         )
 
             await browser.close()
@@ -406,35 +408,58 @@ class QuizArchiveJob:
             cmsg = await cmsg_handler.value
             self.logger.debug(f'Received signal: {cmsg}')
 
-    async def _compress_pdf(self, file: Path, image_maxwidth: int, image_maxheight: int) -> None:
+    async def _compress_pdf(
+            self,
+            file: Path,
+            pdf_compression_level: int,
+            image_maxwidth: int,
+            image_maxheight: int,
+            image_quality: int
+    ) -> None:
         """
-        Compresses a PDF file by resizing images and compressing content streams.
+        Compresses a PDF file by resizing/compressing images and compressing content streams.
         Replaces the given file.
 
         :param file: Path to the PDF file to compress
+        :param pdf_compression_level: Compression level for content streams (0-9)
+        :param image_maxwidth: Maximum width of images in pixels
+        :param image_maxheight: Maximum height of images in pixels
+        :param image_quality: JPEG2000 compression quality (0-100)
         :return: None
         """
 
         # Dev notes:
-        # (1) Changing the image quality / JPEG compression intensity does not affect file size a lot for normal
-        # use cases and can even cause inflation if images are already compressed. Therefore, we skip it.
-        # (2) Page content stream compression did not much in our tests, but it's basically free, so we keep it.
-        # (3) Re-writing the whole file after compression, as suggested by pypdf, does change nothing for us, since it
+        # (1) Page content stream compression did not much in our tests, but it's basically free, so we keep it without
+        # making it configurable to the user for now.
+        # (2) Re-writing the whole file after compression, as suggested by pypdf, does change nothing for us, since it
         # is already re-written during the image processing step.
-        # (4) By far the most size reduction is achieved by the image resizing if people upload high-res images. If not,
-        # the file size is already quite small. Therefore, we only resize if necessary / profitable.
+        # (3) By far the greatest size reduction is achieved scaling down huge images, if people upload high-res images.
 
         self.logger.debug(f"Compressing PDF file: {file} (size: {os.path.getsize(file)} bytes)")
         writer = PdfWriter(clone_from=file)
 
+        img_idx = 0
         for page in writer.pages:
             for img in page.images:
-                if img.image.width > image_maxwidth or img.image.height > image_maxheight:
-                    self.logger.debug(f"  -> Resizing image on page {page.page_number} from {img.image.width}x{img.image.height} px to fit into {image_maxwidth}x{image_maxheight} px")
-                    img.image.thumbnail(size=(image_maxwidth, image_maxheight), resample=Resampling.LANCZOS)
-                    img.replace(img.image)
+                img_idx += 1
 
-            page.compress_content_streams(level=6)
+                # Do not touch images with transparency data (mode=RGBA).
+                # See: https://github.com/python-pillow/Pillow/issues/8074
+                if img.image.has_transparency_data:
+                    self.logger.debug(f"  -> Skipping image {img_idx} on page {page.page_number} because it contains transparency data")
+                    continue
+
+                # Scale down large images
+                if img.image.width > image_maxwidth or img.image.height > image_maxheight:
+                    self.logger.debug(f"  -> Resizing image {img_idx} on page {page.page_number} from {img.image.width}x{img.image.height} px to fit into {image_maxwidth}x{image_maxheight} px")
+                    img.image.thumbnail(size=(image_maxwidth, image_maxheight), resample=Resampling.LANCZOS)
+
+                # Compress images
+                self.logger.debug(f"  -> Replacing image {img_idx} on page {page.page_number} with quality {image_quality}")
+                img.replace(img.image, quality=image_quality)
+
+            self.logger.debug(f" -> Compressing PDF content streams on page {page.page_number} with level {pdf_compression_level}")
+            page.compress_content_streams(level=pdf_compression_level)
 
         with open(file, "wb") as f:
             writer.write(f)

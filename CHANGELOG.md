@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 1.5.0 (XXXX-XX-XX)
+## Version 1.5.0 (2024-07-18)
 
 - Optionally scale down large images within quiz reports to preserve space and keep PDF files compact
 - Optionally compress images within quiz reports to preserve space and keep PDF files compact

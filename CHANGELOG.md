@@ -3,6 +3,7 @@
 ## Version 1.5.0 (XXXX-XX-XX)
 
 - Optionally scale down large images within quiz reports to preserve space and keep PDF files compact
+- Optionally compress images within quiz reports to preserve space and keep PDF files compact
 - Rename `REPORT_PREVENT_REDIRECT_TO_LOGIN` to `PREVENT_REDIRECT_TO_LOGIN` to reflect the naming of the environment variable
 - Reduce noise from 3rd party library loggers on log level `DEBUG`
 

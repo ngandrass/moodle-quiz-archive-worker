@@ -435,7 +435,8 @@ class QuizArchiveJob:
         # is already re-written during the image processing step.
         # (3) By far the greatest size reduction is achieved scaling down huge images, if people upload high-res images.
 
-        self.logger.debug(f"Compressing PDF file: {file} (size: {os.path.getsize(file)} bytes)")
+        old_filesize = os.path.getsize(file)
+        self.logger.debug(f"Compressing PDF file: {file} (size: {old_filesize} bytes)")
         writer = PdfWriter(clone_from=file)
 
         img_idx = 0
@@ -468,7 +469,9 @@ class QuizArchiveJob:
 
         with open(file, "wb") as f:
             writer.write(f)
-            self.logger.debug(f"  -> Saved compressed PDF as: {file} (size: {os.path.getsize(file)} bytes)")
+            new_filesize = os.path.getsize(file)
+            size_percent = round((new_filesize / old_filesize) * 100, 2)
+            self.logger.debug(f"  -> Saved compressed PDF as: {file} (size: {os.path.getsize(file)} bytes, {size_percent}% of original)")
 
     async def _process_quiz_attempts_metadata(self) -> None:
         """

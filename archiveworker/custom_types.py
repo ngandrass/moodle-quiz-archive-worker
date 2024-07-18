@@ -173,12 +173,14 @@ class JobArchiveRequest:
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['filename_pattern'], str) or self.tasks['archive_quiz_attempts']['filename_pattern'] is None:
                 return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['image_resize'], object) and not self.tasks['archive_quiz_attempts']['image_resize'] is False:
+            if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize'], object) and not self.tasks['archive_quiz_attempts']['image_optimize'] is False:
                 return False
-            if isinstance(self.tasks['archive_quiz_attempts']['image_resize'], object) and self.tasks['archive_quiz_attempts']['image_resize'] is not False:
-                if not isinstance(self.tasks['archive_quiz_attempts']['image_resize']['width'], int) or self.tasks['archive_quiz_attempts']['image_resize']['width'] < 1:
+            if isinstance(self.tasks['archive_quiz_attempts']['image_optimize'], object) and self.tasks['archive_quiz_attempts']['image_optimize'] is not False:
+                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['width'], int) or self.tasks['archive_quiz_attempts']['image_optimize']['width'] < 1:
                     return False
-                if not isinstance(self.tasks['archive_quiz_attempts']['image_resize']['height'], int) or self.tasks['archive_quiz_attempts']['image_resize']['height'] < 1:
+                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['height'], int) or self.tasks['archive_quiz_attempts']['image_optimize']['height'] < 1:
+                    return False
+                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['quality'], int) or 0 <= self.tasks['archive_quiz_attempts']['image_optimize']['height'] <= 100:
                     return False
 
         if self.tasks['archive_moodle_backups']:

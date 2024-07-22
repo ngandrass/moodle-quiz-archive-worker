@@ -25,6 +25,7 @@ import tarfile
 import threading
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from time import time
 from typing import List, Dict
 from uuid import UUID
 
@@ -47,6 +48,7 @@ class QuizArchiveJob:
         self.id = jobid
         self.status = JobStatus.UNINITIALIZED
         self.statusextras = None
+        self.last_moodle_status_update = None
         self.request = job_request
         self.workdir = None
         self.archived_attempts = {}
@@ -115,6 +117,7 @@ class QuizArchiveJob:
 
         if notify_moodle:
             self.moodle_api.update_job_status(jobid=self.id, status=self.status, statusextras=self.statusextras)
+            self.last_moodle_status_update = time()
 
     def execute(self) -> None:
         """
@@ -123,7 +126,7 @@ class QuizArchiveJob:
         :return: None
         """
         self.logger.info(f"Processing job {self.id}")
-        self.set_status(JobStatus.RUNNING, notify_moodle=True)
+        self.set_status(JobStatus.RUNNING, statusextras={'progress': 0}, notify_moodle=True)
 
         try:
             with TemporaryDirectory() as tempdir:
@@ -218,6 +221,7 @@ class QuizArchiveJob:
                 if threading.current_thread().stop_requested():
                     raise InterruptedError('Thread stop requested')
                 else:
+                    # Process attempt
                     await self._render_quiz_attempt(context, attemptid, paper_format)
                     if self.request.tasks['archive_quiz_attempts']['image_optimize']:
                         await self._compress_pdf(
@@ -227,6 +231,16 @@ class QuizArchiveJob:
                             image_maxheight=self.request.tasks['archive_quiz_attempts']['image_optimize']['height'],
                             image_quality=self.request.tasks['archive_quiz_attempts']['image_optimize']['quality']
                         )
+
+                    # Report status
+                    if time() >= self.last_moodle_status_update + Config.STATUS_REPORTING_INTERVAL_SEC:
+                        self.set_status(
+                            JobStatus.RUNNING,
+                            statusextras={'progress': round((len(self.archived_attempts) / len(attemptids)) * 100)},
+                            notify_moodle=True
+                        )
+                    else:
+                        self.logger.debug("Skipping status update because reporting interval has not been reached yet")
 
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")

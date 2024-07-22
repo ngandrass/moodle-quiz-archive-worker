@@ -25,7 +25,7 @@ import tarfile
 import threading
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Dict
 from uuid import UUID
 
 import requests
@@ -46,6 +46,7 @@ class QuizArchiveJob:
     def __init__(self, jobid: UUID, job_request: JobArchiveRequest):
         self.id = jobid
         self.status = JobStatus.UNINITIALIZED
+        self.statusextras = None
         self.request = job_request
         self.workdir = None
         self.archived_attempts = {}
@@ -91,19 +92,29 @@ class QuizArchiveJob:
         """
         return self.status
 
-    def set_status(self, status: JobStatus, notify_moodle: bool = False) -> None:
+    def get_statusextras(self) -> Dict:
+        """
+        Returns additional status information
+
+        :return: Additional status information
+        """
+        return self.statusextras
+
+    def set_status(self, status: JobStatus, statusextras: Dict = None, notify_moodle: bool = False) -> None:
         """
         Updates the status of this job. If notify_moodle is True, the status update
         is passed to the Moodle API as well.
 
         :param status: New job status
+        :param statusextras: Additional status information
         :param notify_moodle: Call job status update function via Moodle API if True
         :return: None
         """
         self.status = status
+        self.statusextras = statusextras
 
         if notify_moodle:
-            self.moodle_api.update_job_status(jobid=self.id, status=self.status)
+            self.moodle_api.update_job_status(jobid=self.id, status=self.status, statusextras=self.statusextras)
 
     def execute(self) -> None:
         """

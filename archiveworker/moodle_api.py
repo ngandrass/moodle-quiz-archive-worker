@@ -125,19 +125,27 @@ class MoodleAPI:
             self.logger.warning(f'Moodle API connection check failed with Moodle error: {data["errorcode"]}')
             return False
 
-    def update_job_status(self, jobid: UUID, status: JobStatus) -> bool:
+    def update_job_status(self, jobid: UUID, status: JobStatus, statusextras: Dict = None) -> bool:
         """
         Update the status of a job via the Moodle API
 
         :param jobid: UUID of the job to update
         :param status: New status to set
+        :param statusextras: Additional status information to include
         :return: True if the status was updated successfully, False otherwise
         """
         try:
+            # Prepare statusextras
+            conditional_params = {}
+            if statusextras:
+                conditional_params = {f'statusextras': json.dumps(statusextras)}
+
+            # Call wsfunction to update job status
             r = requests.get(url=self.ws_rest_url, params=self._generate_wsfunc_request_params(
                 wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
                 jobid=str(jobid),
-                status=str(status)
+                status=str(status),
+                **conditional_params
             ))
             data = r.json()
 

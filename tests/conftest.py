@@ -169,7 +169,7 @@ class MoodleAPIMockBase:
     def check_connection(self) -> bool:
         return True
 
-    def update_job_status(self, jobid: UUID, status: JobStatus) -> bool:
+    def update_job_status(self, jobid: UUID, status: JobStatus, statusextras: Dict) -> bool:
         return True
 
     def get_backup_status(self, jobid: UUID, backupid: str) -> BackupStatus:

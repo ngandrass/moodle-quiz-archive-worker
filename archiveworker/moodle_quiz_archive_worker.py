@@ -144,7 +144,7 @@ def handle_archive_request():
         job = QuizArchiveJob(uuid.uuid1(), job_request)
         job_queue.put_nowait(job)  # Actual queue capacity limit is enforced here!
         job_history.append(job)
-        job.set_status(JobStatus.AWAITING_PROCESSING)
+        job.set_status(JobStatus.AWAITING_PROCESSING, notify_moodle=False)
         app.logger.info(f"Enqueued job {job.get_id()} from {request.remote_addr}")
     except TypeError as e:
         app.logger.debug(f'JSON is technically incomplete or missing a required parameter. TypeError: {str(e)}')

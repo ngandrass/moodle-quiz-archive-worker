@@ -144,6 +144,9 @@ class QuizArchiveJob:
                 if self.request.tasks['archive_moodle_backups']:
                     asyncio.run(self._process_moodle_backups())
 
+                # Transition to state: FINALIZING
+                self.set_status(JobStatus.FINALIZING, notify_moodle=True)
+
                 # Hash every file
                 self.logger.info("Calculating file hashes ...")
                 archive_files = glob.glob(f'{self.workdir}/**/*', recursive=True)
@@ -554,7 +557,12 @@ class QuizArchiveJob:
             if status == BackupStatus.SUCCESS:
                 break
 
+            # Notify user about waiting
             self.logger.info(f'Backup {backupid} not finished yet. Waiting {Config.BACKUP_STATUS_RETRY_SEC} seconds before retrying ...')
+            if self.get_status() != JobStatus.WAITING_FOR_BACKUP:
+                self.set_status(JobStatus.WAITING_FOR_BACKUP, notify_moodle=True)
+
+            # Wait for next backup status check
             await asyncio.sleep(Config.BACKUP_STATUS_RETRY_SEC)
 
         # Check backup filesize

@@ -1,5 +1,15 @@
 # Changelog
 
+## Version X.X.X (XXXX-XX-XX)
+
+- Implement support for passing additional status values (statusextras) to Moodle
+- Periodically report progress of running jobs back to Moodle
+- Creation of new job status values:
+  - `WAITING_FOR_BACKUP`: All attempt reports are generated and the archive worker service
+    is waiting for the Moodle backup to be ready.
+  - `FINALIZING`: The archive worker service is finalizing the archive creation process (checksums, compression, ...).
+
+
 ## Version 1.5.0 (2024-07-18)
 
 - Optionally scale down large images within quiz reports to preserve space and keep PDF files compact

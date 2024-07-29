@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.X.X (XXXX-XX-XX)
+## Version 1.6.0 (2024-07-29)
 
 - Implement support for passing additional status values (statusextras) to Moodle
 - Periodically report progress of running jobs back to Moodle

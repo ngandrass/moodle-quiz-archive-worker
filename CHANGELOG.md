@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.X.X (XXXX-XX-XX)
+
+- Ignore `.github` and `test` directories in Docker image build
+
+
 ## Version 1.6.0 (2024-07-29)
 
 - Implement support for passing additional status values (statusextras) to Moodle

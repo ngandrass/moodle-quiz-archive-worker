@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.X.X (XXXX-XX-XX)
+
+- Dump full app configuration to log on startup if `LOG_LEVEL` is set to `DEBUG`
+
+
 ## Version 1.6.0 (2024-07-29)
 
 - Implement support for passing additional status values (statusextras) to Moodle

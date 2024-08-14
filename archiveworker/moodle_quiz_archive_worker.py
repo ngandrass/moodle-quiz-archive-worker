@@ -187,8 +187,12 @@ def run() -> None:
     logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 
-    # Reduce noise from 3rd party library loggers
+    # Handle DEBUG specifics
     if Config.LOG_LEVEL == logging.DEBUG:
+        # Dump app config
+        app.logger.debug(Config.tostring())
+
+        # Reduce noise from 3rd party library loggers
         logging.getLogger("PIL").setLevel('INFO')
 
     start_processing_thread()

@@ -97,3 +97,17 @@ class Config:
 
     MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA = 'quiz_archiver_get_attempts_metadata'
     """Name of the Moodle webservice function to call to retrieve metadata about quiz attempts"""
+
+    @staticmethod
+    def tostring() -> str:
+        """
+        Dumps the full configuration to a string.
+
+        :return: Configuration as string
+        """
+        ret = "Configuration:"
+        for key, value in vars(Config).items():
+            if not (key.startswith('_') or key == 'tostring'):
+                ret += f"\n  {key} => {value}"
+
+        return ret

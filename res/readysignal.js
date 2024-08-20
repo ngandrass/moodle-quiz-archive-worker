@@ -31,7 +31,7 @@ const QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS = 250;
  * considering it stable and ready for export.
  * @type {number}
  */
-const QUIZ_ARCHIVER_GEOGEBRA_MUTATION_STABLE_PERIOD_MS = 1000;
+const QUIZ_ARCHIVER_GEOGEBRA_MUTATION_STABLE_PERIOD_MS = 2000;
 
 const SIGNAL_PAGE_READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export";
 const SIGNAL_GEOGEBRA_FOUND = "x-quiz-archiver-geogebra-found";
@@ -91,26 +91,64 @@ function detectAndPrepareReadinessComponents() {
     // GeoGebra
     if (typeof window.GGBApplet !== 'undefined') {
         window.MoodleQuizArchiver.readySignals.geogebra = false;
+        window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date(9999, 1, 1);  // Far future
         console.log(SIGNAL_GEOGEBRA_FOUND);
 
-        // Attach mutation listener to GeoGebra frames
-        var mutationObserver = new (window.MutationObserver || window.WebKitMutationObserver)(() => {
-            window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date();
-            console.log(SIGNAL_GEOGEBRA_MUTATED);
-        });
-
-        document.getElementsByClassName('GeoGebraFrame').forEach(ggbFrame => {
-            mutationObserver.observe(ggbFrame, {childList: true, subtree: true});
-        });
-        window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date()
-
-        // Ignite periodic readiness check
-        setTimeout(detectGeogebraFinishedRendering, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
+        // Attach mutation observer to GeoGebra frames once available
+        attachGeogebraMutationObserver();
     } else {
         console.log(SIGNAL_GEOGEBRA_NOT_FOUND);
     }
 
     window.MoodleQuizArchiver.initialized = true;
+}
+
+/**
+ * Waits for GeoGebra to be initialized to the point where it rendered its final
+ * applet frames and attach mutation observers to them.
+ *
+ * This also ignites the readiness detection process for GeoGebra.
+ */
+function attachGeogebraMutationObserver() {
+    // Check if GeoGebra is initialized to the point where it created its target applet frames
+    try {
+        if (typeof window.GGBApplet().getAppletObject === 'function') {
+            if (typeof window.GGBApplet().getAppletObject().getFrame === 'function') {
+                if (window.GGBApplet().getAppletObject().getFrame().classList.contains('jsloaded')) {
+                    // Attach mutation listener to GeoGebra frames
+                    var mutationObserver = new (window.MutationObserver || window.WebKitMutationObserver)(() => {
+                        window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date();
+                        console.log(SIGNAL_GEOGEBRA_MUTATED);
+                    });
+
+                    document.getElementsByClassName('GeoGebraFrame').forEach(ggbFrame => {
+                        mutationObserver.observe(ggbFrame, {childList: true, subtree: true});
+                        console.log("Attached mutation observer to GeoGebra frame.");
+                    });
+                    window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date();
+
+                    // Ignite periodic readiness check
+                    setTimeout(detectGeogebraFinishedRendering, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
+                    return;
+                } else {
+                    console.log("GeoGebra frame not fully initialized yet. Waiting ...");
+                }
+            } else {
+                console.log("GeoGebra frame object not yet ready. Waiting ...");
+            }
+        } else {
+            console.log("GeoGebra applet object not yet ready. Waiting ...");
+        }
+    } catch (e) {
+        if (e instanceof TypeError) {
+            console.log("GeoGebra applet/frames not yet ready. Waiting ...");
+        } else {
+            console.log("Failed to attach mutation observer to GeoGebra frames: " + e);
+        }
+    }
+
+    // If we got here, GeoGebra is not ready yet. Retry in a bit.
+    setTimeout(attachGeogebraMutationObserver, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
 }
 
 /**
@@ -126,6 +164,7 @@ function detectGeogebraFinishedRendering() {
         window.MoodleQuizArchiver.readySignals.geogebra = true;
         console.log(SIGNAL_GEOGEBRA_READY_FOR_EXPORT);
     } else {
+        window.MoodleQuizArchiver.readySignals.geogebra = false;
         setTimeout(detectGeogebraFinishedRendering, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
     }
 }

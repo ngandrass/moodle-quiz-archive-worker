@@ -38,6 +38,7 @@ from config import Config
 from .custom_types import JobStatus, JobArchiveRequest, ReportSignal, BackupStatus
 from .moodle_api import MoodleAPI
 
+READYSIGNAL_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/readysignal.js')).read()
 
 class QuizArchiveJob:
     """
@@ -405,32 +406,7 @@ class QuizArchiveJob:
                 timeout=Config.REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC * 1000
         ) as cmsg_handler:
             self.logger.debug('Injecting JS to wait for page rendering ...')
-            await page.evaluate('''
-                setTimeout(function() {
-                    const SIGNAL_PAGE_READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export";
-                    const SIGNAL_MATHJAX_FOUND = "x-quiz-archiver-mathjax-found";
-                    const SIGNAL_MATHJAX_NOT_FOUND = "x-quiz-archiver-mathjax-not-found";
-                    const SIGNAL_MATHJAX_NO_FORMULAS_ON_PAGE = "x-quiz-archiver-mathjax-no-formulas-on-page";
-
-                    if (typeof window.MathJax !== 'undefined') {
-                        console.log(SIGNAL_MATHJAX_FOUND);
-
-                        if (document.getElementsByClassName('filter_mathjaxloader_equation').length == 0) {
-                            console.log(SIGNAL_MATHJAX_NO_FORMULAS_ON_PAGE);
-                            console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
-                            return;
-                        }
-
-                        window.MathJax.Hub.Queue(function () {
-                            console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
-                        });
-                        window.MathJax.Hub.processSectionDelay = 0;
-                    } else {
-                        console.log(SIGNAL_MATHJAX_NOT_FOUND);
-                        console.log(SIGNAL_PAGE_READY_FOR_EXPORT);
-                    }
-                }, 1000);
-            ''')
+            await page.evaluate(READYSIGNAL_JAVASCRIPT)
             self.logger.debug(f'Waiting for ready signal: {ReportSignal.READY_FOR_EXPORT}')
 
             cmsg = await cmsg_handler.value

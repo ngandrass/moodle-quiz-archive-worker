@@ -2,6 +2,9 @@
 
 ## Version X.X.X (XXXX-XX-XX)
 
+- Add custom readiness probe for GeoGebra applets
+- Improve page export readiness detection and add support for multiple readiness probes
+- Ignore `.github` and `test` directories in Docker image build
 - Dump full app configuration to log on startup if `LOG_LEVEL` is set to `DEBUG`
 
 

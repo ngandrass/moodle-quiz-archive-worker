@@ -1,12 +1,14 @@
 # Changelog
 
-## Version X.X.X (XXXX-XX-XX)
+## Version 2.0.0 (2024-08-21)
 
 - Switch to semantic versioning (see README.md, Section: "Versioning and Compatibility")
 - Add custom readiness probe for GeoGebra applets
 - Improve page export readiness detection and add support for multiple readiness probes
 - Ignore `.github` and `test` directories in Docker image build
 - Dump full app configuration to log on startup if `LOG_LEVEL` is set to `DEBUG`
+
+**Note:** Use of [quiz_archiver](https://github.com/ngandrass/moodle-quiz_archiver) `>= v2.0.0` is required.
 
 
 ## Version 1.6.0 (2024-07-29)

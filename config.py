@@ -29,7 +29,7 @@ class Config:
     LOG_LEVEL = logging.getLevelNamesMapping()[os.getenv('QUIZ_ARCHIVER_LOG_LEVEL', default='INFO')]
     """Python Logger logging level"""
 
-    DEMO_MODE = bool(os.getenv('QUIZ_ARCHIVER_DEMO_MODE', default=True))
+    DEMO_MODE = bool(os.getenv('QUIZ_ARCHIVER_DEMO_MODE', default=False))
     """Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included."""
 
     UNIT_TESTS_RUNNING = False

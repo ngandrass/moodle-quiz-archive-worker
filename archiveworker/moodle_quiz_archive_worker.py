@@ -187,6 +187,11 @@ def run() -> None:
     logging.basicConfig(encoding='utf-8', format='[%(asctime)s] | %(levelname)-8s | %(name)s | %(message)s', level=Config.LOG_LEVEL)
     app.logger.info(f'Running {Config.APP_NAME} version {Config.VERSION} on log level {logging.getLevelName(Config.LOG_LEVEL)}')
 
+    # Print demo mode notice if enabled
+    if Config.DEMO_MODE:
+        app.logger.warning('---> ATTENTION: Running in demo mode! This will add a watermark to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included. <---')
+        app.logger.info('---> To disable demo mode, set the environment variable QUIZ_ARCHIVER_DEMO_MODE to "False". <---')
+
     # Handle DEBUG specifics
     if Config.LOG_LEVEL == logging.DEBUG:
         # Dump app config

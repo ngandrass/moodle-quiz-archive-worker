@@ -21,13 +21,16 @@ import os
 class Config:
 
     APP_NAME = "moodle-quiz-archive-worker"
-    """Name of this app."""
+    """Name of this app"""
 
     VERSION = "2.0.0"
-    """Version of this app."""
+    """Version of this app"""
 
     LOG_LEVEL = logging.getLevelNamesMapping()[os.getenv('QUIZ_ARCHIVER_LOG_LEVEL', default='INFO')]
     """Python Logger logging level"""
+
+    DEMO_MODE = bool(os.getenv('QUIZ_ARCHIVER_DEMO_MODE', default=True))
+    """Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included."""
 
     UNIT_TESTS_RUNNING = False
     """Whether unit tests are currently running. This should always be kept at `False` and is only changed by pytest."""

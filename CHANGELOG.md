@@ -11,6 +11,7 @@
     allows testing the Moodle plugin without the need to set up a local quiz
     archive worker service right away. Productive instances of the quiz archive
     worker service will remain fully unaffected by this.
+- Improve documentation and add reference to official documentation website
  
 
 ## Version 2.0.0 (2024-08-21)

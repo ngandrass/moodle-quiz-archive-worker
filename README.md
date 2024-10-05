@@ -55,9 +55,6 @@ the [GitHub issue tracker](https://github.com/ngandrass/moodle-quiz_archiver/iss
          - "8080:8080"
        environment:
          - QUIZ_ARCHIVER_LOG_LEVEL=INFO
-         - QUIZ_ARCHIVER_QUEUE_SIZE=8
-         - QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC=1800
-         - QUIZ_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES=512000000
    ```
 3. From inside the `moodle-quiz-archive-worker` folder, run the application:
    `docker compose up`
@@ -88,20 +85,20 @@ docker compose down
 ## Docker
 
 1. Install [Docker](https://www.docker.com/)
-2. Run a container: `docker run --rm -it -p 8080:8080 ngandrass/moodle-quiz-archive-worker:latest`
+2. Run a container: `docker run -p 8080:8080 ngandrass/moodle-quiz-archive-worker:latest`
 
 You can change the host port the application is bound to by changing the first
 port number in the `-p` argument of the `docker run` command. Example:
 
 ```shell
-docker run --rm -it -p 9000:8080 moodle-quiz-archive-worker:latest
+docker run -p 9000:8080 moodle-quiz-archive-worker:latest
 ```
 
 You can change configuration values by setting the respective environment
 variables. Example:
 
 ```shell
-docker run --rm -it -e QUIZ_ARCHIVER_LOG_LEVEL=DEBUG -p 8080:8080 moodle-quiz-archive-worker:latest
+docker run -e QUIZ_ARCHIVER_LOG_LEVEL=DEBUG -p 8080:8080 moodle-quiz-archive-worker:latest
 ```
 
 For more details and all available configuration parameters see [Configuration](#configuration).
@@ -113,7 +110,7 @@ For more details and all available configuration parameters see [Configuration](
 2. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
 3. Switch into the repository directory: `cd moodle-quiz-archive-worker`
 4. Build the Docker image: `docker build -t moodle-quiz-archive-worker:latest .`
-5. Run a container: `docker run --rm -it -p 8080:8080 moodle-quiz-archive-worker:latest`
+5. Run a container: `docker run -p 8080:8080 moodle-quiz-archive-worker:latest`
 
 
 ## Manual Installation
@@ -129,7 +126,7 @@ For more details and all available configuration parameters see [Configuration](
 You can change configuration values by prepending the respective environment
 variables. Example:
 
-```shell
+```text
 QUIZ_ARCHIVER_SERVER_PORT=9000 poetry run python moodle-quiz-archive-worker.py
 ```
 
@@ -203,7 +200,7 @@ using the following environment variables:
 
 Development dependencies are not installed by default. To install them, run:
 
-```shell
+```text
 poetry install --with dev
 ```
 
@@ -211,7 +208,7 @@ poetry install --with dev
 
 Unit tests are handled by `pytest`. To run all test suites execute:
 
-```shell
+```text
 poetry run pytest
 ```
 
@@ -219,7 +216,7 @@ If you want to see the console output of the tests, as well as logger calls, you
 need to specify `-s` (for test output) and `--log-cli-level=DEBUG` (for app
 logging). Example:
 
-```shell
+```text
 poetry run pytest -s --log-cli-level=DEBUG
 ```
 
@@ -228,7 +225,7 @@ poetry run pytest -s --log-cli-level=DEBUG
 Code coverage is evaluated using the `coverage` Python package. To run coverage
 checks run the following commands:
 
-```shell
+```text
 poetry run coverage run -m pytest
 poetry run coverage html
 ```

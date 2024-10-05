@@ -30,6 +30,15 @@ calculated to allow integrity checks.
 You can install this application in several ways, however, the easiest and
 preferred way is to use [Docker Compose](#docker-compose).
 
+Detailed installation and configuration instructions can be found within the
+[official documentation](https://quizarchiver.gandrass.de/).
+
+[![Quiz Archiver: Official Documentation](docs/assets/docs-button.png)](https://quizarchiver.gandrass.de/)
+
+If you have problems installing the Quiz Archiver or the Quiz Archive Worker
+Service, or you have further questions, please feel free to open an issue within
+the [GitHub issue tracker](https://github.com/ngandrass/moodle-quiz_archiver/issues).
+         
 
 ## Docker Compose
 

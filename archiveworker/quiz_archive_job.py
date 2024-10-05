@@ -61,6 +61,13 @@ class QuizArchiveJob:
             wstoken=self.request.wstoken
         )
 
+        # Limit number of attempts in demo mode
+        if self.request.tasks['archive_quiz_attempts']:
+            if Config.DEMO_MODE:
+                if len(self.request.tasks['archive_quiz_attempts']['attemptids']) > 10:
+                    self.request.tasks['archive_quiz_attempts']['attemptids'] = self.request.tasks['archive_quiz_attempts']['attemptids'][:10]
+                    self.logger.info("Demo mode: Only processing the first 10 quiz attempts!")
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.id == other.id
@@ -541,6 +548,15 @@ class QuizArchiveJob:
         :raises RuntimeError: If the backup download failed
         """
         self.logger.debug(f'Processing Moodle backup with id {backupid}')
+
+        # Handle demo mode
+        if Config.DEMO_MODE:
+            self.logger.info(f'Demo mode: Skipping download of backup {backupid}. Replacing with placeholder ...')
+            os.makedirs(f'{self.workdir}/backups', exist_ok=True)
+            with open(f'{self.workdir}/backups/{filename}', 'w+') as f:
+                f.write('!!!DEMO MODE!!!\r\nThis is a placeholder file for a Moodle backup.\r\n\r\nPlease disable demo mode to download the actual backups.')
+
+            return
 
         # Wait for backup to finish
         while True:

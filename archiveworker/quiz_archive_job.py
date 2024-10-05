@@ -64,9 +64,9 @@ class QuizArchiveJob:
         # Limit number of attempts in demo mode
         if self.request.tasks['archive_quiz_attempts']:
             if Config.DEMO_MODE:
+                self.logger.info("Demo mode: Only processing the first 10 quiz attempts!")
                 if len(self.request.tasks['archive_quiz_attempts']['attemptids']) > 10:
                     self.request.tasks['archive_quiz_attempts']['attemptids'] = self.request.tasks['archive_quiz_attempts']['attemptids'][:10]
-                    self.logger.info("Demo mode: Only processing the first 10 quiz attempts!")
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):

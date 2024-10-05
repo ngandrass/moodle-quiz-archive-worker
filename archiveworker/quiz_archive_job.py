@@ -38,6 +38,7 @@ from config import Config
 from .custom_types import JobStatus, JobArchiveRequest, ReportSignal, BackupStatus
 from .moodle_api import MoodleAPI
 
+DEMOMODE_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/demomode.js')).read()
 READYSIGNAL_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/readysignal.js')).read()
 
 class QuizArchiveJob:
@@ -343,6 +344,10 @@ class QuizArchiveJob:
         except Exception:
             self.logger.error(f'Page did not load after {Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC} seconds. Aborting ...')
             raise
+
+        # If in demo mode, inject watermark JS
+        if Config.DEMO_MODE:
+            await page.evaluate(DEMOMODE_JAVASCRIPT)
 
         # Wait for the page to report that is fully rendered, if enabled
         if Config.REPORT_WAIT_FOR_READY_SIGNAL:

@@ -1,5 +1,18 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Add a demo mode to allow setting up a public quiz archive worker service for testing.
+  - In demo mode, a watermark will be added to all generated PDFs, only a
+    limited number of attempts will be exported per archive job, and only
+    placeholder Moodle backups are included.
+  - The demo mode is disabled by default and will only be used to provide a free
+    and publicly available quiz archive worker service to the community. This
+    allows testing the Moodle plugin without the need to set up a local quiz
+    archive worker service right away. Productive instances of the quiz archive
+    worker service will remain fully unaffected by this.
+ 
+
 ## Version 2.0.0 (2024-08-21)
 
 - Switch to semantic versioning (see README.md, Section: "Versioning and Compatibility")

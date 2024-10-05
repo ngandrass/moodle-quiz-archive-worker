@@ -146,15 +146,15 @@ bug fixes, features, and optimizations.
 ### Compatibility Examples
 
 | Moodle Plugin | Archive Worker | Compatible |
-|------------|----------------|------------|
-| 1.0.0      | 1.0.0          | Yes        |
-| 1.2.3      | 1.0.0          | Yes        |
-| 1.0.0      | 1.1.2          | Yes        |
-| 2.1.4      | 2.0.1          | Yes        |
-|            |                |            |
-| 2.0.0      | 1.0.0          | No         |
-| 1.0.0      | 2.0.0          | No         |
-| 2.4.2      | 1.4.2          | No         |
+|---------------|----------------|------------|
+| 1.0.0         | 1.0.0          | Yes        |
+| 1.2.3         | 1.0.0          | Yes        |
+| 1.0.0         | 1.1.2          | Yes        |
+| 2.1.4         | 2.0.1          | Yes        |
+|               |                |            |
+| 2.0.0         | 1.0.0          | No         |
+| 1.0.0         | 2.0.0          | No         |
+| 2.4.2         | 1.4.2          | No         |
 
 
 ### Development / Testing Versions
@@ -187,6 +187,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT`: Whether to continue with the export if the ready signal was not received in time (default=`False`)
 - `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC`: Number of seconds to wait for the report page to load before aborting the job (default=`30`)
 - `QUIZ_ARCHIVER_REPORT_PREVENT_REDIRECT_TO_LOGIN`: Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests fail due to permission errors (default=`True`)
+- `QUIZ_ARCHIVER_DEMO_MODE`: Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included (default=`False`)
 
 
 # Development

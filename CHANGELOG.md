@@ -12,6 +12,7 @@
     archive worker service right away. Productive instances of the quiz archive
     worker service will remain fully unaffected by this.
 - Improve documentation and add reference to official documentation website
+- Introduce explicit timeouts for Moodle API request
 - Create unit tests for demo mode
 - Update Python dependencies
  

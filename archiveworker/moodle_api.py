@@ -37,6 +37,12 @@ class MoodleAPI:
     MOODLE_UPLOAD_FILE_FIELDS = ['component', 'contextid', 'userid', 'filearea', 'filename', 'filepath', 'itemid']
     """Keys that are present in the response for each file, received after uploading a file to Moodle"""
 
+    REQUEST_TIMEOUTS = (10, 60)
+    """Tuple of connection and read timeouts for default requests to the Moodle API in seconds"""
+
+    REQUEST_TIMEOUTS_EXTENDED = (10, 1800)
+    """Tuple of connection and read timeouts for long-running requests to the Moodle API in seconds"""
+
     def __init__(self, ws_rest_url: str, ws_upload_url: str, wstoken: str):
         """
         Initialize the Moodle API adapter
@@ -108,9 +114,11 @@ class MoodleAPI:
         :raises ConnectionError: If the connection could not be established
         """
         try:
-            r = requests.get(url=self.ws_rest_url, params=self._generate_wsfunc_request_params(
-                wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS
-            ))
+            r = requests.get(
+                url=self.ws_rest_url,
+                timeout=self.REQUEST_TIMEOUTS,
+                params=self._generate_wsfunc_request_params(wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS)
+            )
 
             data = r.json()
         except Exception as e:
@@ -141,7 +149,7 @@ class MoodleAPI:
                 conditional_params = {f'statusextras': json.dumps(statusextras)}
 
             # Call wsfunction to update job status
-            r = requests.get(url=self.ws_rest_url, params=self._generate_wsfunc_request_params(
+            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS, params=self._generate_wsfunc_request_params(
                 wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
                 jobid=str(jobid),
                 status=str(status),
@@ -171,7 +179,7 @@ class MoodleAPI:
         """
         try:
             self.logger.debug(f'Requesting status for backup {backupid}')
-            r = requests.get(url=self.ws_rest_url, params=self._generate_wsfunc_request_params(
+            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS, params=self._generate_wsfunc_request_params(
                 wsfunction=Config.MOODLE_WSFUNCTION_GET_BACKUP,
                 jobid=str(jobid),
                 backupid=str(backupid)
@@ -204,7 +212,12 @@ class MoodleAPI:
         """
         try:
             self.logger.debug(f'Requesting HEAD for file {download_url}')
-            h = requests.head(url=download_url, params=self._generate_file_request_params(), allow_redirects=True)
+            h = requests.head(
+                url=download_url,
+                timeout=self.REQUEST_TIMEOUTS,
+                params=self._generate_file_request_params(),
+                allow_redirects=True
+            )
             self.logger.debug(f'Download file HEAD request headers: {h.headers}')
         except Exception as e:
             raise ConnectionError(f'Failed to retrieve HEAD for remote file at: {download_url}. {str(e)}')
@@ -244,9 +257,12 @@ class MoodleAPI:
         try:
             os.makedirs(target_path, exist_ok=True)
             with open(target_file, 'wb+') as f:
-                r = requests.get(url=download_url, stream=True, params=self._generate_file_request_params(
-                    forcedownload=1
-                ))
+                r = requests.get(
+                    url=download_url,
+                    stream=True,
+                    timeout=self.REQUEST_TIMEOUTS_EXTENDED,
+                    params=self._generate_file_request_params(forcedownload=1)
+                )
 
                 chunksize = int(32 * 10e6)  # 32 MB
                 downloaded_bytes = 0
@@ -316,7 +332,11 @@ class MoodleAPI:
         for batch in batches:
             try:
                 params['attemptids[]'] = batch
-                r = requests.get(url=self.ws_rest_url, params=params)
+                r = requests.get(
+                    url=self.ws_rest_url,
+                    timeout=self.REQUEST_TIMEOUTS,
+                    params=params
+                )
                 data = r.json()
             except Exception:
                 self.logger.debug(f'Call to Moodle webservice function {Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA} at "{self.ws_rest_url}')
@@ -376,7 +396,7 @@ class MoodleAPI:
                  report and a List of attachments for the requested attemptid
         """
         try:
-            r = requests.get(url=self.ws_rest_url, params=self._generate_wsfunc_request_params(
+            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS, params=self._generate_wsfunc_request_params(
                 wsfunction=Config.MOODLE_WSFUNCTION_ARCHIVE,
                 courseid=courseid,
                 cmid=cmid,
@@ -445,10 +465,12 @@ class MoodleAPI:
                 filesize = file_stats.st_size
                 self.logger.info(f'Uploading file "{file}" (size: {filesize} bytes) to "{self.ws_upload_url}"')
 
-                r = requests.post(self.ws_upload_url, files={'file_1': f}, data=self._generate_file_request_params(
-                    filepath='/',
-                    itemid=0,
-                ))
+                r = requests.post(
+                    url=self.ws_upload_url,
+                    timeout=self.REQUEST_TIMEOUTS_EXTENDED,
+                    files={'file_1': f},
+                    data=self._generate_file_request_params(filepath='/', itemid=0)
+                )
                 response = r.json()
             except Exception as e:
                 raise ConnectionError(f'Failed to upload file to "{self.ws_upload_url}". Exception: {str(e)}. Response: {r.text}')
@@ -500,7 +522,7 @@ class MoodleAPI:
         """
         # Call wsfunction to process artifact
         try:
-            r = requests.get(url=self.ws_rest_url, params=self._generate_wsfunc_request_params(
+            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS_EXTENDED, params=self._generate_wsfunc_request_params(
                 wsfunction=Config.MOODLE_WSFUNCTION_PROESS_UPLOAD,
                 jobid=str(jobid),
                 artifact_component=component,

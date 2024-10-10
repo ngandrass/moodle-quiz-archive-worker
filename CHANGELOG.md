@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 2.1.0 (2024-10-10)
 
 - Add a demo mode to allow setting up a public quiz archive worker service for testing.
   - In demo mode, a watermark will be added to all generated PDFs, only a

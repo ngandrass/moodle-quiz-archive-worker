@@ -192,7 +192,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC`: Number of seconds to wait for the ready signal from the report page JS before generating the export (default=`30`)
 - `QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT`: Whether to continue with the export if the ready signal was not received in time (default=`False`)
 - `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC`: Number of seconds to wait for the report page to load before aborting the job (default=`30`)
-- `QUIZ_ARCHIVER_REPORT_PREVENT_REDIRECT_TO_LOGIN`: Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests fail due to permission errors (default=`True`)
+- `QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN`: Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests fail due to permission errors (default=`True`)
 - `QUIZ_ARCHIVER_DEMO_MODE`: Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included (default=`False`)
 
 

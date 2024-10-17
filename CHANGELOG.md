@@ -1,5 +1,10 @@
 # Changelog
 
+## Version x.x.x (yyyy-mm-dd)
+
+- Fix name of `QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN` envirnoment variable in documentation
+
+
 ## Version 2.1.0 (2024-10-10)
 
 - Add a demo mode to allow setting up a public quiz archive worker service for testing.

@@ -3,6 +3,9 @@
 ## Version x.x.x (yyyy-mm-dd)
 
 - Fix name of `QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN` envirnoment variable in documentation
+- Update Python dependencies
+  - Fix CVE-2024-49766 in `werkzeug` package
+  - Fix CVE-2024-49767 in `werkzeug` package
 
 
 ## Version 2.1.0 (2024-10-10)

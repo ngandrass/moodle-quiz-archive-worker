@@ -1,6 +1,6 @@
 # Changelog
 
-## Version x.x.x (yyyy-mm-dd)
+## Version 2.1.1 (2024-10-29)
 
 - Fix name of `QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN` envirnoment variable in documentation
 - Update Python dependencies

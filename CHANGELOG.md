@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 2.1.2 (YYYY-MM-DD)
+## Version 2.1.2 (2024-12-04)
 
 - Update Python dependencies
 

@@ -24,10 +24,16 @@ RUN set -e && \
     mkdir ${USER_HOME}
 WORKDIR ${USER_HOME}
 
-# Install chromium dependencies
+# Install fonts and chromium dependencies (Note: ttf-mscorefonts-installer is not allowed to be distribured here due to its license)
 RUN set -e && \
     apt-get update && \
-    apt-get install -y $(apt-cache depends chromium | grep Depends | grep --invert-match "Depends: <" | sed "s/.*Depends:\ //" | tr '\n' ' ') && \
+    apt-get install -y \
+        fonts-firacode \
+        fonts-liberation \
+        fonts-noto \
+        fonts-open-sans \
+        fonts-roboto \
+        $(apt-cache depends chromium | grep Depends | grep --invert-match "Depends: <" | sed "s/.*Depends:\ //" | tr '\n' ' ') && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 

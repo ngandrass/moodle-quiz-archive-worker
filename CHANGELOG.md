@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 2.1.3 (YYYY-MM-DD)
+
+- Fix issues with asian characters when using the provided Docker image
+
+
 ## Version 2.1.2 (2024-12-04)
 
 - Update Python dependencies

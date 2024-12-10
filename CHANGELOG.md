@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 2.1.3 (YYYY-MM-DD)
+## Version 2.1.3 (2024-12-10)
 
 - Fix issues with asian characters when using the provided Docker image
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Version X.X.X (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix CVE-2024-56201 in `jinja2` package
+  - Fix CVE-2024-56326 in `jinja2` package
+ 
+
 ## Version 2.1.3 (2024-12-10)
 
 - Fix issues with asian characters when using the provided Docker image

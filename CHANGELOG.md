@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.X.X (YYYY-MM-DD)
+## Version 2.1.4 (2025-01-02)
 
 - Update Python dependencies
   - Fix CVE-2024-56201 in `jinja2` package

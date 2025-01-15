@@ -218,7 +218,15 @@ class QuizArchiveJob:
         os.makedirs(f'{self.workdir}/attempts', exist_ok=True)
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(args=['--disable-web-security'])  # Pass --disable-web-security to ignore CORS errors
+            browser = await p.chromium.launch(
+                args=['--disable-web-security'],  # Pass --disable-web-security to ignore CORS errors
+                proxy={
+                    'server': Config.PROXY_SERVER_URL,
+                    'username': Config.PROXY_USERNAME,
+                    'password': Config.PROXY_PASSWORD,
+                    'bypass': Config.PROXY_BYPASS_DOMAINS,
+                } if Config.PROXY_SERVER_URL else None
+            )
             context = await browser.new_context(viewport=ViewportSize(
                 width=int(Config.REPORT_BASE_VIEWPORT_WIDTH),
                 height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9)))

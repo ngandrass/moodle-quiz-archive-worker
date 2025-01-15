@@ -1,5 +1,5 @@
 # Moodle Quiz Archive Worker
-# Copyright (C) 2024 Niels Gandraß <niels@gandrass.de>
+# Copyright (C) 2025 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 import queue
+import re
 import threading
 import uuid
 from http import HTTPStatus
@@ -179,6 +181,68 @@ def start_processing_thread() -> None:
     queue_processing_thread.start()
 
 
+def detect_proxy_settings(envvars) -> None:
+    """
+    Performs proxy server auto-detection based on environment variables.
+    Results are automatically populated into Config object.
+
+    :param envvars: Environment variables from os.environ
+    :return: None
+    """
+    # Prepare config values
+    Config.PROXY_SERVER_URL = None
+    Config.PROXY_USERNAME = None
+    Config.PROXY_PASSWORD = None
+    Config.PROXY_BYPASS_DOMAINS = None
+
+    # Try to detect HTTP proxy
+    for varname in [
+        'QUIZ_ARCHIVER_PROXY_SERVER_URL',
+        'http_proxy',
+        'HTTP_PROXY',
+        'https_proxy',
+        'HTTPS_PROXY',
+        'all_proxy',
+        'ALL_PROXY'
+    ]:
+        if varname in envvars:
+            proxy_url_raw = envvars[varname]
+
+            match = re.search(r"^(?P<protocol>.+?)://((?P<username>.+?):(?P<password>.+?)@)?(?P<address>.+)$", proxy_url_raw)
+            if not match:
+                app.logger.warning(f'Found proxy server info in ${varname}, but could not parse it as a proxy server URL "{proxy_url_raw}". Skipping ...')
+                continue
+            else:
+                # Validate protocol
+                if match.group('protocol') not in ['http', 'https', 'socks', 'socks5']:
+                    app.logger.warning(f'Found proxy server info in ${varname}, but protocol "{match.group("protocol")}" is not supported. Skipping ...')
+                    continue
+
+                # Set config values for proxy server
+                Config.PROXY_SERVER_URL = f"{match.group('protocol')}://{match.group('address')}"
+                Config.PROXY_USERNAME = match.group('username')
+                Config.PROXY_PASSWORD = match.group('password')
+
+                # Logging
+                app.logger.info(
+                    f'Detected proxy server in ${varname}, using: {Config.PROXY_SERVER_URL}' +
+                    (' (with authentication)' if Config.PROXY_USERNAME else '')
+                )
+                break
+
+    # Try to detect bypass domains
+    for varname in ['no_proxy', 'NO_PROXY']:
+        if varname in envvars:
+            Config.PROXY_BYPASS_DOMAINS = envvars[varname]
+            app.logger.info(f'Detected proxy bypass domains in ${varname}: {Config.PROXY_BYPASS_DOMAINS}')
+            app.logger.debug(f'Proxy bypass domains: {Config.PROXY_BYPASS_DOMAINS}')
+            break
+
+    # Log if no proxy was detected
+    if Config.PROXY_SERVER_URL is None:
+        app.logger.debug('No proxy server detected')
+
+
 def run() -> None:
     """
     Runs the application
@@ -199,6 +263,13 @@ def run() -> None:
 
         # Reduce noise from 3rd party library loggers
         logging.getLogger("PIL").setLevel('INFO')
+
+    # Handle proxy settings
+    if Config.PROXY_SERVER_URL is not None and Config.PROXY_SERVER_URL.lower() == 'false':
+        Config.PROXY_SERVER_URL = None
+        app.logger.info('Proxy server auto detection was skipped. No proxy will explicitly be used.')
+    else:
+        detect_proxy_settings(os.environ)
 
     start_processing_thread()
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

@@ -194,6 +194,8 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC`: Number of seconds to wait for the report page to load before aborting the job (default=`30`)
 - `QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN`: Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests fail due to permission errors (default=`True`)
 - `QUIZ_ARCHIVER_DEMO_MODE`: Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included (default=`False`)
+- `QUIZ_ARCHIVER_PROXY_SERVER_URL`: URL of the proxy server to use for all requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used. (default=`None`)
+- `QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS`: Comma-separated list of domains that should always be accessed directly, bypassing the proxy (default=`None`)
 
 
 # Development
@@ -235,7 +237,7 @@ The coverage report is then available in the `htmlcov` directory.
 
 ## License
 
-2024 Niels Gandraß <niels@gandrass.de>
+2025 Niels Gandraß <niels@gandrass.de>
 
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software

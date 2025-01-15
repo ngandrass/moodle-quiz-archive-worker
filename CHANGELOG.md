@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Add support for HTTP and SOCKS proxy servers (#16 - Thanks to @PhMemmel)
+
+
 ## Version 2.1.4 (2025-01-02)
 
 - Update Python dependencies

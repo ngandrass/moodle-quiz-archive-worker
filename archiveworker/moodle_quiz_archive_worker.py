@@ -196,7 +196,15 @@ def detect_proxy_settings(envvars) -> None:
     Config.PROXY_BYPASS_DOMAINS = None
 
     # Try to detect HTTP proxy
-    for varname in ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY']:
+    for varname in [
+        'QUIZ_ARCHIVER_PROXY_SERVER_URL',
+        'http_proxy',
+        'HTTP_PROXY',
+        'https_proxy',
+        'HTTPS_PROXY',
+        'all_proxy',
+        'ALL_PROXY'
+    ]:
         if varname in envvars:
             proxy_url_raw = envvars[varname]
 
@@ -256,15 +264,12 @@ def run() -> None:
         # Reduce noise from 3rd party library loggers
         logging.getLogger("PIL").setLevel('INFO')
 
-    # Proxy settings auto-detection
-    if Config.PROXY_SERVER_URL is None:
-        detect_proxy_settings(os.environ)
+    # Handle proxy settings
+    if Config.PROXY_SERVER_URL is not None and Config.PROXY_SERVER_URL.lower() == 'false':
+        Config.PROXY_SERVER_URL = None
+        app.logger.info('Proxy server auto detection was skipped. No proxy will explicitly be used.')
     else:
-        if not Config.PROXY_SERVER_URL or Config.PROXY_SERVER_URL.lower() == 'false':
-            Config.PROXY_SERVER_URL = None
-            app.logger.info('Proxy server auto detection was skipped. No proxy will be used.')
-        else:
-            app.logger.info(f'Using explicitly given proxy server: {Config.PROXY_SERVER_URL}')
+        detect_proxy_settings(os.environ)
 
     start_processing_thread()
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

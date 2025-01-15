@@ -44,11 +44,11 @@ class Config:
     PROXY_SERVER_URL = os.getenv('QUIZ_ARCHIVER_PROXY_SERVER_URL', default=None)
     """URL of the proxy server to use for all playwright requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used."""
 
-    PROXY_USERNAME = os.getenv('QUIZ_ARCHIVER_PROXY_USERNAME', default=None)
-    """Optional username to authenticate at the proxy server"""
+    PROXY_USERNAME = None
+    """Optional username to authenticate at the proxy server. Will be populated based on PROXY_SERVER_URL."""
 
-    PROXY_PASSWORD = os.getenv('QUIZ_ARCHIVER_PROXY_PASSWORD', default=None)
-    """Optional password to authenticate at the proxy server"""
+    PROXY_PASSWORD = None
+    """Optional password to authenticate at the proxy server. Will be populated based on PROXY_SERVER_URL."""
 
     PROXY_BYPASS_DOMAINS = os.getenv('QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS', default=None)
     """Comma-separated list of domains that should always be accessed directly, bypassing the proxy"""

@@ -591,7 +591,12 @@ class QuizArchiveJob:
             # Try to get JSON content if debug logging is enabled to allow debugging
             if Config.LOG_LEVEL == logging.DEBUG:
                 if content_type.startswith('application/json'):
-                    r = requests.get(url=download_url, params={'token': self.request.wstoken}, allow_redirects=True)
+                    r = requests.get(
+                        url=download_url,
+                        proxies=MoodleAPI.generate_proxy_settings(),
+                        params={'token': self.request.wstoken},
+                        allow_redirects=True
+                    )
                     self.logger.debug(f'Backup file GET response: {r.text}')
 
             # Normal error handling

@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Dict, Tuple, List
@@ -106,6 +107,26 @@ class MoodleAPI:
             **kwargs
         }
 
+    @staticmethod
+    def generate_proxy_settings() -> Dict[str, str] | None:
+        """
+        Generates a dictionary with proxy settings for the requests library
+
+        :return: Dictionary with proxy settings or None if no proxy is configured
+        """
+        if Config.PROXY_SERVER_URL:
+            if Config.PROXY_USERNAME and Config.PROXY_PASSWORD:
+                match = re.search(r"(.+)://(.+)", Config.PROXY_SERVER_URL)
+                return {
+                    "http": f"{match.group(1)}://{Config.PROXY_USERNAME}:{Config.PROXY_PASSWORD}@{match.group(2)}",
+                }
+            else:
+                return {
+                    "http": Config.PROXY_SERVER_URL,
+                }
+        else:
+            return None
+
     def check_connection(self) -> bool:
         """
         Check if the connection to the Moodle API is working
@@ -116,6 +137,7 @@ class MoodleAPI:
         try:
             r = requests.get(
                 url=self.ws_rest_url,
+                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_wsfunc_request_params(wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS)
             )
@@ -149,12 +171,17 @@ class MoodleAPI:
                 conditional_params = {f'statusextras': json.dumps(statusextras)}
 
             # Call wsfunction to update job status
-            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS, params=self._generate_wsfunc_request_params(
-                wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
-                jobid=str(jobid),
-                status=str(status),
-                **conditional_params
-            ))
+            r = requests.get(
+                url=self.ws_rest_url,
+                proxies=self.generate_proxy_settings(),
+                timeout=self.REQUEST_TIMEOUTS,
+                params=self._generate_wsfunc_request_params(
+                    wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
+                    jobid=str(jobid),
+                    status=str(status),
+                    **conditional_params
+                )
+            )
             data = r.json()
 
             if data['status'] == 'OK':
@@ -179,11 +206,16 @@ class MoodleAPI:
         """
         try:
             self.logger.debug(f'Requesting status for backup {backupid}')
-            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS, params=self._generate_wsfunc_request_params(
-                wsfunction=Config.MOODLE_WSFUNCTION_GET_BACKUP,
-                jobid=str(jobid),
-                backupid=str(backupid)
-            ))
+            r = requests.get(
+                url=self.ws_rest_url,
+                proxies=self.generate_proxy_settings(),
+                timeout=self.REQUEST_TIMEOUTS,
+                params=self._generate_wsfunc_request_params(
+                    wsfunction=Config.MOODLE_WSFUNCTION_GET_BACKUP,
+                    jobid=str(jobid),
+                    backupid=str(backupid)
+                )
+            )
             response = r.json()
         except Exception:
             raise ConnectionError(f'Failed to get status of backup {backupid} for job {jobid}')
@@ -214,6 +246,7 @@ class MoodleAPI:
             self.logger.debug(f'Requesting HEAD for file {download_url}')
             h = requests.head(
                 url=download_url,
+                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_file_request_params(),
                 allow_redirects=True
@@ -259,6 +292,7 @@ class MoodleAPI:
             with open(target_file, 'wb+') as f:
                 r = requests.get(
                     url=download_url,
+                    proxies=self.generate_proxy_settings(),
                     stream=True,
                     timeout=self.REQUEST_TIMEOUTS_EXTENDED,
                     params=self._generate_file_request_params(forcedownload=1)
@@ -334,6 +368,7 @@ class MoodleAPI:
                 params['attemptids[]'] = batch
                 r = requests.get(
                     url=self.ws_rest_url,
+                    proxies=self.generate_proxy_settings(),
                     timeout=self.REQUEST_TIMEOUTS,
                     params=params
                 )
@@ -396,16 +431,21 @@ class MoodleAPI:
                  report and a List of attachments for the requested attemptid
         """
         try:
-            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS, params=self._generate_wsfunc_request_params(
-                wsfunction=Config.MOODLE_WSFUNCTION_ARCHIVE,
-                courseid=courseid,
-                cmid=cmid,
-                quizid=quizid,
-                attemptid=attemptid,
-                filenamepattern=filenamepattern,
-                attachments=attachments,
-                **{f'sections[{key}]': value for key, value in sections.items()}
-            ))
+            r = requests.get(
+                url=self.ws_rest_url,
+                proxies=self.generate_proxy_settings(),
+                timeout=self.REQUEST_TIMEOUTS,
+                params=self._generate_wsfunc_request_params(
+                    wsfunction=Config.MOODLE_WSFUNCTION_ARCHIVE,
+                    courseid=courseid,
+                    cmid=cmid,
+                    quizid=quizid,
+                    attemptid=attemptid,
+                    filenamepattern=filenamepattern,
+                    attachments=attachments,
+                    **{f'sections[{key}]': value for key, value in sections.items()}
+                )
+            )
 
             # Moodle 4.3 seems to return an additional "</body></html>" at the end of the response which causes the JSON parser to fail
             response = r.text.lstrip('<html><body>').rstrip('</body></html>')
@@ -467,6 +507,7 @@ class MoodleAPI:
 
                 r = requests.post(
                     url=self.ws_upload_url,
+                    proxies=self.generate_proxy_settings(),
                     timeout=self.REQUEST_TIMEOUTS_EXTENDED,
                     files={'file_1': f},
                     data=self._generate_file_request_params(filepath='/', itemid=0)
@@ -522,18 +563,23 @@ class MoodleAPI:
         """
         # Call wsfunction to process artifact
         try:
-            r = requests.get(url=self.ws_rest_url, timeout=self.REQUEST_TIMEOUTS_EXTENDED, params=self._generate_wsfunc_request_params(
-                wsfunction=Config.MOODLE_WSFUNCTION_PROESS_UPLOAD,
-                jobid=str(jobid),
-                artifact_component=component,
-                artifact_contextid=contextid,
-                artifact_userid=userid,
-                artifact_filearea=filearea,
-                artifact_filename=filename,
-                artifact_filepath=filepath,
-                artifact_itemid=itemid,
-                artifact_sha256sum=sha256sum,
-            ))
+            r = requests.get(
+                url=self.ws_rest_url,
+                proxies=self.generate_proxy_settings(),
+                timeout=self.REQUEST_TIMEOUTS_EXTENDED,
+                params=self._generate_wsfunc_request_params(
+                    wsfunction=Config.MOODLE_WSFUNCTION_PROESS_UPLOAD,
+                    jobid=str(jobid),
+                    artifact_component=component,
+                    artifact_contextid=contextid,
+                    artifact_userid=userid,
+                    artifact_filearea=filearea,
+                    artifact_filename=filename,
+                    artifact_filepath=filepath,
+                    artifact_itemid=itemid,
+                    artifact_sha256sum=sha256sum,
+                )
+            )
             response = r.json()
         except Exception:
             ConnectionError(f'Failed to call upload processing hook "{Config.MOODLE_WSFUNCTION_PROESS_UPLOAD}" at "{self.ws_rest_url}"')

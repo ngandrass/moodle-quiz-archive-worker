@@ -41,6 +41,18 @@ class Config:
     SERVER_PORT = os.getenv('QUIZ_ARCHIVER_SERVER_PORT', default='8080')
     """Port for Flask to listen on"""
 
+    PROXY_SERVER_URL = os.getenv('QUIZ_ARCHIVER_PROXY_SERVER_URL', default=None)
+    """URL of the proxy server to use for all playwright requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used."""
+
+    PROXY_USERNAME = os.getenv('QUIZ_ARCHIVER_PROXY_USERNAME', default=None)
+    """Optional username to authenticate at the proxy server"""
+
+    PROXY_PASSWORD = os.getenv('QUIZ_ARCHIVER_PROXY_PASSWORD', default=None)
+    """Optional password to authenticate at the proxy server"""
+
+    PROXY_BYPASS_DOMAINS = os.getenv('QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS', default=None)
+    """Comma-separated list of domains that should always be accessed directly, bypassing the proxy"""
+
     QUEUE_SIZE = int(os.getenv('QUIZ_ARCHIVER_QUEUE_SIZE', default=8))
     """Maximum number of requests that are queued before returning an error."""
 

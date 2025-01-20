@@ -118,11 +118,11 @@ class MoodleAPI:
             if Config.PROXY_USERNAME and Config.PROXY_PASSWORD:
                 match = re.search(r"(.+)://(.+)", Config.PROXY_SERVER_URL)
                 return {
-                    "http": f"{match.group(1)}://{Config.PROXY_USERNAME}:{Config.PROXY_PASSWORD}@{match.group(2)}",
+                    "all": f"{match.group(1)}://{Config.PROXY_USERNAME}:{Config.PROXY_PASSWORD}@{match.group(2)}",
                 }
             else:
                 return {
-                    "http": Config.PROXY_SERVER_URL,
+                    "all": Config.PROXY_SERVER_URL,
                 }
         else:
             return None

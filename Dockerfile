@@ -19,8 +19,6 @@ FROM python:3.12
 ENV USER_NAME archiveworker
 ENV USER_GROUP archiveworker
 ENV USER_HOME /app
-ENV http_proxy http://MYPROXYHOST:MYPROXYPORT/
-ENV https_proxy http://MYPROXYHOST:MYPROXYPORT/
 
 RUN set -e && \
     mkdir ${USER_HOME}

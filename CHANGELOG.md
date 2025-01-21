@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 2.2.0 (2024-01-21)
 
 - Add support for HTTP and SOCKS proxy servers (#16 - Thanks to @PhMemmel)
 - Fix parsing of boolean / int values during config tree building from environment variables

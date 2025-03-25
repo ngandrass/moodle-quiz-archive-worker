@@ -603,7 +603,7 @@ class QuizArchiveJob:
             raise RuntimeError(f'Backup Content-Type invalid. Expected "application/vnd.moodle.backup" but got "{content_type}"')
 
         if not content_length:
-            raise RuntimeError(f'Backup filesize could not be determined')
+            self.logger.warning("Backup filesize could not be determined because 'Content-Length' HTTP header is missing. Trying to download anyways ...")
         elif int(content_length) > Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES:
             raise RuntimeError(f'Backup filesize of {content_length} bytes exceeds maximum allowed filesize {Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES} bytes')
         else:

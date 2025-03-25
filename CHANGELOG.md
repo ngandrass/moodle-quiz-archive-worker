@@ -1,5 +1,13 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Relax `Content-Length` HTTP header check on Moodle backup download task to fix
+  failed backup downloads in specific scenarios
+- Update Python dependencies
+  - Fix CVE-2025-27516 in `jinja2` package
+
+
 ## Version 2.2.0 (2025-01-21)
 
 - Add support for HTTP and SOCKS proxy servers (#16 - Thanks to @PhMemmel)

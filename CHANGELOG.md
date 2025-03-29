@@ -2,8 +2,8 @@
 
 ## Version X.Y.Z (YYYY-MM-DD)
 
-- Relax `Content-Length` HTTP header check on Moodle backup download task to fix
-  failed backup downloads in specific scenarios
+- Relax `Content-Length` HTTP header check on Moodle backup download task to fix failed backup downloads in specific scenarios
+- Add `QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION` environment variable to allow skipping of HTTPS cert validation if desired
 - Update Python dependencies
   - Fix CVE-2025-27516 in `jinja2` package
 

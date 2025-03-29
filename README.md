@@ -196,6 +196,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_DEMO_MODE`: Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included (default=`False`)
 - `QUIZ_ARCHIVER_PROXY_SERVER_URL`: URL of the proxy server to use for all requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used. (default=`None`)
 - `QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS`: Comma-separated list of domains that should always be accessed directly, bypassing the proxy (default=`None`)
+- `QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION`: Whether to skip validation of TLS / SSL certs for all HTTPS connections (default=`False`)
 
 
 # Development

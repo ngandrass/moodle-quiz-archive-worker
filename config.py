@@ -74,6 +74,9 @@ class Config:
     SERVER_PORT = parse_env_variable('QUIZ_ARCHIVER_SERVER_PORT', default='8080', valtype=int)
     """Port for Flask to listen on"""
 
+    SKIP_HTTPS_CERT_VALIDATION = parse_env_variable('QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION', default=False, valtype=bool)
+    """Whether to skip validation of TLS / SSL certs for all HTTPS connections. WARNING: If set to true, invalid certificates are accepted without error."""
+
     PROXY_SERVER_URL = parse_env_variable('QUIZ_ARCHIVER_PROXY_SERVER_URL', default=None, valtype=str)
     """URL of the proxy server to use for all playwright requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used."""
 

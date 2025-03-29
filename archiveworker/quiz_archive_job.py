@@ -29,7 +29,6 @@ from time import time
 from typing import List, Dict
 from uuid import UUID
 
-import requests
 from PIL.Image import Resampling
 from playwright.async_api import async_playwright, ViewportSize, BrowserContext, Route
 from pypdf import PdfWriter
@@ -37,6 +36,7 @@ from pypdf import PdfWriter
 from config import Config
 from .custom_types import JobStatus, JobArchiveRequest, ReportSignal, BackupStatus
 from .moodle_api import MoodleAPI
+from .requests_factory import RequestsFactory
 
 DEMOMODE_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/demomode.js')).read()
 READYSIGNAL_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/readysignal.js')).read()
@@ -225,11 +225,14 @@ class QuizArchiveJob:
                     'username': Config.PROXY_USERNAME,
                     'password': Config.PROXY_PASSWORD,
                     'bypass': Config.PROXY_BYPASS_DOMAINS,
-                } if Config.PROXY_SERVER_URL else None
+                } if Config.PROXY_SERVER_URL else None,
             )
-            context = await browser.new_context(viewport=ViewportSize(
-                width=int(Config.REPORT_BASE_VIEWPORT_WIDTH),
-                height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9)))
+            context = await browser.new_context(
+                viewport=ViewportSize(
+                    width=int(Config.REPORT_BASE_VIEWPORT_WIDTH),
+                    height=int(Config.REPORT_BASE_VIEWPORT_WIDTH / (16/9))
+                ),
+                ignore_https_errors=Config.SKIP_HTTPS_CERT_VALIDATION
             )
             context.set_default_navigation_timeout(Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC * 1000)
             self.logger.debug("Spawned new playwright Browser and BrowserContext")
@@ -591,9 +594,11 @@ class QuizArchiveJob:
             # Try to get JSON content if debug logging is enabled to allow debugging
             if Config.LOG_LEVEL == logging.DEBUG:
                 if content_type.startswith('application/json'):
-                    r = requests.get(
+                    # This request is kept here instead of the MoodleAPI wrapper because it is
+                    # solely used for debugging purposes
+                    session = RequestsFactory.create_session()
+                    r = session.get(
                         url=download_url,
-                        proxies=MoodleAPI.generate_proxy_settings(),
                         params={'token': self.request.wstoken},
                         allow_redirects=True
                     )

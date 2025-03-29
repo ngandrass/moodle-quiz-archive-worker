@@ -18,15 +18,13 @@ import hashlib
 import json
 import logging
 import os
-import re
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Dict, Tuple, List
 from uuid import UUID
 
-import requests
-
-from archiveworker.custom_types import JobStatus, BackupStatus
+from .custom_types import JobStatus, BackupStatus
+from .requests_factory import RequestsFactory
 from config import Config
 
 
@@ -58,8 +56,9 @@ class MoodleAPI:
         self.ws_upload_url = ws_upload_url
         self.wstoken = wstoken
         self.restformat = 'json'
-
         self._validate_properties()
+
+        self.session = RequestsFactory.create_session()
 
     def _validate_properties(self) -> None:
         """
@@ -107,26 +106,6 @@ class MoodleAPI:
             **kwargs
         }
 
-    @staticmethod
-    def generate_proxy_settings() -> Dict[str, str] | None:
-        """
-        Generates a dictionary with proxy settings for the requests library
-
-        :return: Dictionary with proxy settings or None if no proxy is configured
-        """
-        if Config.PROXY_SERVER_URL:
-            if Config.PROXY_USERNAME and Config.PROXY_PASSWORD:
-                match = re.search(r"(.+)://(.+)", Config.PROXY_SERVER_URL)
-                return {
-                    "all": f"{match.group(1)}://{Config.PROXY_USERNAME}:{Config.PROXY_PASSWORD}@{match.group(2)}",
-                }
-            else:
-                return {
-                    "all": Config.PROXY_SERVER_URL,
-                }
-        else:
-            return None
-
     def check_connection(self) -> bool:
         """
         Check if the connection to the Moodle API is working
@@ -135,9 +114,8 @@ class MoodleAPI:
         :raises ConnectionError: If the connection could not be established
         """
         try:
-            r = requests.get(
+            r = self.session.get(
                 url=self.ws_rest_url,
-                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_wsfunc_request_params(wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS)
             )
@@ -171,9 +149,8 @@ class MoodleAPI:
                 conditional_params = {f'statusextras': json.dumps(statusextras)}
 
             # Call wsfunction to update job status
-            r = requests.get(
+            r = self.session.get(
                 url=self.ws_rest_url,
-                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_wsfunc_request_params(
                     wsfunction=Config.MOODLE_WSFUNCTION_UPDATE_JOB_STATUS,
@@ -206,9 +183,8 @@ class MoodleAPI:
         """
         try:
             self.logger.debug(f'Requesting status for backup {backupid}')
-            r = requests.get(
+            r = self.session.get(
                 url=self.ws_rest_url,
-                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_wsfunc_request_params(
                     wsfunction=Config.MOODLE_WSFUNCTION_GET_BACKUP,
@@ -244,9 +220,8 @@ class MoodleAPI:
         """
         try:
             self.logger.debug(f'Requesting HEAD for file {download_url}')
-            h = requests.head(
+            h = self.session.head(
                 url=download_url,
-                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_file_request_params(),
                 allow_redirects=True
@@ -290,9 +265,8 @@ class MoodleAPI:
         try:
             os.makedirs(target_path, exist_ok=True)
             with open(target_file, 'wb+') as f:
-                r = requests.get(
+                r = self.session.get(
                     url=download_url,
-                    proxies=self.generate_proxy_settings(),
                     stream=True,
                     timeout=self.REQUEST_TIMEOUTS_EXTENDED,
                     params=self._generate_file_request_params(forcedownload=1)
@@ -366,9 +340,8 @@ class MoodleAPI:
         for batch in batches:
             try:
                 params['attemptids[]'] = batch
-                r = requests.get(
+                r = self.session.get(
                     url=self.ws_rest_url,
-                    proxies=self.generate_proxy_settings(),
                     timeout=self.REQUEST_TIMEOUTS,
                     params=params
                 )
@@ -431,9 +404,8 @@ class MoodleAPI:
                  report and a List of attachments for the requested attemptid
         """
         try:
-            r = requests.get(
+            r = self.session.get(
                 url=self.ws_rest_url,
-                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_wsfunc_request_params(
                     wsfunction=Config.MOODLE_WSFUNCTION_ARCHIVE,
@@ -505,9 +477,8 @@ class MoodleAPI:
                 filesize = file_stats.st_size
                 self.logger.info(f'Uploading file "{file}" (size: {filesize} bytes) to "{self.ws_upload_url}"')
 
-                r = requests.post(
+                r = self.session.post(
                     url=self.ws_upload_url,
-                    proxies=self.generate_proxy_settings(),
                     timeout=self.REQUEST_TIMEOUTS_EXTENDED,
                     files={'file_1': f},
                     data=self._generate_file_request_params(filepath='/', itemid=0)
@@ -563,9 +534,8 @@ class MoodleAPI:
         """
         # Call wsfunction to process artifact
         try:
-            r = requests.get(
+            r = self.session.get(
                 url=self.ws_rest_url,
-                proxies=self.generate_proxy_settings(),
                 timeout=self.REQUEST_TIMEOUTS_EXTENDED,
                 params=self._generate_wsfunc_request_params(
                     wsfunction=Config.MOODLE_WSFUNCTION_PROESS_UPLOAD,

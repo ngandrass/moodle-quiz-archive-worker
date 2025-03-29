@@ -264,6 +264,11 @@ def run() -> None:
         # Reduce noise from 3rd party library loggers
         logging.getLogger("PIL").setLevel('INFO')
 
+    # Produce warning if TLS cert validation is turned off
+    if Config.SKIP_HTTPS_CERT_VALIDATION:
+        app.logger.warning('TLS / SSL certificate validation is TURNED OFF! This server will accept any given certificate for HTTPS connections without trying to validate it.')
+        app.logger.info('To enable certificate validation set QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION to "False" or unset the variable.')
+
     # Handle proxy settings
     if Config.PROXY_SERVER_URL is not None and Config.PROXY_SERVER_URL.lower() == 'false':
         Config.PROXY_SERVER_URL = None

@@ -74,7 +74,7 @@ class JobArchiveRequest:
     Deserialized JSON request for creating an archive job
     """
 
-    API_VERSION = 6
+    API_VERSION = 7
 
     PAPER_FORMATS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Letter', 'Legal', 'Tabloid', 'Ledger']
 
@@ -172,6 +172,8 @@ class JobArchiveRequest:
             if not isinstance(self.tasks['archive_quiz_attempts']['paper_format'], str) or self.tasks['archive_quiz_attempts']['paper_format'] not in self.PAPER_FORMATS:
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['keep_html_files'], bool):
+                return False
+            if not isinstance(self.tasks['archive_quiz_attempts']['foldername_pattern'], str) or self.tasks['archive_quiz_attempts']['foldername_pattern'] is None:
                 return False
             if not isinstance(self.tasks['archive_quiz_attempts']['filename_pattern'], str) or self.tasks['archive_quiz_attempts']['filename_pattern'] is None:
                 return False

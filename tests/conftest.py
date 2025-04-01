@@ -198,9 +198,10 @@ class MoodleAPIMockBase:
             quizid: int,
             attemptid: int,
             sections: dict,
+            foldernamepattern: str,
             filenamepattern: str,
             attachments: bool
-    ) -> Tuple[str, str, List[Dict[str, str]]]:
+    ) -> Tuple[str, str, str, List[Dict[str, str]]]:
         raise NotImplementedError('get_attempt_data')
 
     def upload_file(self, file: Path) -> Dict[str, str]:

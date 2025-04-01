@@ -40,6 +40,7 @@ ARCHIVE_API_REQUEST = {
         },
         "paper_format": "A4",
         "keep_html_files": False,
+        "foldername_pattern": "${username}/${attemptid}-${date}_${time}",
         "filename_pattern": "attempt-${attemptid}-${username}_${date}-${time}",
         "image_optimize": False,
     },

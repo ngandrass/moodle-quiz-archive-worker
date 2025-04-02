@@ -42,6 +42,12 @@ class MoodleAPI:
     REQUEST_TIMEOUTS_EXTENDED = (10, 1800)
     """Tuple of connection and read timeouts for long-running requests to the Moodle API in seconds"""
 
+    FOLDERNAME_FORBIDDEN_CHARACTERS = ["\\", ".", ":", ";", "*", "?", "!", "\"", "<", ">", "|", "\0"]
+    """List of characters that are forbidden inside an attempt folder name"""
+
+    FILENAME_FORBIDDEN_CHARACTERS = FOLDERNAME_FORBIDDEN_CHARACTERS + ["/"]
+    """List of characters that are forbidden inside a file name"""
+
     def __init__(self, ws_rest_url: str, ws_upload_url: str, wstoken: str):
         """
         Initialize the Moodle API adapter
@@ -379,9 +385,10 @@ class MoodleAPI:
             quizid: int,
             attemptid: int,
             sections: dict,
+            foldernamepattern: str,
             filenamepattern: str,
             attachments: bool
-    ) -> Tuple[str, str, List[Dict[str, str]]]:
+    ) -> Tuple[str, str, str, List[Dict[str, str]]]:
         """
         Requests the attempt data (HTML DOM, attachment metadata) for a quiz
         attempt from the Moodle webservice API
@@ -392,6 +399,8 @@ class MoodleAPI:
         :param attemptid: ID of the attempt to fetch data for
         :param sections: Dict with section names as keys and boolean values that
                          indicate whether the section should be included in the report
+        :param foldernamepattern: Pattern to use for the folder to store attempt
+                                  report files in
         :param filenamepattern: Pattern to use for the filename of the report
         :param attachments: Whether to fetch attachment metadata for the attempt
 
@@ -400,8 +409,8 @@ class MoodleAPI:
         :raises RuntimeError: if the Moodle webservice API reported an error
         :raises ValueError: if the response from the Moodle webservice API was incomplete
 
-        :return: Tuple[str, str, List] consisting of the attempt name, the HTML DOM
-                 report and a List of attachments for the requested attemptid
+        :return: Tuple[str, str, str, List] consisting of the folder name, attempt name,
+                 the HTML DOM report and a List of attachments for the requested attemptid
         """
         try:
             r = self.session.get(
@@ -413,6 +422,7 @@ class MoodleAPI:
                     cmid=cmid,
                     quizid=quizid,
                     attemptid=attemptid,
+                    foldernamepattern=foldernamepattern,
                     filenamepattern=filenamepattern,
                     attachments=attachments,
                     **{f'sections[{key}]': value for key, value in sections.items()}
@@ -438,8 +448,9 @@ class MoodleAPI:
             raise RuntimeError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned error "{data["errorcode"]}".')
 
         # Check if response is as expected
-        for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'filename', 'report', 'attachments']:
+        for attr in ['attemptid', 'cmid', 'courseid', 'quizid', 'foldername', 'filename', 'report', 'attachments']:
             if attr not in data:
+                self.logger.debug(f'Missing attribute: {attr}')
                 raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an incomplete response')
 
         if not (
@@ -447,14 +458,25 @@ class MoodleAPI:
                 data['courseid'] == courseid and
                 data['cmid'] == cmid and
                 data['quizid'] == quizid and
+                isinstance(data['foldername'], str) and
                 isinstance(data['filename'], str) and
                 isinstance(data['report'], str) and
                 isinstance(data['attachments'], list)
         ):
             raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid response')
 
+        # Validate received folder and file names
+        if any(char in data['foldername'] for char in self.FOLDERNAME_FORBIDDEN_CHARACTERS):
+            raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid foldername')
+
+        if data['foldername'].startswith('/') or data['foldername'].endswith('/'):
+            raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned a forbidden foldername')
+
+        if any(char in data['filename'] for char in self.FILENAME_FORBIDDEN_CHARACTERS):
+            raise ValueError(f'Moodle webservice function {Config.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid filename')
+
         # Looks fine - Data seems valid :)
-        return data['filename'], data['report'], data['attachments']
+        return data['foldername'], data['filename'], data['report'], data['attachments']
 
     def upload_file(self, file: Path) -> Dict[str, str]:
         """

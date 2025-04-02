@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Add attempt folder name customization by variable path field in API
+
+
 ## Version 2.3.0 (2025-04-01)
 
 - Relax `Content-Length` HTTP header check on Moodle backup download task to fix failed backup downloads in specific scenarios

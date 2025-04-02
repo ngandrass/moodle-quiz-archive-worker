@@ -245,7 +245,7 @@ class QuizArchiveJob:
                     await self._render_quiz_attempt(context, attemptid, paper_format)
                     if self.request.tasks['archive_quiz_attempts']['image_optimize']:
                         await self._compress_pdf(
-                            file=Path(f"{self.workdir}/attempts/{self.archived_attempts[attemptid]}/{self.archived_attempts[attemptid]}.pdf"),
+                            file=Path(f"{self.archived_attempts[attemptid]}.pdf"),
                             pdf_compression_level=6,
                             image_maxwidth=self.request.tasks['archive_quiz_attempts']['image_optimize']['width'],
                             image_maxheight=self.request.tasks['archive_quiz_attempts']['image_optimize']['height'],
@@ -274,18 +274,19 @@ class QuizArchiveJob:
         :return: None
         """
         # Retrieve attempt data
-        attempt_name, attempt_html, attempt_attachments = self.moodle_api.get_attempt_data(
+        folder_name, attempt_name, attempt_html, attempt_attachments = self.moodle_api.get_attempt_data(
             self.request.courseid,
             self.request.cmid,
             self.request.quizid,
             attemptid,
             self.request.tasks['archive_quiz_attempts']['sections'],
+            self.request.tasks['archive_quiz_attempts']['foldername_pattern'],
             self.request.tasks['archive_quiz_attempts']['filename_pattern'],
             self.request.tasks['archive_quiz_attempts']['sections']['attachments']
         )
 
         # Prepare attempt dir
-        attempt_dir = f"{self.workdir}/attempts/{attempt_name}"
+        attempt_dir = f"{self.workdir}/attempts/{folder_name}"
         os.makedirs(attempt_dir, exist_ok=True)
 
         # Save HTML DOM, if desired
@@ -415,7 +416,7 @@ class QuizArchiveJob:
                 self.logger.info(f'Downloaded {downloaded_bytes} bytes of quiz slot {attachment["slot"]} attachment {attachment["filename"]} to {target_dir}')
 
         # Keep track of processes attempts
-        self.archived_attempts[attemptid] = attempt_name
+        self.archived_attempts[attemptid] = f"{attempt_dir}/{attempt_name}"
 
     async def _wait_for_page_ready_signal(self, page) -> None:
         """
@@ -516,7 +517,7 @@ class QuizArchiveJob:
 
         # Add path to each entry for metadata processing
         for entry in metadata:
-            entry['path'] = f"/attempts/{self.archived_attempts[int(entry['attemptid'])]}"
+            entry['path'] = os.path.relpath(self.archived_attempts[int(entry['attemptid'])], self.workdir)
 
         # Write metadata to CSV file
         with open(f'{self.workdir}/attempts_metadata.csv', 'w+') as f:

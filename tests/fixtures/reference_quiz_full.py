@@ -48,6 +48,7 @@ ARCHIVE_API_REQUEST = {
         },
         "paper_format": "A4",
         "keep_html_files": True,
+        "foldername_pattern": "${username}/${attemptid}-${date}_${time}",
         "filename_pattern": "attempt-${attemptid}-${username}_${date}-${time}",
         "image_optimize": False,
     },
@@ -92,12 +93,13 @@ class MoodleAPIMock(MoodleAPIMockBase):
             quizid: int,
             attemptid: int,
             sections: dict,
+            foldernamepattern: str,
             filenamepattern: str,
             attachments: bool
-    ) -> Tuple[str, str, List[Dict[str, str]]]:
+    ) -> Tuple[str, str, str, List[Dict[str, str]]]:
         if attemptid in [23, 24, 25]:
             with open(f'{self.RESOURCE_BASE}/attempts/{attemptid}.html', 'r') as f:
-                return f'attempt-{attemptid}', f.read(), []
+                return f'attempt-{attemptid}', f'attempt-{attemptid}', f.read(), []
 
         super().get_attempt_data(courseid, cmid, quizid, attemptid, sections, filenamepattern, attachments)
 

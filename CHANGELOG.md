@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 2.3.0 (2025-04-01)
+## Version X.Y.Z (YYYY-MM-DD)
 
 - Add attempt folder name customization by variable path field in API
 

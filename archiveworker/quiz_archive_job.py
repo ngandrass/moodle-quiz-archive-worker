@@ -275,6 +275,7 @@ class QuizArchiveJob:
         """
         # Retrieve attempt data
         folder_name, attempt_name, attempt_html, attempt_attachments = self.moodle_api.get_attempt_data(
+            self.get_id(),
             self.request.courseid,
             self.request.cmid,
             self.request.quizid,
@@ -509,6 +510,7 @@ class QuizArchiveJob:
         """
         # Fetch metadata for all quiz attempts that should be archived
         metadata = self.moodle_api.get_attempts_metadata(
+            self.get_id(),
             self.request.courseid,
             self.request.cmid,
             self.request.quizid,

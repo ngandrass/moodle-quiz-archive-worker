@@ -188,11 +188,19 @@ class MoodleAPIMockBase:
     ) -> int:
         raise NotImplementedError('download_moodle_file')
 
-    def get_attempts_metadata(self, courseid: int, cmid: int, quizid: int, attemptids: List[int]) -> List[Dict[str, str]]:
+    def get_attempts_metadata(
+            self,
+            jobid: UUID,
+            courseid: int,
+            cmid: int,
+            quizid: int,
+            attemptids: List[int]
+    ) -> List[Dict[str, str]]:
         raise NotImplementedError('get_attempts_metadata')
 
     def get_attempt_data(
             self,
+            jobid: UUID,
             courseid: int,
             cmid: int,
             quizid: int,

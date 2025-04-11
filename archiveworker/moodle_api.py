@@ -315,7 +315,14 @@ class MoodleAPI:
         self.logger.info(f'Downloaded {downloaded_bytes} bytes to {target_file}')
         return downloaded_bytes
 
-    def get_attempts_metadata(self, courseid: int, cmid: int, quizid: int, attemptids: List[int]) -> List[Dict[str, str]]:
+    def get_attempts_metadata(
+            self,
+            jobid: UUID,
+            courseid: int,
+            cmid: int,
+            quizid: int,
+            attemptids: List[int]
+    ) -> List[Dict[str, str]]:
         """
         Fetches metadata for all quiz attempts that should be archived
 
@@ -338,6 +345,7 @@ class MoodleAPI:
         metadata = []
         params = self._generate_wsfunc_request_params(
             wsfunction=Config.MOODLE_WSFUNCTION_GET_ATTEMPTS_METADATA,
+            jobid=str(jobid),
             courseid=courseid,
             cmid=cmid,
             quizid=quizid
@@ -380,6 +388,7 @@ class MoodleAPI:
 
     def get_attempt_data(
             self,
+            jobid: UUID,
             courseid: int,
             cmid: int,
             quizid: int,
@@ -393,6 +402,7 @@ class MoodleAPI:
         Requests the attempt data (HTML DOM, attachment metadata) for a quiz
         attempt from the Moodle webservice API
 
+        :param jobid: UUID of the job this request is associated with
         :param courseid: ID of the course the quiz is part of
         :param cmid: ID of the course module that corresponds to the quiz
         :param quizid: ID of the quiz the attempt is part of
@@ -418,6 +428,7 @@ class MoodleAPI:
                 timeout=self.REQUEST_TIMEOUTS,
                 params=self._generate_wsfunc_request_params(
                     wsfunction=Config.MOODLE_WSFUNCTION_ARCHIVE,
+                    jobid=str(jobid),
                     courseid=courseid,
                     cmid=cmid,
                     quizid=quizid,

@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 3.Y.Z (YYYY-MM-DD)
+## Version 3.0.0 (2025-04-16)
 
 - Add support for Moodle 5.0 / MathJax 3.x
 - Add attempt folder name customization by variable path field in API

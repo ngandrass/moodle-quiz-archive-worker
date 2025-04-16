@@ -2,6 +2,7 @@
 
 ## Version 3.Y.Z (YYYY-MM-DD)
 
+- Add support for Moodle 5.0 / MathJax 3.x
 - Add attempt folder name customization by variable path field in API
 - Pass job UUID to `generate_attempt_report` and `get_attempts_metadata` Moodle webservice functions
 

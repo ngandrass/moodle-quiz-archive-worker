@@ -19,6 +19,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Tuple, List, Dict
+from uuid import UUID
 
 from archiveworker.custom_types import JobArchiveRequest
 from config import Config
@@ -88,6 +89,7 @@ class MoodleAPIMock(MoodleAPIMockBase):
 
     def get_attempt_data(
             self,
+            jobid: UUID,
             courseid: int,
             cmid: int,
             quizid: int,
@@ -105,6 +107,7 @@ class MoodleAPIMock(MoodleAPIMockBase):
 
     def get_attempts_metadata(
             self,
+            jobid: UUID,
             courseid: int,
             cmid: int,
             quizid: int,

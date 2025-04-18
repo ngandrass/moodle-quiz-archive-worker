@@ -21,8 +21,8 @@ import hashlib
 import logging
 import os
 import re
-import tarfile
 import threading
+import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import time
@@ -176,12 +176,15 @@ class QuizArchiveJob:
 
                 # Create final archive
                 self.logger.info("Generating final archive ...")
-                with TemporaryDirectory() as tardir:
+                with TemporaryDirectory() as zipdir:
                     # Add files
-                    archive_file = f'{tardir}/{self.request.archive_filename}.tar.gz'
-                    with tarfile.open(archive_file, 'w:gz', format=tarfile.USTAR_FORMAT) as tar:
-                        # ^-- Historic USTAR format is used to ensure compatibility with Moodle's file API
-                        tar.add(self.workdir, arcname='')
+                    archive_file = f'{zipdir}/{self.request.archive_filename}.zip'
+                    with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_LZMA) as archive:
+                        for root, _, files in os.walk(self.workdir):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.relpath(file_path, self.workdir)
+                                archive.write(file_path, arcname=arcname)
 
                     # Calculate checksum
                     with open(archive_file, 'rb') as f:
@@ -646,3 +649,4 @@ class QuizArchiveJob:
             **upload_medata
         )
         self.logger.info('Processed uploaded artifact successfully.')
+

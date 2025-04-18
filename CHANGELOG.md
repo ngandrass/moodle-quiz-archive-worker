@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Switch from `.tar.gz` to `.zip` archive format
+
+
 ## Version 3.0.0 (2025-04-16)
 
 - Add support for Moodle 5.0 / MathJax 3.x

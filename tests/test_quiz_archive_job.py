@@ -20,6 +20,7 @@ import os
 import tarfile
 import tempfile
 import time
+import zipfile
 
 import pytest
 
@@ -136,9 +137,9 @@ class TestQuizArchiveJob:
             assert os.path.getsize(job_artifact) < 1024*1024*10, 'Artifact size too large (>10 MB)'
 
             # Extract artifact and validate contents
-            with tarfile.open(job_artifact, 'r:gz') as tar:
+            with zipfile.ZipFile(job_artifact, 'r') as zipf:
                 with tempfile.TemporaryDirectory() as tempdir:
-                    tar.extractall(tempdir, filter=tarfile.tar_filter)
+                    zipf.extractall(tempdir)
 
                     # Validate attempt reports
                     for attemptid in fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids']:
@@ -204,9 +205,9 @@ class TestQuizArchiveJob:
             assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
 
             # Extract artifact and validate contents
-            with tarfile.open(job_artifact, 'r:gz') as tar:
+            with zipfile.ZipFile(job_artifact, 'r') as zipf:
                 with tempfile.TemporaryDirectory() as tempdir:
-                    tar.extractall(tempdir, filter=tarfile.tar_filter)
+                    zipf.extractall(tempdir)
 
                     # Validate attempt reports
                     assert not os.path.exists(os.path.join(tempdir, 'attempts/')), 'Unexpected attempts directory in artifact'
@@ -252,9 +253,9 @@ class TestQuizArchiveJob:
             assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
 
             # Extract artifact and validate contents
-            with tarfile.open(job_artifact, 'r:gz') as tar:
+            with zipfile.ZipFile(job_artifact, 'r') as zipf:
                 with tempfile.TemporaryDirectory() as tempdir:
-                    tar.extractall(tempdir, filter=tarfile.tar_filter)
+                    zipf.extractall(tempdir)
 
                     # Validate Moodle backups
                     assert not os.path.exists(os.path.join(tempdir, 'backups/')), 'Unexpected backups directory in artifact'
@@ -311,4 +312,3 @@ class TestQuizArchiveJob:
             assert '-> Resizing image' in caplog.text
             assert '-> Replacing image' in caplog.text
             assert '-> Compressing PDF content streams on page' in caplog.text
-

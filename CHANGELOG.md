@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 3.1.0 (2025-04-19)
 
 - Switch from `.tar.gz` to `.zip` archive format
 

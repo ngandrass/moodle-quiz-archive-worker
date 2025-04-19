@@ -16,9 +16,9 @@
 
 import logging
 import os
-import tarfile
 import tempfile
 import time
+import zipfile
 
 import pytest
 
@@ -82,9 +82,9 @@ class TestDemoMode:
             assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
 
             # Extract artifact and validate contents
-            with tarfile.open(job_artifact, 'r:gz') as tar:
+            with zipfile.ZipFile(job_artifact, 'r') as zipf:  # Changed from tarfile to zipfile
                 with tempfile.TemporaryDirectory() as tempdir:
-                    tar.extractall(tempdir, filter=tarfile.tar_filter)
+                    zipf.extractall(tempdir)  # Adjusted extraction method for zip files
 
                     # Validate attempt reports exist
                     for attemptid in fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids']:

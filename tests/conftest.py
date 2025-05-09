@@ -25,7 +25,7 @@ from uuid import UUID
 
 import pytest
 
-from archiveworker.custom_types import JobStatus, BackupStatus, WorkerThreadInterrupter
+from archiveworker.type import JobStatus, MoodleBackupStatus, WorkerThreadInterrupter
 from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history, InterruptableThread
 from config import Config
 
@@ -97,7 +97,7 @@ class MoodleAPIMockBase:
     Base class for Moodle API mocks
     """
 
-    CLS_ROOT = 'archiveworker.moodle_api.MoodleAPI'
+    CLS_ROOT = 'archiveworker.api.moodle.QuizArchiverMoodleAPI'
 
     def __init__(self):
         self.upload_tempdir = None
@@ -172,8 +172,8 @@ class MoodleAPIMockBase:
     def update_job_status(self, jobid: UUID, status: JobStatus, statusextras: Dict) -> bool:
         return True
 
-    def get_backup_status(self, jobid: UUID, backupid: str) -> BackupStatus:
-        return BackupStatus.SUCCESS
+    def get_backup_status(self, jobid: UUID, backupid: str) -> MoodleBackupStatus:
+        return MoodleBackupStatus.SUCCESS
 
     def get_remote_file_metadata(self, download_url: str) -> Tuple[str, int]:
         return 'application/vnd.moodle.backup', 1048576

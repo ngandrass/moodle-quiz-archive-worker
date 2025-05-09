@@ -23,7 +23,7 @@ from . import fixtures
 from .conftest import client
 
 from config import Config
-from archiveworker.custom_types import JobStatus, WorkerStatus
+from archiveworker.type import JobStatus, WorkerStatus
 
 
 class TestBasicAPI:
@@ -52,7 +52,7 @@ class TestBasicAPIWithMockedMoodleAPI:
     @classmethod
     def setup_class(cls):
         cls.mocks = {
-            'check_connection': patch('archiveworker.moodle_api.MoodleAPI.check_connection', return_value=True),
+            'check_connection': patch('archiveworker.api.moodle.QuizArchiverMoodleAPI.check_connection', return_value=True),
         }
 
         for m in cls.mocks.values():

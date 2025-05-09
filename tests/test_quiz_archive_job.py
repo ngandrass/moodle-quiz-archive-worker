@@ -17,14 +17,13 @@
 import csv
 import logging
 import os
-import tarfile
 import tempfile
 import time
 import zipfile
 
 import pytest
 
-from archiveworker.custom_types import JobStatus
+from archiveworker.type import JobStatus
 from archiveworker.moodle_quiz_archive_worker import start_processing_thread
 from config import Config
 from .conftest import client, TestUtils

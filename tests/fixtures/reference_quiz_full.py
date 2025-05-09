@@ -21,12 +21,12 @@ from pathlib import Path
 from typing import Tuple, List, Dict
 from uuid import UUID
 
-from archiveworker.custom_types import JobArchiveRequest
+from archiveworker.api.worker import QuizArchiverRequest
 from config import Config
 from tests.conftest import MoodleAPIMockBase
 
 ARCHIVE_API_REQUEST = {
-    "api_version": JobArchiveRequest.API_VERSION,
+    "api_version": QuizArchiverRequest.API_VERSION,
     "moodle_base_url": "http://localhost",
     "moodle_ws_url": "http://localhost/webservice/rest/server.php",
     "moodle_upload_url": "http://localhost/webservice/upload.php",

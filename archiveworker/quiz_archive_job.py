@@ -34,9 +34,10 @@ from playwright.async_api import async_playwright, ViewportSize, BrowserContext,
 from pypdf import PdfWriter
 
 from config import Config
-from .custom_types import JobStatus, JobArchiveRequest, ReportSignal, BackupStatus
-from .moodle_api import MoodleAPI
-from .requests_factory import RequestsFactory
+from archiveworker.type import JobStatus, ReportSignal, MoodleBackupStatus
+from archiveworker.api.moodle import QuizArchiverMoodleAPI
+from archiveworker.api.worker import QuizArchiverRequest
+from archiveworker.requests_factory import RequestsFactory
 
 DEMOMODE_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/demomode.js')).read()
 READYSIGNAL_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/readysignal.js')).read()
@@ -46,7 +47,7 @@ class QuizArchiveJob:
     A single archive job that is processed by the quiz archive worker
     """
 
-    def __init__(self, jobid: UUID, job_request: JobArchiveRequest):
+    def __init__(self, jobid: UUID, job_request: QuizArchiverRequest):
         self.id = jobid
         self.status = JobStatus.UNINITIALIZED
         self.statusextras = None
@@ -55,7 +56,7 @@ class QuizArchiveJob:
         self.workdir = None
         self.archived_attempts = {}
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
-        self.moodle_api = MoodleAPI(
+        self.moodle_api = QuizArchiverMoodleAPI(
             ws_rest_url=self.request.moodle_ws_url,
             ws_upload_url=self.request.moodle_upload_url,
             wstoken=self.request.wstoken
@@ -582,7 +583,7 @@ class QuizArchiveJob:
             if threading.current_thread().stop_requested():
                 raise InterruptedError('Thread stop requested')
 
-            if status == BackupStatus.SUCCESS:
+            if status == MoodleBackupStatus.SUCCESS:
                 break
 
             # Notify user about waiting

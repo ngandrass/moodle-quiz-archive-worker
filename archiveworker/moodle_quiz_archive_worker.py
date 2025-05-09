@@ -27,9 +27,10 @@ import waitress
 from flask import Flask, make_response, request, jsonify
 
 from config import Config
-from .moodle_api import MoodleAPI
-from .quiz_archive_job import QuizArchiveJob
-from .custom_types import WorkerStatus, JobArchiveRequest, JobStatus, WorkerThreadInterrupter
+from archiveworker.api.moodle import QuizArchiverMoodleAPI
+from archiveworker.api.worker import QuizArchiverRequest
+from archiveworker.quiz_archive_job import QuizArchiveJob
+from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 
 app = Flask(__name__)
 job_queue = queue.Queue(maxsize=Config.QUEUE_SIZE)
@@ -131,14 +132,14 @@ def handle_archive_request():
         # Check arguments
         if not request.is_json:
             return error_response('Request must be JSON.', HTTPStatus.BAD_REQUEST)
-        job_request = JobArchiveRequest.from_json(request.get_json())
+        job_request = QuizArchiverRequest.from_json(request.get_json())
 
         # Check queue capacity early
         if job_queue.full():
             return error_response('Maximum number of queued jobs exceeded.', HTTPStatus.TOO_MANY_REQUESTS)
 
         # Probe moodle API (wstoken validity)
-        moodle_api = MoodleAPI(job_request.moodle_ws_url, job_request.moodle_upload_url, job_request.wstoken)
+        moodle_api = QuizArchiverMoodleAPI(job_request.moodle_ws_url, job_request.moodle_upload_url, job_request.wstoken)
         if not moodle_api.check_connection():
             return error_response(f'Could not establish a connection to Moodle webservice API at "{job_request.moodle_ws_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
 

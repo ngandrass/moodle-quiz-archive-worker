@@ -15,81 +15,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from enum import StrEnum
 from typing import List
 
 
-class WorkerThreadInterrupter:
+class QuizArchiverRequest:
     """
-    Job / Task to queue for interrupting a worker thread
-    """
-    def execute(self) -> None:
-        return
-
-
-class WorkerStatus(StrEnum):
-    """
-    Status values that the quiz archive worker can report
-    """
-    IDLE = 'IDLE'
-    ACTIVE = 'ACTIVE'
-    BUSY = 'BUSY'
-    UNKNOWN = 'UNKNOWN'
-
-
-class JobStatus(StrEnum):
-    """
-    Status values a single quiz archive worker job can have
-    """
-    UNINITIALIZED = 'UNINITIALIZED'
-    AWAITING_PROCESSING = 'AWAITING_PROCESSING'
-    RUNNING = 'RUNNING'
-    WAITING_FOR_BACKUP = 'WAITING_FOR_BACKUP'
-    FINALIZING = 'FINALIZING'
-    FINISHED = 'FINISHED'
-    FAILED = 'FAILED'
-    TIMEOUT = 'TIMEOUT'
-
-
-class BackupStatus(StrEnum):
-    """
-    Status values a Moodle backup can have
-    """
-    PENDING = 'E_BACKUP_PENDING'
-    FAILED = 'E_BACKUP_FAILED'
-    SUCCESS = 'SUCCESS'
-
-
-class ReportSignal(StrEnum):
-    """
-    Signals that can be emitted by the report page JS
-    """
-    READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export"
-    MATHJAX_FOUND = "x-quiz-archiver-mathjax-found"
-    MATHJAX_NOT_FOUND = "x-quiz-archiver-mathjax-not-found"
-
-
-class JobArchiveRequest:
-    """
-    Deserialized JSON request for creating an archive job
+    Deserialized JSON request for creating an archive job via the quiz_archiver
+    Moodle plugin
     """
 
     API_VERSION = 7
 
     PAPER_FORMATS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Letter', 'Legal', 'Tabloid', 'Ledger']
 
-    def __init__(self,
-                 api_version: int,
-                 moodle_base_url: str,
-                 moodle_ws_url: str,
-                 moodle_upload_url: str,
-                 wstoken: str,
-                 courseid: int,
-                 cmid: int,
-                 quizid: int,
-                 archive_filename: str,
-                 task_archive_quiz_attempts: any,
-                 task_moodle_backups: any):
+    def __init__(
+        self,
+        api_version: int,
+        moodle_base_url: str,
+        moodle_ws_url: str,
+        moodle_upload_url: str,
+        wstoken: str,
+        courseid: int,
+        cmid: int,
+        quizid: int,
+        archive_filename: str,
+        task_archive_quiz_attempts: any,
+        task_moodle_backups: any
+    ):
         if api_version != self.API_VERSION:
             raise ValueError(f'API version mismatch. Expected: {self.API_VERSION}, Got: {api_version}. Please update your quiz-archive-worker!')
 
@@ -111,7 +63,7 @@ class JobArchiveRequest:
             raise ValueError('Validation of request payload failed')
 
     @staticmethod
-    def from_json(json: dict) -> 'JobArchiveRequest':
+    def from_json(json: dict) -> 'QuizArchiverRequest':
         """
         Creates a new JobArchiveRequest object from a JSON dictionary
 
@@ -123,10 +75,10 @@ class JobArchiveRequest:
             raise ValueError('API version missing in request payload')
         if not isinstance(json['api_version'], int):
             raise ValueError('API version must be an integer')
-        if json['api_version'] != JobArchiveRequest.API_VERSION:
-            raise ValueError(f'API version mismatch. Expected: {JobArchiveRequest.API_VERSION}, Got: {json["api_version"]}. Please update your quiz-archive-worker!')
+        if json['api_version'] != QuizArchiverRequest.API_VERSION:
+            raise ValueError(f'API version mismatch. Expected: {QuizArchiverRequest.API_VERSION}, Got: {json["api_version"]}. Please update your quiz-archive-worker!')
 
-        return JobArchiveRequest(**json)
+        return QuizArchiverRequest(**json)
 
     def _validate_self(self):
         """Validates this object based on current values"""

@@ -14,11 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-from typing import List
+from archiveworker.api.moodle import QuizArchiverMoodleAPI
+from archiveworker.type import PaperFormat
+
+from . import ArchiveJobDescriptor
 
 
-class QuizArchiverRequest:
+class QuizArchiverArchiveRequest:
     """
     Deserialized JSON request for creating an archive job via the quiz_archiver
     Moodle plugin
@@ -26,125 +28,70 @@ class QuizArchiverRequest:
 
     API_VERSION = 7
 
-    PAPER_FORMATS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'Letter', 'Legal', 'Tabloid', 'Ledger']
-
-    def __init__(
-        self,
-        api_version: int,
-        moodle_base_url: str,
-        moodle_ws_url: str,
-        moodle_upload_url: str,
-        wstoken: str,
-        courseid: int,
-        cmid: int,
-        quizid: int,
-        archive_filename: str,
-        task_archive_quiz_attempts: any,
-        task_moodle_backups: any
-    ):
-        if api_version != self.API_VERSION:
-            raise ValueError(f'API version mismatch. Expected: {self.API_VERSION}, Got: {api_version}. Please update your quiz-archive-worker!')
-
-        self.api_version = api_version
-        self.moodle_base_url = moodle_base_url
-        self.moodle_ws_url = moodle_ws_url
-        self.moodle_upload_url = moodle_upload_url
-        self.wstoken = wstoken
-        self.courseid = int(courseid)
-        self.cmid = int(cmid)
-        self.quizid = int(quizid)
-        self.archive_filename = archive_filename
-        self.tasks = {
-            'archive_quiz_attempts': task_archive_quiz_attempts,
-            'archive_moodle_backups': task_moodle_backups
-        }
-
-        if not self._validate_self():
-            raise ValueError('Validation of request payload failed')
-
     @staticmethod
-    def from_json(json: dict) -> 'QuizArchiverRequest':
+    def from_raw_request_data(json: dict) -> ArchiveJobDescriptor:
         """
-        Creates a new JobArchiveRequest object from a JSON dictionary
+        Creates a new internal archive request object from a JSON dictionary
 
-        :param json: Deserialized request JSON
-        :return: JobArchiveRequest object
+        :param json: Request data (deserialized POSTed JSON data)
+        :return: Internal archive request object
         """
-        # Catch API version missmatch early
+        # Catch API version missmatch
         if 'api_version' not in json:
             raise ValueError('API version missing in request payload')
         if not isinstance(json['api_version'], int):
             raise ValueError('API version must be an integer')
-        if json['api_version'] != QuizArchiverRequest.API_VERSION:
-            raise ValueError(f'API version mismatch. Expected: {QuizArchiverRequest.API_VERSION}, Got: {json["api_version"]}. Please update your quiz-archive-worker!')
+        if json['api_version'] != QuizArchiverArchiveRequest.API_VERSION:
+            raise ValueError(f'API version mismatch. Expected: {QuizArchiverArchiveRequest.API_VERSION}, Got: {json["api_version"]}. Please update your quiz-archive-worker!')
 
-        return QuizArchiverRequest(**json)
+        # Prepare base
+        req = ArchiveJobDescriptor(
+            moodle_api=QuizArchiverMoodleAPI(
+                json['moodle_base_url'],
+                json['moodle_ws_url'],
+                json['moodle_upload_url'],
+                json['wstoken']
+            ),
+            taskid=None,
+            courseid=json['courseid'],
+            cmid=json['cmid'],
+            quizid=json['quizid'],
+            archive_filename=json['archive_filename']
+        )
 
-    def _validate_self(self):
-        """Validates this object based on current values"""
-        if not isinstance(self.moodle_base_url, str) or self.moodle_base_url is None:
-            return False
+        # Add archive quiz attempts task
+        if json['task_archive_quiz_attempts']:
+            if json['task_archive_quiz_attempts']['image_optimize']:
+                image_optimize_data = {
+                    'width': json['task_archive_quiz_attempts']['image_optimize']['width'],
+                    'height': json['task_archive_quiz_attempts']['image_optimize']['height'],
+                    'quality': json['task_archive_quiz_attempts']['image_optimize']['quality'],
+                }
+            else:
+                image_optimize_data = False
 
-        if not isinstance(self.moodle_ws_url, str) or self.moodle_ws_url is None:
-            return False
+            req.add_task_quiz_attempts(
+                attemptids=json['task_archive_quiz_attempts']['attemptids'],
+                sections=json['task_archive_quiz_attempts']['sections'],
+                fetch_metadata=json['task_archive_quiz_attempts']['fetch_metadata'],
+                fetch_attachments=True if json['task_archive_quiz_attempts']['sections']['attachments'] == '1' else False,
+                paper_format=PaperFormat[json['task_archive_quiz_attempts']['paper_format']],
+                keep_html_files=json['task_archive_quiz_attempts']['keep_html_files'],
+                foldername_pattern=json['task_archive_quiz_attempts']['foldername_pattern'],
+                filename_pattern=json['task_archive_quiz_attempts']['filename_pattern'],
+                image_optimize=True if image_optimize_data else False,
+                image_optimize_width=image_optimize_data['width'] if image_optimize_data else None,
+                image_optimize_height=image_optimize_data['height'] if image_optimize_data else None,
+                image_optimize_quality=image_optimize_data['quality'] if image_optimize_data else None
+            )
 
-        if not isinstance(self.moodle_upload_url, str) or self.moodle_upload_url is None:
-            return False
+        # Add archive moodle backups tasks
+        if json['task_moodle_backups']:
+            for backup in json['task_moodle_backups']:
+                req.add_task_moodle_backup(
+                    backupid=backup['backupid'],
+                    filename=backup['filename'],
+                    file_download_url=backup['file_download_url']
+                )
 
-        if not isinstance(self.wstoken, str) or self.wstoken is None:
-            return False
-
-        if not isinstance(self.courseid, int) or self.courseid < 0:
-            return False
-
-        if not isinstance(self.cmid, int) or self.cmid < 0:
-            return False
-
-        if not isinstance(self.quizid, int) or self.quizid < 0:
-            return False
-
-        if not isinstance(self.archive_filename, str) or self.archive_filename is None:
-            return False
-        else:
-            # Do not allow paths
-            if not os.path.basename(self.archive_filename) == self.archive_filename:
-                return False
-
-            # Do not allow forbidden characters
-            if any(c in self.archive_filename for c in ["\0", "\\", "/", ":", "*", "?", "\"", "<", ">", "|", "."]):
-                return False
-
-        if self.tasks['archive_quiz_attempts']:
-            if not isinstance(self.tasks['archive_quiz_attempts']['attemptids'], List):
-                return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['sections'], object):
-                return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['fetch_metadata'], bool):
-                return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['paper_format'], str) or self.tasks['archive_quiz_attempts']['paper_format'] not in self.PAPER_FORMATS:
-                return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['keep_html_files'], bool):
-                return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['foldername_pattern'], str) or self.tasks['archive_quiz_attempts']['foldername_pattern'] is None:
-                return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['filename_pattern'], str) or self.tasks['archive_quiz_attempts']['filename_pattern'] is None:
-                return False
-            if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize'], object) and not self.tasks['archive_quiz_attempts']['image_optimize'] is False:
-                return False
-            if isinstance(self.tasks['archive_quiz_attempts']['image_optimize'], object) and self.tasks['archive_quiz_attempts']['image_optimize'] is not False:
-                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['width'], int) or self.tasks['archive_quiz_attempts']['image_optimize']['width'] < 1:
-                    return False
-                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['height'], int) or self.tasks['archive_quiz_attempts']['image_optimize']['height'] < 1:
-                    return False
-                if not isinstance(self.tasks['archive_quiz_attempts']['image_optimize']['quality'], int) or not 0 <= self.tasks['archive_quiz_attempts']['image_optimize']['quality'] <= 100:
-                    return False
-
-        if self.tasks['archive_moodle_backups']:
-            if not isinstance(self.tasks['archive_moodle_backups'], List):
-                return False
-            for backup in self.tasks['archive_moodle_backups']:
-                for key in ['backupid', 'filename', 'file_download_url']:
-                    if key not in backup:
-                        return False
-
-        return True
+        return req

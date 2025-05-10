@@ -14,9 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .job_status import JobStatus
-from .moodle_backup_status import MoodleBackupStatus
-from .paper_format import PaperFormat
-from .report_signal import ReportSignal
-from .worker_status import WorkerStatus
-from .worker_thread_interrupter import WorkerThreadInterrupter
+from enum import StrEnum
+
+
+class PaperFormat(StrEnum):
+    """
+    Available paper formats for quiz attempt report PDFs
+    """
+    A0 = 'A0'
+    A1 = 'A1'
+    A2 = 'A2'
+    A3 = 'A3'
+    A4 = 'A4'
+    A5 = 'A5'
+    A6 = 'A6'
+    LETTER = 'Letter'
+    LEGAL = 'Legal'
+    TABLOID = 'Tabloid'
+    LEDGER = 'Ledger'

@@ -26,7 +26,7 @@ import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import time
-from typing import List, Dict
+from typing import Dict
 from uuid import UUID
 
 from PIL.Image import Resampling
@@ -34,9 +34,8 @@ from playwright.async_api import async_playwright, ViewportSize, BrowserContext,
 from pypdf import PdfWriter
 
 from config import Config
-from archiveworker.type import JobStatus, ReportSignal, MoodleBackupStatus
-from archiveworker.api.moodle import QuizArchiverMoodleAPI
-from archiveworker.api.worker import QuizArchiverRequest
+from archiveworker.type import JobStatus, ReportSignal, MoodleBackupStatus, PaperFormat
+from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.requests_factory import RequestsFactory
 
 DEMOMODE_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/demomode.js')).read()
@@ -47,27 +46,23 @@ class QuizArchiveJob:
     A single archive job that is processed by the quiz archive worker
     """
 
-    def __init__(self, jobid: UUID, job_request: QuizArchiverRequest):
+    def __init__(self, jobid: UUID, descriptor: ArchiveJobDescriptor) -> None:
         self.id = jobid
         self.status = JobStatus.UNINITIALIZED
+        self.descr = descriptor
+        self.moodle_api = descriptor.moodle_api
         self.statusextras = None
         self.last_moodle_status_update = None
-        self.request = job_request
         self.workdir = None
         self.archived_attempts = {}
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
-        self.moodle_api = QuizArchiverMoodleAPI(
-            ws_rest_url=self.request.moodle_ws_url,
-            ws_upload_url=self.request.moodle_upload_url,
-            wstoken=self.request.wstoken
-        )
 
         # Limit number of attempts in demo mode
-        if self.request.tasks['archive_quiz_attempts']:
-            if Config.DEMO_MODE:
+        if Config.DEMO_MODE:
+            if self.descr.tasks['quiz_attempts']:
                 self.logger.info("Demo mode: Only processing the first 10 quiz attempts!")
-                if len(self.request.tasks['archive_quiz_attempts']['attemptids']) > 10:
-                    self.request.tasks['archive_quiz_attempts']['attemptids'] = self.request.tasks['archive_quiz_attempts']['attemptids'][:10]
+                if len(self.descr.tasks['quiz_attempts']['attemptids']) > 10:
+                    self.descr.tasks['quiz_attempts']['attemptids'] = self.descr.tasks['quiz_attempts']['attemptids'][:10]
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -126,7 +121,7 @@ class QuizArchiveJob:
         self.statusextras = statusextras
 
         if notify_moodle:
-            self.moodle_api.update_job_status(jobid=self.id, status=self.status, statusextras=self.statusextras)
+            self.moodle_api.update_job_status(self.id, self.descr, self.status, self.statusextras)
             self.last_moodle_status_update = time()
 
     def execute(self) -> None:
@@ -144,17 +139,14 @@ class QuizArchiveJob:
                 self.logger.debug(f"Using temporary working directory: {self.workdir}")
 
                 # Process task: Archive quiz attempts
-                if self.request.tasks['archive_quiz_attempts']:
-                    asyncio.run(self._process_quiz_attempts(
-                        attemptids=self.request.tasks['archive_quiz_attempts']['attemptids'],
-                        paper_format=self.request.tasks['archive_quiz_attempts']['paper_format'])
-                    )
+                if self.descr.tasks['quiz_attempts']:
+                    asyncio.run(self._process_quiz_attempts())
 
-                    if self.request.tasks['archive_quiz_attempts']['fetch_metadata']:
+                    if self.descr.tasks['quiz_attempts']['fetch_metadata']:
                         asyncio.run(self._process_quiz_attempts_metadata())
 
                 # Process task: Archive Moodle backups
-                if self.request.tasks['archive_moodle_backups']:
+                if self.descr.tasks['moodle_backups']:
                     asyncio.run(self._process_moodle_backups())
 
                 # Transition to state: FINALIZING
@@ -179,7 +171,7 @@ class QuizArchiveJob:
                 self.logger.info("Generating final archive ...")
                 with TemporaryDirectory() as zipdir:
                     # Add files
-                    archive_file = f'{zipdir}/{self.request.archive_filename}.zip'
+                    archive_file = f'{zipdir}/{self.descr.archive_filename}.zip'
                     with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_LZMA) as archive:
                         for root, _, files in os.walk(self.workdir):
                             for file in files:
@@ -211,14 +203,13 @@ class QuizArchiveJob:
         self.set_status(JobStatus.FINISHED, notify_moodle=False)  # Do not notify Moodle as it marks this job as completed on its own after the file was processed
         self.logger.info(f"Finished job {self.id}")
 
-    async def _process_quiz_attempts(self, attemptids: List[int], paper_format: str) -> None:
+    async def _process_quiz_attempts(self) -> None:
         """
         Renders all quiz attempts to HTML and PDF files
 
-        :param attemptids: List of attemptids
-        :param paper_format: Paper format to use for the PDF (e.g. 'A4')
         :return: None
         """
+        task = self.descr.tasks['quiz_attempts']
         os.makedirs(f'{self.workdir}/attempts', exist_ok=True)
 
         async with async_playwright() as p:
@@ -241,26 +232,26 @@ class QuizArchiveJob:
             context.set_default_navigation_timeout(Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC * 1000)
             self.logger.debug("Spawned new playwright Browser and BrowserContext")
 
-            for attemptid in attemptids:
+            for attemptid in task['attemptids']:
                 if threading.current_thread().stop_requested():
                     raise InterruptedError('Thread stop requested')
                 else:
                     # Process attempt
-                    await self._render_quiz_attempt(context, attemptid, paper_format)
-                    if self.request.tasks['archive_quiz_attempts']['image_optimize']:
+                    await self._render_quiz_attempt(context, attemptid, task['paper_format'])
+                    if task['image_optimize']:
                         await self._compress_pdf(
                             file=Path(f"{self.archived_attempts[attemptid]}.pdf"),
                             pdf_compression_level=6,
-                            image_maxwidth=self.request.tasks['archive_quiz_attempts']['image_optimize']['width'],
-                            image_maxheight=self.request.tasks['archive_quiz_attempts']['image_optimize']['height'],
-                            image_quality=self.request.tasks['archive_quiz_attempts']['image_optimize']['quality']
+                            image_maxwidth=task['image_optimize']['width'],
+                            image_maxheight=task['image_optimize']['height'],
+                            image_quality=task['image_optimize']['quality']
                         )
 
                     # Report status
                     if time() >= self.last_moodle_status_update + Config.STATUS_REPORTING_INTERVAL_SEC:
                         self.set_status(
                             JobStatus.RUNNING,
-                            statusextras={'progress': round((len(self.archived_attempts) / len(attemptids)) * 100)},
+                            statusextras={'progress': round((len(self.archived_attempts) / len(task['attemptids'])) * 100)},
                             notify_moodle=True
                         )
                     else:
@@ -269,7 +260,7 @@ class QuizArchiveJob:
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")
 
-    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: str) -> None:
+    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: PaperFormat) -> None:
         """
         Renders a complete quiz attempt to a PDF file
 
@@ -280,14 +271,8 @@ class QuizArchiveJob:
         # Retrieve attempt data
         folder_name, attempt_name, attempt_html, attempt_attachments = self.moodle_api.get_attempt_data(
             self.get_id(),
-            self.request.courseid,
-            self.request.cmid,
-            self.request.quizid,
-            attemptid,
-            self.request.tasks['archive_quiz_attempts']['sections'],
-            self.request.tasks['archive_quiz_attempts']['foldername_pattern'],
-            self.request.tasks['archive_quiz_attempts']['filename_pattern'],
-            self.request.tasks['archive_quiz_attempts']['sections']['attachments']
+            self.descr,
+            attemptid
         )
 
         # Prepare attempt dir
@@ -295,7 +280,7 @@ class QuizArchiveJob:
         os.makedirs(attempt_dir, exist_ok=True)
 
         # Save HTML DOM, if desired
-        if self.request.tasks['archive_quiz_attempts']['keep_html_files']:
+        if self.descr.tasks['quiz_attempts']['keep_html_files']:
             with open(f"{attempt_dir}/{attempt_name}.html", "w+") as f:
                 f.write(attempt_html)
             self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {attempt_dir}/{attempt_name}.html")
@@ -358,13 +343,13 @@ class QuizArchiveJob:
 
         try:
             # Register custom route handlers
-            await page.route(f"{self.request.moodle_base_url}/mock/attempt", mock_responder)
+            await page.route(f"{self.moodle_api.base_url}/mock/attempt", mock_responder)
             if Config.PREVENT_REDIRECT_TO_LOGIN:
                 await page.route('**/login/*.php', login_redirection_interceptor)
-                await page.route('**/*.js', javascript_redirection_patcher)
+                #await page.route('**/*.js', javascript_redirection_patcher)
 
             # Load attempt HTML
-            await page.goto(f"{self.request.moodle_base_url}/mock/attempt")
+            await page.goto(f"{self.moodle_api.base_url}/mock/attempt")
         except Exception:
             self.logger.error(f'Page did not load after {Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC} seconds. Aborting ...')
             raise
@@ -515,10 +500,7 @@ class QuizArchiveJob:
         # Fetch metadata for all quiz attempts that should be archived
         metadata = self.moodle_api.get_attempts_metadata(
             self.get_id(),
-            self.request.courseid,
-            self.request.cmid,
-            self.request.quizid,
-            self.request.tasks['archive_quiz_attempts']['attemptids']
+            self.descr
         )
 
         # Add path to each entry for metadata processing
@@ -547,7 +529,7 @@ class QuizArchiveJob:
         """
         try:
             async with asyncio.TaskGroup() as tg:
-                for backup in self.request.tasks['archive_moodle_backups']:
+                for backup in self.descr.tasks['moodle_backups']:
                     tg.create_task(self._process_moodle_backup(backup['backupid'], backup['filename'], backup['file_download_url']))
         except ExceptionGroup as eg:
             # Just take the first exception for now as any exception in any task will interrupt the whole job :)
@@ -578,7 +560,7 @@ class QuizArchiveJob:
 
         # Wait for backup to finish
         while True:
-            status = self.moodle_api.get_backup_status(self.id, backupid)
+            status = self.moodle_api.get_backup_status(self.id, self.descr, backupid)
 
             if threading.current_thread().stop_requested():
                 raise InterruptedError('Thread stop requested')
@@ -606,7 +588,7 @@ class QuizArchiveJob:
                     session = RequestsFactory.create_session()
                     r = session.get(
                         url=download_url,
-                        params={'token': self.request.wstoken},
+                        params={'token': self.moodle_api.wstoken},
                         allow_redirects=True
                     )
                     self.logger.debug(f'Backup file GET response: {r.text}')
@@ -646,6 +628,7 @@ class QuizArchiveJob:
         upload_medata = self.moodle_api.upload_file(Path(artifact_file))
         self.moodle_api.process_uploaded_artifact(
             jobid=self.id,
+            jobdescriptor=self.descr,
             sha256sum=artifact_sha256sum,
             **upload_medata
         )

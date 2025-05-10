@@ -27,8 +27,7 @@ import waitress
 from flask import Flask, make_response, request, jsonify
 
 from config import Config
-from archiveworker.api.moodle import QuizArchiverMoodleAPI
-from archiveworker.api.worker import QuizArchiverRequest
+from archiveworker.api.worker import QuizArchiverArchiveRequest
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 
@@ -132,16 +131,15 @@ def handle_archive_request():
         # Check arguments
         if not request.is_json:
             return error_response('Request must be JSON.', HTTPStatus.BAD_REQUEST)
-        job_request = QuizArchiverRequest.from_json(request.get_json())
+        job_request = QuizArchiverArchiveRequest.from_raw_request_data(request.get_json())
 
         # Check queue capacity early
         if job_queue.full():
             return error_response('Maximum number of queued jobs exceeded.', HTTPStatus.TOO_MANY_REQUESTS)
 
         # Probe moodle API (wstoken validity)
-        moodle_api = QuizArchiverMoodleAPI(job_request.moodle_ws_url, job_request.moodle_upload_url, job_request.wstoken)
-        if not moodle_api.check_connection():
-            return error_response(f'Could not establish a connection to Moodle webservice API at "{job_request.moodle_ws_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
+        if not job_request.moodle_api.check_connection():
+            return error_response(f'Could not establish a connection to Moodle webservice API at "{job_request.moodle_api.ws_rest_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
 
         # Enqueue request
         job = QuizArchiveJob(uuid.uuid1(), job_request)
@@ -152,6 +150,9 @@ def handle_archive_request():
     except TypeError as e:
         app.logger.debug(f'JSON is technically incomplete or missing a required parameter. TypeError: {str(e)}')
         return error_response('JSON is technically incomplete or missing a required parameter.', HTTPStatus.BAD_REQUEST)
+    except KeyError as e:
+        app.logger.debug(f'JSON is missing a required parameter: {str(e)}')
+        return error_response('JSON is missing a required parameter.', HTTPStatus.BAD_REQUEST)
     except ValueError as e:
         app.logger.debug(f'JSON data is invalid: {str(e)}')
         return error_response(f'JSON data is invalid: {str(e)}', HTTPStatus.BAD_REQUEST)
@@ -162,8 +163,8 @@ def handle_archive_request():
         job = None
         app.logger.debug(f'Maximum number of queued jobs exceeded.')
         return error_response('Maximum number of queued jobs exceeded.', HTTPStatus.TOO_MANY_REQUESTS)
-    except Exception:
-        app.logger.debug(f'Invalid request.')
+    except Exception as e:
+        app.logger.debug(f'Invalid request. {str(e)}')
         return error_response(f'Invalid request.', HTTPStatus.BAD_REQUEST)
     finally:
         if not job:

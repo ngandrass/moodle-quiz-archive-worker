@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from archiveworker.api.worker import QuizArchiverRequest
+from archiveworker.api.worker import QuizArchiverArchiveRequest
 from tests.conftest import MoodleAPIMockBase
 
 ARCHIVE_API_REQUEST = {
-    'api_version': QuizArchiverRequest.API_VERSION,
+    'api_version': QuizArchiverArchiveRequest.API_VERSION,
     'moodle_base_url': 'http://localhost',
     'moodle_ws_url': 'http://localhost/webservice/rest/server.php',
     'moodle_upload_url': 'http://localhost/webservice/upload.php',

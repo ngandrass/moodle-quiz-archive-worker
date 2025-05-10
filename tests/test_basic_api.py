@@ -19,9 +19,9 @@ import pytest
 from unittest.mock import patch
 from uuid import UUID
 
-from . import fixtures
 from .conftest import client
 
+import tests.fixtures.quiz_archiver as fixtures
 from config import Config
 from archiveworker.type import JobStatus, WorkerStatus
 
@@ -270,4 +270,4 @@ class TestBasicAPIWithMockedMoodleAPI:
         response = client.post('/archive', json=job)
 
         assert response.status_code == 400
-        assert 'incomplete or missing a required parameter' in response.json['error'], 'Missing key in request JSON was not detected correctly'
+        assert 'missing a required parameter' in response.json['error'], 'Missing key in request JSON was not detected correctly'

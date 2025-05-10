@@ -21,12 +21,12 @@ from pathlib import Path
 from typing import Tuple, List, Dict
 from uuid import UUID
 
-from archiveworker.api.worker import QuizArchiverRequest
+from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveJobDescriptor
 from config import Config
 from tests.conftest import MoodleAPIMockBase
 
 ARCHIVE_API_REQUEST = {
-    "api_version": QuizArchiverRequest.API_VERSION,
+    "api_version": QuizArchiverArchiveRequest.API_VERSION,
     "moodle_base_url": "http://localhost",
     "moodle_ws_url": "http://localhost/webservice/rest/server.php",
     "moodle_upload_url": "http://localhost/webservice/upload.php",
@@ -90,33 +90,24 @@ class MoodleAPIMock(MoodleAPIMockBase):
     def get_attempt_data(
             self,
             jobid: UUID,
-            courseid: int,
-            cmid: int,
-            quizid: int,
+            jobdescriptor: ArchiveJobDescriptor,
             attemptid: int,
-            sections: dict,
-            foldernamepattern: str,
-            filenamepattern: str,
-            attachments: bool
     ) -> Tuple[str, str, str, List[Dict[str, str]]]:
         if attemptid in [23, 24, 25]:
             with open(f'{self.RESOURCE_BASE}/attempts/{attemptid}.html', 'r') as f:
                 return f'attempt-{attemptid}', f'attempt-{attemptid}', f.read(), []
 
-        super().get_attempt_data(courseid, cmid, quizid, attemptid, sections, filenamepattern, attachments)
+        super().get_attempt_data(jobid, jobdescriptor, attemptid)
 
     def get_attempts_metadata(
             self,
             jobid: UUID,
-            courseid: int,
-            cmid: int,
-            quizid: int,
-            attemptids: List[int]
+            jobdescriptor: ArchiveJobDescriptor,
     ) -> List[Dict[str, str]]:
         metadata = []
         with open(f'{self.RESOURCE_BASE}/attempts_metadata.csv', 'r') as f:
             for row in csv.DictReader(f, skipinitialspace=True):
-                if int(row['attemptid']) in attemptids:
+                if int(row['attemptid']) in jobdescriptor.tasks['quiz_attempts']['attemptids']:
                     metadata.append({key: value for key, value in row.items()})
 
         return metadata

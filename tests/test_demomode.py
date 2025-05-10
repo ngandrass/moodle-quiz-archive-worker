@@ -26,7 +26,7 @@ from archiveworker.type import JobStatus
 from archiveworker.moodle_quiz_archive_worker import start_processing_thread
 from config import Config
 from .conftest import client, TestUtils
-import tests.fixtures as fixtures
+import tests.fixtures.quiz_archiver as fixtures
 
 
 class TestDemoMode:

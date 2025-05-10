@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from archiveworker.api.worker import QuizArchiverRequest
-from tests.fixtures import reference_quiz_full
+from archiveworker.api.worker import QuizArchiverArchiveRequest
+from . import reference_quiz_full
 
 ARCHIVE_API_REQUEST = {
-    "api_version": QuizArchiverRequest.API_VERSION,
+    "api_version": QuizArchiverArchiveRequest.API_VERSION,
     "moodle_base_url": "http://localhost",
     "moodle_ws_url": "http://localhost/webservice/rest/server.php",
     "moodle_upload_url": "http://localhost/webservice/upload.php",
@@ -45,32 +45,7 @@ ARCHIVE_API_REQUEST = {
         "filename_pattern": "attempt-${attemptid}-${username}_${date}-${time}",
         "image_optimize": False,
     },
-    "task_moodle_backups": [
-        {
-            "backupid": "d68a3dedfdc9a93dab4b8c93dfd6dda9",
-            "userid": 47,
-            "context": 66,
-            "component": "backup",
-            "filearea": "activity",
-            "filepath": "/",
-            "filename": "quiz_archiver-activity-backup-23.mbz",
-            "itemid": None,
-            "pathnamehash": "118304132d9af1fcdd201bab191744a6043a8525",
-            "file_download_url": "http://localhost/webservice/pluginfile.php/66/backup/activity/quiz_archiver-activity-backup-23.mbz"
-        },
-        {
-            "backupid": "2562986e38f83cd9857e1b4494cfecad",
-            "userid": 47,
-            "context": 64,
-            "component": "backup",
-            "filearea": "course",
-            "filepath": "/",
-            "filename": "quiz_archiver-course-backup-9.mbz",
-            "itemid": None,
-            "pathnamehash": "722b7fbc463a355b9622b976b2d0c1a602b6da85",
-            "file_download_url":"http://localhost/webservice/pluginfile.php/64/backup/course/quiz_archiver-course-backup-9.mbz"
-        }
-    ],
+    "task_moodle_backups": False,
     "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12"
 }
 

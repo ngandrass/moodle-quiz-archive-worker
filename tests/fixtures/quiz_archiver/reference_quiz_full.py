@@ -85,6 +85,8 @@ ARCHIVE_API_REQUEST = {
 
 class MoodleAPIMock(MoodleAPIMockBase):
 
+    CLS_ROOT = 'archiveworker.api.moodle.QuizArchiverMoodleAPI'
+
     RESOURCE_BASE = 'tests/resources/reference_quiz_full'
 
     def get_attempt_data(

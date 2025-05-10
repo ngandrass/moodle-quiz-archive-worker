@@ -33,4 +33,5 @@ ARCHIVE_API_REQUEST = {
 
 
 class MoodleAPIMock(MoodleAPIMockBase):
+    CLS_ROOT = 'archiveworker.api.moodle.QuizArchiverMoodleAPI'
     pass

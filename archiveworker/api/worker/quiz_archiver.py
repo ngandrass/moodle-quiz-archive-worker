@@ -17,10 +17,10 @@
 from archiveworker.api.moodle import QuizArchiverMoodleAPI
 from archiveworker.type import PaperFormat
 
-from . import ArchiveJobDescriptor
+from . import ArchiveJobDescriptor, ArchiveRequest
 
 
-class QuizArchiverArchiveRequest:
+class QuizArchiverArchiveRequest(ArchiveRequest):
     """
     Deserialized JSON request for creating an archive job via the quiz_archiver
     Moodle plugin

@@ -14,7 +14,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .archive_job_descriptor import ArchiveJobDescriptor
+from abc import ABCMeta, abstractmethod
 
-from .archive_request import ArchiveRequest
-from .quiz_archiver import QuizArchiverArchiveRequest
+from archiveworker.api.worker import ArchiveJobDescriptor
+
+
+class ArchiveRequest(metaclass=ABCMeta):
+    """
+    Abstract base class for all incoming archive requests.
+    """
+
+    API_VERSION = 0
+
+    @staticmethod
+    @abstractmethod
+    def from_raw_request_data(json: dict) -> ArchiveJobDescriptor:
+        """
+        Creates an ArchiveJobDescriptor object from a deserialized JSON request object
+
+        :param json: Request data (deserialized POSTed JSON data)
+        :return: Internal archive request object
+        """
+        pass

@@ -27,7 +27,7 @@ import waitress
 from flask import Flask, make_response, request, jsonify
 
 from config import Config
-from archiveworker.api.worker import QuizArchiverArchiveRequest
+from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 
@@ -122,27 +122,41 @@ def handle_version():
     return jsonify({'version': Config.VERSION}), HTTPStatus.OK
 
 
-@app.post('/archive')
-def handle_archive_request():
-    app.logger.debug(f"Received new archive request: {request.data}")
+@app.post('/archive')  # Legacy endpoint for backwards compatibility
+@app.post('/archive/quiz_archiver')
+def handle_archive_request_quiz_archiver():
+    """
+    Handles the archive request for the quiz archiver API
+    :return:
+    """
+    return _handle_archive_request(QuizArchiverArchiveRequest)
+
+def _handle_archive_request(apicls: type[ArchiveRequest]):
+    """
+    Generic handler for archive requests
+
+    :param apicls: Worker API class to use for deserializing the request
+    :return: Response object
+    """
+    app.logger.debug(f"Received new {apicls.__name__}: {request.data}")
 
     job = None
     try:
         # Check arguments
         if not request.is_json:
-            return error_response('Request must be JSON.', HTTPStatus.BAD_REQUEST)
-        job_request = QuizArchiverArchiveRequest.from_raw_request_data(request.get_json())
+            return error_response('Request payload must be JSON.', HTTPStatus.BAD_REQUEST)
+        job_descriptor = apicls.from_raw_request_data(request.get_json())
 
         # Check queue capacity early
         if job_queue.full():
             return error_response('Maximum number of queued jobs exceeded.', HTTPStatus.TOO_MANY_REQUESTS)
 
         # Probe moodle API (wstoken validity)
-        if not job_request.moodle_api.check_connection():
-            return error_response(f'Could not establish a connection to Moodle webservice API at "{job_request.moodle_api.ws_rest_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
+        if not job_descriptor.moodle_api.check_connection():
+            return error_response(f'Could not establish a connection to Moodle webservice API at "{job_descriptor.moodle_api.ws_rest_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
 
         # Enqueue request
-        job = QuizArchiveJob(uuid.uuid1(), job_request)
+        job = QuizArchiveJob(uuid.uuid1(), job_descriptor)
         job_queue.put_nowait(job)  # Actual queue capacity limit is enforced here!
         job_history.append(job)
         job.set_status(JobStatus.AWAITING_PROCESSING, notify_moodle=False)

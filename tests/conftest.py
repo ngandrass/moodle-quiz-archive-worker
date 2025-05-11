@@ -25,7 +25,8 @@ from uuid import UUID
 
 import pytest
 
-from archiveworker.custom_types import JobStatus, BackupStatus, WorkerThreadInterrupter
+from archiveworker.api.worker import ArchiveJobDescriptor
+from archiveworker.type import JobStatus, MoodleBackupStatus, WorkerThreadInterrupter
 from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history, InterruptableThread
 from config import Config
 
@@ -97,7 +98,7 @@ class MoodleAPIMockBase:
     Base class for Moodle API mocks
     """
 
-    CLS_ROOT = 'archiveworker.moodle_api.MoodleAPI'
+    CLS_ROOT = 'archiveworker.api.moodle.MoodleBaseAPI'
 
     def __init__(self):
         self.upload_tempdir = None
@@ -169,11 +170,22 @@ class MoodleAPIMockBase:
     def check_connection(self) -> bool:
         return True
 
-    def update_job_status(self, jobid: UUID, status: JobStatus, statusextras: Dict) -> bool:
+    def update_job_status(
+            self,
+            jobid: UUID,
+            jobdescriptor: ArchiveJobDescriptor,
+            status: JobStatus,
+            statusextras: Dict
+    ) -> bool:
         return True
 
-    def get_backup_status(self, jobid: UUID, backupid: str) -> BackupStatus:
-        return BackupStatus.SUCCESS
+    def get_backup_status(
+            self,
+            jobid: UUID,
+            jobdescriptor: ArchiveJobDescriptor,
+            backupid: str
+    ) -> MoodleBackupStatus:
+        return MoodleBackupStatus.SUCCESS
 
     def get_remote_file_metadata(self, download_url: str) -> Tuple[str, int]:
         return 'application/vnd.moodle.backup', 1048576
@@ -191,24 +203,15 @@ class MoodleAPIMockBase:
     def get_attempts_metadata(
             self,
             jobid: UUID,
-            courseid: int,
-            cmid: int,
-            quizid: int,
-            attemptids: List[int]
+            jobdescriptor: ArchiveJobDescriptor
     ) -> List[Dict[str, str]]:
         raise NotImplementedError('get_attempts_metadata')
 
     def get_attempt_data(
             self,
             jobid: UUID,
-            courseid: int,
-            cmid: int,
-            quizid: int,
-            attemptid: int,
-            sections: dict,
-            foldernamepattern: str,
-            filenamepattern: str,
-            attachments: bool
+            jobdescriptor: ArchiveJobDescriptor,
+            attemptid: int
     ) -> Tuple[str, str, str, List[Dict[str, str]]]:
         raise NotImplementedError('get_attempt_data')
 
@@ -245,6 +248,7 @@ class MoodleAPIMockBase:
     def process_uploaded_artifact(
             self,
             jobid: UUID,
+            jobdescriptor: ArchiveJobDescriptor,
             component: str,
             contextid: int,
             userid: int,

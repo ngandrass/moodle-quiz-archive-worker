@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Moodle Quiz Archive Worker
 # Copyright (C) 2025 Niels Gandraß <niels@gandrass.de>
 #
@@ -16,7 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from archiveworker import moodle_quiz_archive_worker
-
-if __name__ == "__main__":
-    moodle_quiz_archive_worker.run()
+from .job_status import JobStatus
+from .moodle_backup_status import MoodleBackupStatus
+from .paper_format import PaperFormat
+from .report_signal import ReportSignal
+from .worker_status import WorkerStatus
+from .worker_thread_interrupter import WorkerThreadInterrupter

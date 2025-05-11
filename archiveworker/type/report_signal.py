@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Moodle Quiz Archive Worker
 # Copyright (C) 2025 Niels Gandraß <niels@gandrass.de>
 #
@@ -16,7 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from archiveworker import moodle_quiz_archive_worker
+from enum import StrEnum
 
-if __name__ == "__main__":
-    moodle_quiz_archive_worker.run()
+
+class ReportSignal(StrEnum):
+    """
+    Signals that can be emitted by the report page JS
+    """
+    READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export"
+    MATHJAX_FOUND = "x-quiz-archiver-mathjax-found"
+    MATHJAX_NOT_FOUND = "x-quiz-archiver-mathjax-not-found"

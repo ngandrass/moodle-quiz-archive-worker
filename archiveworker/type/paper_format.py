@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Moodle Quiz Archive Worker
 # Copyright (C) 2025 Niels Gandraß <niels@gandrass.de>
 #
@@ -16,7 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from archiveworker import moodle_quiz_archive_worker
+from enum import StrEnum
 
-if __name__ == "__main__":
-    moodle_quiz_archive_worker.run()
+
+class PaperFormat(StrEnum):
+    """
+    Available paper formats for quiz attempt report PDFs
+    """
+    A0 = 'A0'
+    A1 = 'A1'
+    A2 = 'A2'
+    A3 = 'A3'
+    A4 = 'A4'
+    A5 = 'A5'
+    A6 = 'A6'
+    LETTER = 'Letter'
+    LEGAL = 'Legal'
+    TABLOID = 'Tabloid'
+    LEDGER = 'Ledger'

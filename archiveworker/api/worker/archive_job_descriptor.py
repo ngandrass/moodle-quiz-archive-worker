@@ -66,7 +66,15 @@ class ArchiveJobDescriptor:
         if not isinstance(self.moodle_api, MoodleAPIBase):
             raise ValueError('moodle_api must be an instance of MoodleAPIBase.')
 
-        if not ((self.courseid > 0 and self.cmid > 0 and self.quizid > 0) or self.taskid > 0):
+        if not (
+            (
+                self.courseid is not None and self.courseid > 0 and
+                self.cmid is not None and self.cmid > 0 and
+                self.quizid is not None and self.quizid > 0
+            ) or (
+                self.taskid is not None and self.taskid > 0
+            )
+        ):
             raise ValueError('Either the 3-tuple courseid, cmid and quizid or taskid must be given to create an archive request.')
 
         if not isinstance(self.archive_filename, str) or len(self.archive_filename) == 0:

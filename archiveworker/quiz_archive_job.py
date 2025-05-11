@@ -346,7 +346,7 @@ class QuizArchiveJob:
             await page.route(f"{self.moodle_api.base_url}/mock/attempt", mock_responder)
             if Config.PREVENT_REDIRECT_TO_LOGIN:
                 await page.route('**/login/*.php', login_redirection_interceptor)
-                #await page.route('**/*.js', javascript_redirection_patcher)
+                await page.route('**/*.js', javascript_redirection_patcher)
 
             # Load attempt HTML
             await page.goto(f"{self.moodle_api.base_url}/mock/attempt")

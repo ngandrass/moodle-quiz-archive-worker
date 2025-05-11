@@ -19,15 +19,19 @@ import logging
 import os
 import tempfile
 import time
+import uuid
 import zipfile
 
 import pytest
 
-from archiveworker.type import JobStatus
+import tests.fixtures.quiz_archiver as fixtures
+from archiveworker.api.moodle import QuizArchiverMoodleAPI
+from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.moodle_quiz_archive_worker import start_processing_thread
+from archiveworker.quiz_archive_job import QuizArchiveJob
+from archiveworker.type import JobStatus
 from config import Config
 from .conftest import client, TestUtils
-import tests.fixtures.quiz_archiver as fixtures
 
 
 class TestQuizArchiveJob:
@@ -40,6 +44,35 @@ class TestQuizArchiveJob:
     @classmethod
     def teardown_class(cls):
         Config.REPORT_WAIT_FOR_READY_SIGNAL = cls.wait_for_readysignal_orig
+
+    def test_equality(self) -> None:
+        """
+        Tests that the job descriptor equality check works as expected.
+
+        :return: None
+        """
+        descriptor = ArchiveJobDescriptor(
+            moodle_api=QuizArchiverMoodleAPI(
+                base_url="http://localhost",
+                ws_rest_url="http://localhost/webservice/rest/server.php",
+                ws_upload_url="http://localhost/webservice/upload.php",
+                wstoken="opensesame",
+            ),
+            archive_filename="foo",
+            quizid=1,
+            cmid=1,
+            courseid=1
+        )
+        job1 = QuizArchiveJob(uuid.uuid1(), descriptor)
+        job2 = QuizArchiveJob(uuid.uuid1(), descriptor)
+
+        assert job1 == job1, 'The same job should be equal to itself'
+        assert job2 == job2, 'The same job should be equal to itself'
+        assert job1 == str(job1.get_id()), 'Job should be equal to its UUID'
+
+        assert job1 != job2, 'Different jobs should not be equal'
+        assert job1 != str(job2.get_id()), 'Job should not be equal to another UUID'
+        assert job1 != object(), 'Job should not be equal to an object of different type'
 
     @pytest.mark.timeout(5)
     def test_basic_job_processing_flow(self, client) -> None:

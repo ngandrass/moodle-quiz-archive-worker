@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 3.1.1 (2025-05-22)
+
+- Update Python dependencies
+  - Fix CVE-2025-47278 in `flask` package
+
+
 ## Version 3.1.0 (2025-04-19)
 
 - Switch from `.tar.gz` to `.zip` archive format

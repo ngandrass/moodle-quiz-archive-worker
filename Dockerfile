@@ -56,6 +56,10 @@ USER ${USER_NAME}:${USER_GROUP}
 RUN set -ex && \
     playwright install --only-shell chromium
 
+# Define healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl --fail http://localhost:8080/status || exit 1
+
 # Run definition
 EXPOSE 8080
 CMD ["/bin/sh", "-c", "${USER_HOME}/main.py"]

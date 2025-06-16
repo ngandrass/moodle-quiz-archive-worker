@@ -3,6 +3,7 @@
 ## Version X.Y.Z (YYYY-MM-DD)
 
 - Update Python to v3.13 in Docker image
+- Reduce size of Docker image
 
 
 ## Version 3.1.1 (2025-05-22)

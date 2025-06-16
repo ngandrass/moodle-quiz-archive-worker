@@ -54,7 +54,7 @@ USER ${USER_NAME}:${USER_GROUP}
 
 # Initialize playwright (download browsers). THIS MUST BE PERFORMED AS THE APP USER!
 RUN set -ex && \
-    playwright install chromium
+    playwright install --only-shell chromium
 
 # Run definition
 EXPOSE 8080

@@ -27,7 +27,7 @@ WORKDIR ${USER_HOME}
 # Install fonts and chromium dependencies (Note: ttf-mscorefonts-installer is not allowed to be distribured here due to its license)
 RUN set -e && \
     apt-get update && \
-    apt-get install -y \
+    apt-get install --no-install-recommends -y \
         fonts-firacode \
         fonts-liberation \
         fonts-noto \

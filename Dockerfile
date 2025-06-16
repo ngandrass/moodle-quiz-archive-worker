@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-FROM python:3.12
+FROM python:3.13
 
 ENV USER_NAME archiveworker
 ENV USER_GROUP archiveworker
@@ -27,7 +27,7 @@ WORKDIR ${USER_HOME}
 # Install fonts and chromium dependencies (Note: ttf-mscorefonts-installer is not allowed to be distribured here due to its license)
 RUN set -e && \
     apt-get update && \
-    apt-get install -y \
+    apt-get install --no-install-recommends -y \
         fonts-firacode \
         fonts-liberation \
         fonts-noto \
@@ -54,7 +54,11 @@ USER ${USER_NAME}:${USER_GROUP}
 
 # Initialize playwright (download browsers). THIS MUST BE PERFORMED AS THE APP USER!
 RUN set -ex && \
-    playwright install chromium
+    playwright install --only-shell chromium
+
+# Define healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl --fail http://localhost:8080/status || exit 1
 
 # Run definition
 EXPOSE 8080

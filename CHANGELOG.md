@@ -5,6 +5,7 @@
 - Create automated health check for the quiz archive worker service when using the Docker image
 - Update Python to v3.13 in Docker image
 - Reduce size of Docker image
+- Add API support for upcoming generic Moodle archiving plugin
 - Update Python dependencies
   - Fix CVE-2024-47081 in `requests` package
 

@@ -20,16 +20,17 @@ import queue
 import re
 import threading
 import uuid
-from http import HTTPStatus
 from collections import deque
+from http import HTTPStatus
 
 import waitress
 from flask import Flask, make_response, request, jsonify
 
-from config import Config
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
+from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
+from config import Config
 
 app = Flask(__name__)
 job_queue = queue.Queue(maxsize=Config.QUEUE_SIZE)
@@ -130,6 +131,16 @@ def handle_archive_request_quiz_archiver():
     :return:
     """
     return _handle_archive_request(QuizArchiverArchiveRequest)
+
+
+@app.post('/archive/archivingmod_quiz')
+def handle_archive_request_archivingmod_quiz():
+    """
+    Handles the archive request for the archivingmod_quiz API
+    :return:
+    """
+    return _handle_archive_request(ArchivingmodQuizArchiveRequest)
+
 
 def _handle_archive_request(apicls: type[ArchiveRequest]):
     """

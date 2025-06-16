@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python to v3.13 in Docker image
+
+
 ## Version 3.1.1 (2025-05-22)
 
 - Update Python dependencies

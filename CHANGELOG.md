@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 3.2.0 (2025-06-22)
 
 - Create automated health check for the quiz archive worker service when using the Docker image
 - Update Python to v3.13 in Docker image

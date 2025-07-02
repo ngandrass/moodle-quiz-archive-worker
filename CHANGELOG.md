@@ -1,5 +1,14 @@
 # Changelog
 
+## Version 3.2.1 (2025-07-02)
+
+- Update Python dependencies
+  - Fix CVE-2025-48379 in `pillow` package
+  - Fix CVE-2025-50182 in `urllib3` package
+  - Fix CVE-2025-50181 in `urllib3` package
+  - Fix CVE-2024-47081 in `requests` package
+
+
 ## Version 3.2.0 (2025-06-22)
 
 - Create automated health check for the quiz archive worker service when using the Docker image

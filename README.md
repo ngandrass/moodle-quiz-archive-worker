@@ -181,6 +181,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_LOG_LEVEL`: Logging level. One of `'CRITICAL'`, `'FATAL'`, `'ERROR'`, `'WARN'`, `'WARNING'`, `'INFO'`, `'DEBUG'` (default=`'INFO'`)
 - `QUIZ_ARCHIVER_QUEUE_SIZE`: Maximum number of jobs to enqueue (default=`8`)
 - `QUIZ_ARCHIVER_HISTORY_SIZE`: Maximum number of jobs to remember in job history (default=`128`)
+- `QUIZ_ARCHIVER_ZIP_COMPRESSION_ALGO`: Compression algorithm to use for ZIP archives. Use `DEFLATED` for compatibility with Windows and MacOS. Possible values are `STORED` (no compression), `DEFLATED` (light compression, default), `BZIP2` (medium compression), and `LZMA` (strong compression). (default=`DEFLATED`)
 - `QUIZ_ARCHIVER_STATUS_REPORTING_INTERVAL_SEC`: Number of seconds to wait between job progress updates (default=`15`)
 - `QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC`: Maximum number of seconds a single job is allowed to run before it is terminated (default=`3600`)
 - `QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC`: Number of seconds to wait between backup status queries (default=`30`)

@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+
+
 ## Version 3.2.1 (2025-07-02)
 
 - Update Python dependencies

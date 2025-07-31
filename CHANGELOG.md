@@ -2,6 +2,13 @@
 
 ## Version X.Y.Z (YYYY-MM-DD)
 
+- Allow compression algorithm to be configured via the environment variable `QUIZ_ARCHIVER_ZIP_COMPRESSION_ALGO`.
+  Allowed values are:
+  - `STORED` (no compression)
+  - `DEFLATED` (light compression, default)
+  - `BZIP2` (medium compression)
+  - `LZMA` (strong compression)
+- Set default compression algorithm to `DEFLATE` for better compatibility with Windows
 - Update Python dependencies
 
 

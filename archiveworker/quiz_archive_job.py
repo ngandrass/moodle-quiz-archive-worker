@@ -172,7 +172,7 @@ class QuizArchiveJob:
                 with TemporaryDirectory() as zipdir:
                     # Add files
                     archive_file = f'{zipdir}/{self.descr.archive_filename}.zip'
-                    with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_LZMA) as archive:
+                    with zipfile.ZipFile(archive_file, 'w', Config.ZIP_COMPRESSION_ALGO) as archive:
                         for root, _, files in os.walk(self.workdir):
                             for file in files:
                                 file_path = os.path.join(root, file)

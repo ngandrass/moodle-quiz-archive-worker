@@ -16,6 +16,7 @@
 
 import logging
 import os
+import zipfile
 
 
 def parse_env_variable(name, default=None, valtype=None) -> None | bool | int | str:
@@ -94,6 +95,9 @@ class Config:
 
     HISTORY_SIZE = parse_env_variable('QUIZ_ARCHIVER_HISTORY_SIZE', default=128, valtype=int)
     """Maximum number of jobs to keep in the history before forgetting about them."""
+
+    ZIP_COMPRESSION_ALGO = getattr(zipfile, 'ZIP_' + parse_env_variable('QUIZ_ARCHIVER_ZIP_COMPRESSION_ALGO', default='DEFLATED', valtype=str))
+    """Compression algorithm to use for ZIP archives. Use `DEFLATED` for compatibility with Windows and MacOS. Possible values are `STORED` (no compression), `DEFLATED` (light compression, default), `BZIP2` (medium compression), and `LZMA` (strong compression)."""
 
     STATUS_REPORTING_INTERVAL_SEC = parse_env_variable('QUIZ_ARCHIVER_STATUS_REPORTING_INTERVAL_SEC', default=15, valtype=int)
     """Number of seconds to wait between job progress updates"""

@@ -148,6 +148,20 @@ class Config:
         """
         ret = "Configuration:"
         for key, value in vars(Config).items():
+            # Translate int representation of ZIP compression algorithms to human-readable strings
+            if key == 'ZIP_COMPRESSION_ALGO':
+                if value == zipfile.ZIP_STORED:
+                    value = 'STORED'
+                elif value == zipfile.ZIP_DEFLATED:
+                    value = 'DEFLATED'
+                elif value == zipfile.ZIP_BZIP2:
+                    value = 'BZIP2'
+                elif value == zipfile.ZIP_LZMA:
+                    value = 'LZMA'
+                ret += f"\n  {key} => {value}"
+                continue
+
+            # Anything that is not a special case
             if not (key.startswith('_') or key == 'tostring'):
                 ret += f"\n  {key} => {value}"
 

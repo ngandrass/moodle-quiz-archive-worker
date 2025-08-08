@@ -120,8 +120,8 @@ For more details and all available configuration parameters see [Configuration](
 2. Install [Poetry](https://python-poetry.org/): `pip install poetry`
 3. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
 4. Switch into the repository directory: `cd moodle-quiz-archive-worker`
-5. Install app dependencies: `poetry install`
-6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install chromium`
+5. Install app dependencies: `poetry install --no-root --only main`
+6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install --only-shell chromium`
 7. Run the application: `poetry run python main.py`
 
 You can change configuration values by prepending the respective environment

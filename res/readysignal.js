@@ -126,10 +126,26 @@ function attachGeogebraMutationObserver() {
     // Check if GeoGebra is initialized to the point where it created its target applet frames
     try {
         if (typeof window.GGBApplet().getAppletObject === 'function') {
-            if (typeof window.GGBApplet().getAppletObject().getFrame === 'function') {
-                if (window.GGBApplet().getAppletObject().getFrame().classList.contains('jsloaded')) {
+            // Get all GeoGebra frames on the page and ensure that all are fully loaded.
+            const ggbFrames = document.getElementsByClassName('GeoGebraFrame');
+            if (ggbFrames.length > 0) {
+                // Prepare iteration variables
+                let frameNumber = 0;
+                let allFramesLoaded = true;
+
+                // Ensure that all frames are fully loaded (contain 'jsloaded' class)
+                ggbFrames.forEach(ggbFrame => {
+                    frameNumber++;
+
+                    if (ggbFrame.classList.contains('jsloaded') !== true) {
+                        allFramesLoaded = false;
+                        console.log(`GeoGebra frame ${frameNumber} not fully loaded yet. Waiting ...`);
+                    }
+                });
+
+                if (allFramesLoaded === true) {
                     // Attach mutation listener to GeoGebra frames
-                    var mutationObserver = new (window.MutationObserver || window.WebKitMutationObserver)(() => {
+                    let mutationObserver = new (window.MutationObserver || window.WebKitMutationObserver)(() => {
                         window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date();
                         console.log(SIGNAL_GEOGEBRA_MUTATED);
                     });
@@ -144,10 +160,10 @@ function attachGeogebraMutationObserver() {
                     setTimeout(detectGeogebraFinishedRendering, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
                     return;
                 } else {
-                    console.log("GeoGebra frame not fully initialized yet. Waiting ...");
+                    console.log(`Not all ${frameNumber} GeoGebra frames are fully loaded yet. Waiting ...`);
                 }
             } else {
-                console.log("GeoGebra frame object not yet ready. Waiting ...");
+                console.log("GeoGebra frame(s) not fully initialized yet. Waiting ...");
             }
         } else {
             console.log("GeoGebra applet object not yet ready. Waiting ...");

@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Fix GeoGebra applet readiness detection to work with most recent GeoGebra versions
+
+
 ## Version 3.3.0 (2025-07-31)
 
 - Allow compression algorithm to be configured via the environment variable `QUIZ_ARCHIVER_ZIP_COMPRESSION_ALGO`.

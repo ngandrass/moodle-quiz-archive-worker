@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 3.3.1 (2025-08-09)
 
 - Fix GeoGebra applet readiness detection to work with most recent GeoGebra versions
 - Update Python dependencies

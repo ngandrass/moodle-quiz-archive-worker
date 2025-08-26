@@ -3,6 +3,7 @@
 ## Version X.Y.Z (YYYY-MM-DD)
 
 - Fix missing font files for asian characters and emoji in Docker image
+- Update Python dependencies
 
 
 ## Version 3.3.1 (2025-08-09)

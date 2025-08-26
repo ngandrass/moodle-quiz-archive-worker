@@ -12,7 +12,7 @@ flask = "^3.0"
 playwright = "^1.49"
 requests = "^2.32"
 waitress = "^3.0"
-pypdf = {version = "^5.0", extras = ["image"]}
+pypdf = {version = "^6.0", extras = ["image"]}
 
 [tool.poetry.group.dev]
 optional = true

@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 3.3.2 (2025-08-25)
 
 - Fix missing font files for asian characters and emoji in Docker image
 - Update Python dependencies

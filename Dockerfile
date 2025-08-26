@@ -31,6 +31,11 @@ RUN set -e && \
         fonts-firacode \
         fonts-liberation \
         fonts-noto \
+        fonts-noto-mono \
+        fonts-noto-extra \
+        fonts-noto-cjk \
+        fonts-noto-cjk-extra \
+        fonts-noto-color-emoji \
         fonts-open-sans \
         fonts-roboto \
         $(apt-cache depends chromium | grep Depends | grep --invert-match "Depends: <" | sed "s/.*Depends:\ //" | tr '\n' ' ') && \

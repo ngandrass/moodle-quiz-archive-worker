@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Fix missing font files for asian characters and emoji in Docker image
+
+
 ## Version 3.3.1 (2025-08-09)
 
 - Fix GeoGebra applet readiness detection to work with most recent GeoGebra versions

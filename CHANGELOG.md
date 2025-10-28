@@ -1,5 +1,12 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix CVE-2025-62708 in `pypdf` package
+  - Fix CVE-2025-62707 in `pypdf` package
+
+
 ## Version 3.3.2 (2025-08-25)
 
 - Fix missing font files for asian characters and emoji in Docker image

@@ -1,10 +1,11 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 3.3.4 (2025-12-02)
 
 - Update Python dependencies
   - Fix CVE-2025-66221 in `werkzeug` package
   - Fix CVE-2025-66019 in `pypdf` package
+
 
 ## Version 3.3.3 (2025-10-28)
 

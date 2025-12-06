@@ -1,5 +1,12 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix CVE-2025-66418 in `urllib3` package
+  - Fix CVE-2025-66471 in `urllib3` package
+
+
 ## Version 3.3.4 (2025-12-02)
 
 - Update Python dependencies

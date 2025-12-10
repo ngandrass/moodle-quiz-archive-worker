@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Fix handling of duplicate file names when using static naming patterns by prepending the unique attempt ID in case of duplicates
+
+
 ## Version 3.3.5 (2025-12-06)
 
 - Update Python dependencies

@@ -276,8 +276,17 @@ class QuizArchiveJob:
         )
 
         # Prepare attempt dir
-        attempt_dir = f"{self.workdir}/attempts/{folder_name}"
-        os.makedirs(attempt_dir, exist_ok=True)
+        attempts_dir = f"{self.workdir}/attempts"
+        os.makedirs(attempts_dir, exist_ok=True)
+
+        attempt_dir = f"{attempts_dir}/{folder_name}"
+        if os.path.isdir(attempt_dir):
+            # Prepend unique attemptid to folder name if it already exists
+            self.logger.warning(f"Attempt directory '{folder_name}' already exists. Using '{folder_name}_{attemptid}' instead.")
+            folder_name = f"{folder_name}_{attemptid}"
+            attempt_dir = f"{attempts_dir}/{folder_name}"
+
+        os.makedirs(attempt_dir, exist_ok=False)
 
         # Save HTML DOM, if desired
         if self.descr.tasks['quiz_attempts']['keep_html_files']:

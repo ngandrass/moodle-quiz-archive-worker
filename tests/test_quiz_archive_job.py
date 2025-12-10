@@ -21,6 +21,7 @@ import tempfile
 import time
 import uuid
 import zipfile
+from pathlib import Path
 
 import pytest
 
@@ -302,6 +303,76 @@ class TestQuizArchiveJob:
 
                     # Validate attempts metadata file
                     TestUtils.assert_is_file_with_size(os.path.join(tempdir, 'attempts_metadata.csv'), 128, 10*1024)
+
+    @pytest.mark.timeout(30)
+    def test_archive_name_collision(self, client) -> None:
+        """
+        Tests the quiz archiving process with two attempts that have a folder
+        name pattern that results in identical folder and attempt names for both
+        attempts. Both should be present in the archive and not overwrite each
+        other.
+
+        :param client: Flask test client
+        :return: None
+        """
+        with fixtures.reference_quiz_two_attempts_foldername_collision.MoodleAPIMock() as mock:
+            # Create job and process it
+            jobjson = fixtures.reference_quiz_two_attempts_foldername_collision.ARCHIVE_API_REQUEST.copy()
+            r = client.post('/archive', json=jobjson)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_thread()
+
+            # Wait for job to be processed
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break
+
+            # Validate that an artifact was uploaded
+            job_uploads = mock.get_uploaded_files()
+            job_artifact = job_uploads[1]['file']
+            assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
+
+            # Extract artifact and validate contents
+            with zipfile.ZipFile(job_artifact, 'r') as zipf:
+                with tempfile.TemporaryDirectory() as tempdir:
+                    zipf.extractall(tempdir)
+
+                    # Check the existing attempts
+                    expectednumattempts = len(jobjson['task_archive_quiz_attempts']['attemptids'])
+                    actualnumattempts = 0
+                    actualattemptdirs = []
+
+                    for attemptdir in Path(os.path.join(tempdir, 'attempts')).iterdir():
+                        fbase = os.path.join(attemptdir, f'attempt')
+                        TestUtils.assert_is_file_with_size(fbase+'.pdf', 200*1024, 2000*1024)
+                        TestUtils.assert_is_file_with_size(fbase+'.pdf.sha256', 64, 64)
+                        assert not os.path.isfile(fbase+'.html'), 'Unexpected HTML file in artifact'
+                        assert not os.path.isfile(fbase+'.html.sha256'), 'Unexpected HTML SHA256 file in artifact'
+
+                        actualnumattempts += 1
+                        actualattemptdirs += [f'attempts/{attemptdir.name}/attempt']
+
+                    # Ensure that all attempts are present
+                    assert actualnumattempts == expectednumattempts, f'Expected {expectednumattempts} attempts, found {actualnumattempts}'
+
+                    # Validate attempts metadata file
+                    csvpath = os.path.join(tempdir, 'attempts_metadata.csv')
+                    TestUtils.assert_is_file_with_size(csvpath, 128, 10*1024)
+
+                    attemptidstofind = jobjson['task_archive_quiz_attempts']['attemptids'].copy()
+                    with open(csvpath, 'r') as f:
+                        for row in csv.DictReader(f, skipinitialspace=True):
+                            assert int(row['attemptid']) in attemptidstofind, 'Unexpected attempt ID in attempts metadata csv file'
+                            attemptidstofind.remove(int(row['attemptid']))
+
+                            # Ensure that the path points to one of the actual attempt dirs
+                            assert row['path'] in actualattemptdirs, 'Attempt path in metadata does not point to an actual attempt directory'
 
     @pytest.mark.timeout(30)
     def test_archive_attempts_image_resize(self, client, caplog) -> None:

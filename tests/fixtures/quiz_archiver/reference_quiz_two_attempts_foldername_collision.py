@@ -16,8 +16,7 @@
 from typing import List, Dict, Tuple
 from uuid import UUID
 
-from api.worker import ArchiveJobDescriptor
-from archiveworker.api.worker import QuizArchiverArchiveRequest
+from archiveworker.api.worker import ArchiveJobDescriptor, QuizArchiverArchiveRequest
 from . import reference_quiz_full
 
 ARCHIVE_API_REQUEST = {

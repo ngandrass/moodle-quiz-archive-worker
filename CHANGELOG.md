@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 3.3.7 (2026-01-08)
 
 - Update Python dependencies
   - Fix CVE-2026-21441 in `urllib3` package

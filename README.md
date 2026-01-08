@@ -240,7 +240,7 @@ The coverage report is then available in the `htmlcov` directory.
 
 ## License
 
-2025 Niels Gandraß <niels@gandrass.de>
+2026 Niels Gandraß <niels@gandrass.de>
 
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software

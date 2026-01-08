@@ -1,5 +1,11 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix CVE-2026-21441 in `urllib3` package
+
+
 ## Version 3.3.6 (2025-12-10)
 
 - Fix handling of duplicate file names when using static naming patterns by prepending the unique attempt ID in case of duplicates

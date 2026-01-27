@@ -1,5 +1,12 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix CVE-2026-22690, CVE-2026-22691, and CVE-2026-24688 in `pypdf` package
+  - Fix CVE-2026-21860 in `werkzeug` package
+  
+
 ## Version 3.3.7 (2026-01-08)
 
 - Update Python dependencies

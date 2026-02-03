@@ -232,12 +232,78 @@ class QuizArchiveJob:
             context.set_default_navigation_timeout(Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC * 1000)
             self.logger.debug("Spawned new playwright Browser and BrowserContext")
 
+            # Store current attempt HTML in a way that's accessible to context-level handlers
+            # This will be updated for each attempt during rendering
+            current_attempt_html = {'html': ''}
+
+            # Register mock responder on context level to handle /mock/attempt from any page
+            # This is critical for injected JS that execute additional requests
+            async def context_level_mock_responder(route: Route):
+                if current_attempt_html['html']:
+                    html_with_base = current_attempt_html['html']
+                    # Inject base href if not already present
+                    if '<head>' in html_with_base and '<base' not in html_with_base:
+                        base_tag = f'<base href="{self.moodle_api.base_url}/">'
+                        html_with_base = html_with_base.replace('<head>', f'<head>{base_tag}', 1)
+                    await route.fulfill(body=html_with_base, content_type='text/html')
+                    self.logger.debug(f'Context-level mock responder handled request to: {route.request.url}')
+                else:
+                    # Fallback
+                    await route.fulfill(body='<html><head></head><body>Loading...</body></html>', content_type='text/html')
+                    self.logger.warning(f'Context-level mock responder served fallback HTML for: {route.request.url}')
+
+            # Register on context level with wildcard pattern to catch all /mock/attempt requests
+            await context.route('**/mock/attempt*', context_level_mock_responder)
+            self.logger.debug("Registered context-level mock responder for **/mock/attempt*")
+
+            # Register route handlers on context level to avoid issues with loading of additional resources
+            if Config.PREVENT_REDIRECT_TO_LOGIN:
+                # Aborts navigations to login page
+                async def login_redirection_interceptor(route: Route):
+                    self.logger.warning(f'Prevented belated redirection to: {route.request.url}')
+                    await route.abort('blockedbyclient')
+
+                # Removes javascript code that redirects to the login page
+                # This can happen if ajax requests fail with permission errors due to missing sessions.
+                # We alter the javascript code because we cannot prevent the redirection event once it is fired. Intercepting
+                # the request after it fired may lead to situations where the HTML DOM of the attempt page is already
+                # destructed, leading to empty pages and thus to blank PDF files.
+                async def javascript_redirection_patcher(route: Route):
+                    try:
+                        # Perform request
+                        response = await route.fetch(timeout=Config.REQUEST_TIMEOUT_SEC if not Config.UNIT_TESTS_RUNNING else 0.1)
+
+                        # Remove code that redirects to the login page
+                        body_original = await response.text()
+                        body_patched = re.sub(
+                            r'window\.location\s*=\s*URL\.relativeUrl\(\"/login/index.php\"\)',
+                            'console.warn("Prevented redirect to /login/index.php")',
+                            body_original
+                        )
+
+                        if body_patched != body_original:
+                            self.logger.debug(f'Disabled javascript login page redirection code in {route.request.url}')
+
+                        # Return the patched response
+                        await route.fulfill(response=response, body=body_patched)
+                    except Exception as e:
+                        if Config.UNIT_TESTS_RUNNING:
+                            self.logger.info(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
+                            await route.abort()
+                        else:
+                            self.logger.error(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
+                            raise RuntimeError(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
+
+                await context.route('**/login/*.php', login_redirection_interceptor)
+                await context.route('**/*.js', javascript_redirection_patcher)
+                self.logger.debug("Registered context-level route handlers for redirect prevention")
+
             for attemptid in task['attemptids']:
                 if threading.current_thread().stop_requested():
                     raise InterruptedError('Thread stop requested')
                 else:
                     # Process attempt
-                    await self._render_quiz_attempt(context, attemptid, task['paper_format'])
+                    await self._render_quiz_attempt(context, attemptid, task['paper_format'], current_attempt_html)
                     if task['image_optimize']:
                         await self._compress_pdf(
                             file=Path(f"{self.archived_attempts[attemptid]}.pdf"),
@@ -260,12 +326,14 @@ class QuizArchiveJob:
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")
 
-    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: PaperFormat) -> None:
+    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: PaperFormat, current_attempt_html: dict) -> None:
         """
         Renders a complete quiz attempt to a PDF file
 
+        :param bctx: Browser context
         :param attemptid: ID of the quiz attempt to render
         :param paper_format: Paper format to use for the PDF (e.g. 'A4')
+        :param current_attempt_html: Dictionary to store current HTML for context-level mock responder
         :return: None
         """
         # Retrieve attempt data
@@ -306,58 +374,13 @@ class QuizArchiveJob:
             page.on('domcontentloaded', lambda _: self.logger.debug('Playwright DOM content loaded'))
             # page.on('requestfinished', lambda req: self.logger.debug(f'Playwright request finished: {req.url}'))
 
-        # Create mock responder to serve attempt HTML
-        # This is done to avoid CORS errors when loading the attempt HTML and to
-        # prevent errors when dynamically loading JavaScript modules via
-        # requireJS. Using the base URL of the corresponding Moodle LMS seems to
-        # work absolutely fine for now.
-        async def mock_responder(route: Route):
-            await route.fulfill(body=attempt_html, content_type='text/html')
-
-        # Aborts navigations to login page
-        async def login_redirection_interceptor(route: Route):
-            self.logger.warning(f'Prevented belated redirection to: {route.request.url}')
-            await route.abort('blockedbyclient')
-
-        # Removes javascript code that redirects to the login page
-        # This can happen if ajax requests fail with permission errors due to missing sessions.
-        # We alter the javascript code because we cannot prevent the redirection event once it is fired. Intercepting
-        # the request after it fired may lead to situations where the HTML DOM of the attempt page is already
-        # destructed, leading to empty pages and thus to blank PDF files.
-        async def javascript_redirection_patcher(route: Route):
-            try:
-                # Perform request
-                response = await route.fetch(timeout=Config.REQUEST_TIMEOUT_SEC if not Config.UNIT_TESTS_RUNNING else 0.1)
-
-                # Remove code that redirects to the login page
-                body_original = await response.text()
-                body_patched = re.sub(
-                    r'window\.location\s*=\s*URL\.relativeUrl\(\"/login/index.php\"\)',
-                    'console.warn("Prevented redirect to /login/index.php")',
-                    body_original
-                )
-
-                if body_patched != body_original:
-                    self.logger.debug(f'Disabled javascript login page redirection code in {route.request.url}')
-
-                # Return the patched response
-                await route.fulfill(response=response, body=body_patched)
-            except Exception as e:
-                if Config.UNIT_TESTS_RUNNING:
-                    self.logger.info(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
-                    await route.abort()
-                else:
-                    self.logger.error(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
-                    raise RuntimeError(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
+        # Update the shared HTML cache so context-level mock responder can serve it
+        # This ensures all requests to /mock/attempt (including from Web Components) get the correct HTML
+        current_attempt_html['html'] = attempt_html
+        self.logger.debug(f'Updated current_attempt_html cache for attemptid {attemptid}')
 
         try:
-            # Register custom route handlers
-            await page.route(f"{self.moodle_api.base_url}/mock/attempt", mock_responder)
-            if Config.PREVENT_REDIRECT_TO_LOGIN:
-                await page.route('**/login/*.php', login_redirection_interceptor)
-                await page.route('**/*.js', javascript_redirection_patcher)
-
-            # Load attempt HTML
+            # Load attempt HTML via the context-level mock responder
             await page.goto(f"{self.moodle_api.base_url}/mock/attempt")
         except Exception:
             self.logger.error(f'Page did not load after {Config.REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC} seconds. Aborting ...')

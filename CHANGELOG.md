@@ -4,6 +4,7 @@
 
 - Move attempt data mock responder from page to browser context level to prevent problems with Moodle themes that make use of shadow roots and other wizardry
 - Force clearing of browser cookies between attempt renderings to prevent certain state issues
+- Update Python dependencies
 
 
 ## Version 3.3.8 (2026-01-27)

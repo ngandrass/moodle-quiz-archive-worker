@@ -351,11 +351,12 @@ class QuizArchiveJob:
                     raise RuntimeError(f'Failed to fetch and patch javascript resource {route.request.url}: {e}')
 
         try:
-            # Register custom route handlers
-            await page.route(f"{self.moodle_api.base_url}/mock/attempt", mock_responder)
+            # Flush and re-register custom route handlers as required
+            await bctx.unroute_all()
+            await bctx.route(f"{self.moodle_api.base_url}/mock/attempt", mock_responder)
             if Config.PREVENT_REDIRECT_TO_LOGIN:
-                await page.route('**/login/*.php', login_redirection_interceptor)
-                await page.route('**/*.js', javascript_redirection_patcher)
+                await bctx.route('**/login/*.php', login_redirection_interceptor)
+                await bctx.route('**/*.js', javascript_redirection_patcher)
 
             # Load attempt HTML
             await page.goto(f"{self.moodle_api.base_url}/mock/attempt")

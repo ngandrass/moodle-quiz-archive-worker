@@ -1,7 +1,8 @@
 # Changelog
 
-## Version X.Y.Z (2026-02-05)
+## Version X.Y.Z (YYYY-MM-DD)
 
+- Move attempt data mock responder from page to browser context level to prevent problems with Moodle themes that make use of shadow roots and other wizardry
 - Force clearing of browser cookies between attempt renderings to prevent certain state issues
 
 

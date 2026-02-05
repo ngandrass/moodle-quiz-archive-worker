@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (2026-02-05)
+
+- Force clearing of browser cookies between attempt renderings to prevent certain state issues
+
+
 ## Version 3.3.8 (2026-01-27)
 
 - Update Python dependencies

@@ -297,6 +297,7 @@ class QuizArchiveJob:
             self.logger.debug(f"Skipping HTML DOM saving of quiz attempt {attemptid}")
 
         # Prepare new page
+        await bctx.clear_cookies()
         page = await bctx.new_page()
         if Config.LOG_LEVEL == logging.DEBUG:
             page.on('console', lambda msg: self.logger.debug(f'Playwright console message: {msg.text}'))

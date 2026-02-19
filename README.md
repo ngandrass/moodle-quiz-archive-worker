@@ -39,7 +39,7 @@ Detailed installation and configuration instructions can be found within the
 If you have problems installing the Quiz Archiver or the Quiz Archive Worker
 Service, or you have further questions, please feel free to open an issue within
 the [GitHub issue tracker](https://github.com/ngandrass/moodle-quiz_archiver/issues).
-         
+
 
 ## Docker Compose
 
@@ -199,6 +199,8 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_PROXY_SERVER_URL`: URL of the proxy server to use for all requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used. (default=`None`)
 - `QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS`: Comma-separated list of domains that should always be accessed directly, bypassing the proxy (default=`None`)
 - `QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION`: Whether to skip validation of TLS / SSL certs for all HTTPS connections (default=`False`)
+- `QUIZ_ARCHIVER_PDFA_CONVERSION`: Whether to convert exported attempt PDF files into a PDF/A compliant format (default=`True`)
+- `QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC`: Number of seconds to wait before conversion process is aborted (default=`20`)
 
 
 # Development

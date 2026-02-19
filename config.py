@@ -138,6 +138,11 @@ class Config:
     PREVENT_REDIRECT_TO_LOGIN = parse_env_variable('QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN', default=True, valtype=bool)
     """Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests due to with permission errors."""
 
+    PDFA_CONVERSION = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION', default=True, valtype=bool)
+    """Whether to convert exported attempt PDF files into a PDF/A compliant format"""
+
+    PDFA_CONVERSION_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC', default=20, valtype=int)
+    """Number of seconds to wait before conversion process is aborted"""
 
     @staticmethod
     def tostring() -> str:

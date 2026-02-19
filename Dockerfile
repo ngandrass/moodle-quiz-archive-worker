@@ -24,7 +24,7 @@ RUN set -e && \
     mkdir ${USER_HOME}
 WORKDIR ${USER_HOME}
 
-# Install fonts and chromium dependencies (Note: ttf-mscorefonts-installer is not allowed to be distribured here due to its license)
+# Install fonts, ghostscript and chromium dependencies (Note: ttf-mscorefonts-installer is not allowed to be distribured here due to its license)
 RUN set -e && \
     apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -38,6 +38,7 @@ RUN set -e && \
         fonts-noto-color-emoji \
         fonts-open-sans \
         fonts-roboto \
+        ghostscript \
         $(apt-cache depends chromium | grep Depends | grep --invert-match "Depends: <" | sed "s/.*Depends:\ //" | tr '\n' ' ') && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*

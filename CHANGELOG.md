@@ -3,6 +3,7 @@
 ## Version X.Y.Z (YYYY-MM-DD)
 
 - Add PDF/A-3b compliant PDF file export
+- Update Python dependencies
 
 
 ## Version 3.3.9 (2026-02-05)

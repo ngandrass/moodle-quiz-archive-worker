@@ -41,7 +41,7 @@ from archiveworker.requests_factory import RequestsFactory
 DEMOMODE_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/demomode.js')).read()
 READYSIGNAL_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/readysignal.js')).read()
 
-SRGB_ICC_COLOR_PROFILE_PATH = Path(os.path.join(Path(os.path.dirname(__file__)).parent, "res", "sRGB.icc"))
+SRGB_ICC_COLOR_PROFILE_PATH = Path(os.path.join(Path(os.path.dirname(__file__)).parent, "res", "sRGB_v4_ICC_preference_displayclass.icc"))
 
 class QuizArchiveJob:
     """

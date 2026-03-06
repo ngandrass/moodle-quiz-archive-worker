@@ -141,7 +141,7 @@ class Config:
     PDFA_CONVERSION = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION', default=True, valtype=bool)
     """Whether to convert exported attempt PDF files into a PDF/A compliant format"""
 
-    PDFA_CONVERSION_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC', default=20, valtype=int)
+    PDFA_CONVERSION_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC', default=30, valtype=int)
     """Number of seconds to wait before conversion process is aborted"""
 
     @staticmethod

@@ -538,9 +538,9 @@ class QuizArchiveJob:
             Generates a list of ghostscript command arguments for PDF/A conversion.
 
             :param working_dir: Path to the conversion working directory
-            :input_postscript_file:  Path of the conversion postscript file
-            :input_pdf_file: Path to the input PDF that should be converted
-            :output_pdf_file: Path to store the converted output PDF to
+            :param input_postscript_file:  Path of the conversion postscript file
+            :param input_pdf_file: Path to the input PDF that should be converted
+            :param output_pdf_file: Path to store the converted output PDF to
 
             :return: List of command arguments as strings
             """
@@ -593,8 +593,8 @@ class QuizArchiveJob:
             (Based on https://github.com/ArtifexSoftware/ghostpdl/blob/19820f3ae748450f5943fdd679d97b3ecd6d12c5/lib/PDFA_def.ps)
 
             :param working_dir: Path to the conversion working directory
-            :color_profile_path:  Path of the icc color profile
-            :title: Title metadata of the converted PDF file (optional)
+            :param color_profile_path:  Path of the icc color profile
+            :param title: Title metadata of the converted PDF file (optional)
 
             :return: Path to the generated postscript file within the working directory
             """

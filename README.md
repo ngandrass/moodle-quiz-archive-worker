@@ -122,7 +122,8 @@ For more details and all available configuration parameters see [Configuration](
 4. Switch into the repository directory: `cd moodle-quiz-archive-worker`
 5. Install app dependencies: `poetry install --no-root --only main`
 6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install --only-shell chromium`
-7. Run the application: `poetry run python main.py`
+7. (To support PDF/A conversion, install [Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html). See [External dependencies](#ghostscript-pdfa-conversion) for more details.)
+8. Run the application: `poetry run python main.py`
 
 You can change configuration values by prepending the respective environment
 variables. Example:
@@ -171,6 +172,26 @@ development versions are marked by a `+dev-[TIMESTAMP]` suffix, e.g.,
 `2.4.2+dev-202201011337`.
 
 
+# External dependencies
+
+## Ghostscript (PDF/A conversion)
+For converting PDF file exports into a PDF/A-3b compliant format, the
+Quiz Archive Worker utilizes another external executable:
+[Ghostscript](https://ghostscript.com). If you are manually installing the
+Quiz Archive Worker you need to
+[install Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html)
+on your machine as well.
+
+You can change the default path for the Ghostscript binary by editing the
+corresponding environment variable. Example:
+
+```text
+QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH=/bin/ghostscript
+```
+
+For more details on all available configuration parameters see
+[Configuration](#configuration).
+
 # Configuration
 
 Configuration parameters are located inside `config.py` and can be overwritten
@@ -201,6 +222,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION`: Whether to skip validation of TLS / SSL certs for all HTTPS connections (default=`False`)
 - `QUIZ_ARCHIVER_PDFA_CONVERSION`: Whether to convert exported attempt PDF files into a PDF/A compliant format (default=`True`)
 - `QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC`: Number of seconds to wait before conversion process is aborted (default=`30`)
+- `QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH`: Path to the ghostscript binary that should be used for PDF/A conversion (default=`/usr/bin/gs`)
 
 
 # Development

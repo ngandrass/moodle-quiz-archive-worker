@@ -564,7 +564,7 @@ class QuizArchiveJob:
                 # Set output file and PDF/A version
                 '-dCompatibilityLevel=1.7',
                 '-dPDFA=3',
-                '-dPDFACompatibilityPolicy=1',
+                '-dPDFACompatibilityPolicy=0',
 
                 # Configure compression and embedding
                 '-dEmbedAllFonts=true',

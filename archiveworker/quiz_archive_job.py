@@ -641,44 +641,7 @@ class QuizArchiveJob:
 
             return file_path
 
-        async def __check_for_ghostscript() -> None:
-            """
-            Checks whether ghostscript binary is available and runable. Raises specific errors and exceptions if not.
-
-            :raises FileNotFoundError: If configured ghostscript binary path does not exist or is not a file
-            :raises TimeoutError: If minimal ghostscript execution times out after 10 seconds
-            :raises RuntimeError: If minimal ghostscript execution failes with status code != 0 or produces unexpected output
-            :raises Exception: If minimal ghostscript execution failes otherwise
-            """
-
-            if not os.path.exists(Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH):
-                raise FileNotFoundError(f'Missing ghostscript executable, file "{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH}" not found')
-
-            if not os.path.isfile(Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH):
-                raise FileNotFoundError(f'Missing ghostscript executable, path "{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH}" is not a file')
-
-            try:
-                proc = await asyncio.create_subprocess_exec(
-                    Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH,
-                    *['--help'],
-                    stdout=asyncio.subprocess.PIPE
-                )
-                stdout, _ = await asyncio.wait_for(proc.communicate(), 10)
-            except TimeoutError as tex:
-                raise tex
-            except Exception as ex:
-                raise Exception(f"Checking for ghostscript, executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` failed with Exception: {ex}")
-            if proc.returncode != 0:
-                raise RuntimeError(f'Checking for ghostscript, executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` exited with status code != 0')
-
-            output_match_regex = 'GPL\\sGhostscript\\s\\d+\.\\d+\.\\d+'
-            stdout_str = stdout.decode().strip()
-            if re.search(output_match_regex, stdout_str) is None:
-                raise RuntimeError(f'Checking for ghostscript, executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` produced unexpected output: Expected to find regex `{output_match_regex}` in stdout `{stdout_str}` but did not')
-
         self.logger.debug(f"Converting '{input_pdf_file.absolute()}' to PDF/A")
-
-        await __check_for_ghostscript() # NOTE: If anything is raised just die.
 
         with TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)

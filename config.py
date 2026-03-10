@@ -144,7 +144,7 @@ class Config:
     PDFA_CONVERSION_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC', default=30, valtype=int)
     """Number of seconds to wait before conversion process is aborted"""
 
-    PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH', default='/usr/bin/gs', valtype=str)
+    PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH', default=None, valtype=str)
     """Path to the ghostscript binary that should be used for PDF/A conversion"""
 
     @staticmethod

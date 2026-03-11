@@ -195,7 +195,7 @@ Ghostscript binary manually via the corresponding environment variable.
 
 Example:
 ```text
-QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH=/bin/ghostscript
+QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH=/bin/gs
 ```
 
 For more details on all available configuration parameters see

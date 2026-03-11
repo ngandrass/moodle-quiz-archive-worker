@@ -1,5 +1,11 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Add PDF/A-3b compliant PDF file export
+- Update Python dependencies
+
+
 ## Version 3.3.9 (2026-02-05)
 
 - Move attempt data mock responder from page to browser context level to prevent problems with Moodle themes that make use of shadow roots and other wizardry
@@ -12,7 +18,7 @@
 - Update Python dependencies
   - Fix CVE-2026-22690, CVE-2026-22691, and CVE-2026-24688 in `pypdf` package
   - Fix CVE-2026-21860 in `werkzeug` package
-  
+
 
 ## Version 3.3.7 (2026-01-08)
 
@@ -128,7 +134,7 @@
 - Update Python dependencies
   - Fix CVE-2024-56201 in `jinja2` package
   - Fix CVE-2024-56326 in `jinja2` package
- 
+
 
 ## Version 2.1.3 (2024-12-10)
 
@@ -163,7 +169,7 @@
 - Introduce explicit timeouts for Moodle API request
 - Create unit tests for demo mode
 - Update Python dependencies
- 
+
 
 ## Version 2.0.0 (2024-08-21)
 
@@ -234,7 +240,7 @@
 
 - Update Python dependencies
   - Fix CVE-2024-34069 in `werkzeug` package, a dependency of the `flask` package
-   
+
 
 ## Version 1.3.6 (2024-04-23)
 
@@ -314,7 +320,7 @@
 - Improve performance: Reuse Playwright `BrowserContext` between attempt renderings.
 - Fix environment variable override of config. Cast environmental config overrides to the correct types
 - Add debug output to request JSON validation
- 
+
 
 ## Version 1.1.0 (2023-08-22)
 

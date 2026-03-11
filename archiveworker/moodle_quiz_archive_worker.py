@@ -16,9 +16,12 @@
 
 import logging
 import os
+import sys
 import queue
 import re
 import threading
+import subprocess
+import shutil
 import uuid
 from collections import deque
 from http import HTTPStatus
@@ -270,6 +273,49 @@ def detect_proxy_settings(envvars) -> None:
         app.logger.debug('No proxy server detected')
 
 
+def check_for_ghostscript() -> None:
+    """
+    Checks whether Ghostscript binary is available and runable. Raises specific errors and exceptions if not.
+
+    :raises FileNotFoundError: If configured Ghostscript binary path does not exist or is not a file
+    :raises subprocess.TimeoutExpired: If minimal Ghostscript execution times out after 10 seconds
+    :raises RuntimeError: If minimal Ghostscript execution failes with status code != 0 or produces unexpected output
+    :raises Exception: If minimal Ghostscript execution failes otherwise
+
+    :return: None
+    """
+
+    if not os.path.exists(Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH):
+        raise FileNotFoundError(f'Missing executable, file "{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH}" not found')
+
+    if not os.path.isfile(Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH):
+        raise FileNotFoundError(f'Missing executable, path "{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH}" is not a file')
+
+    try:
+        proc = subprocess.Popen(
+            executable=Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH,
+            args='--help',
+            shell=True,
+            text=True,
+            bufsize=1024,
+            stdout=subprocess.PIPE,
+            stderr=None
+        )
+        stdout, _ = proc.communicate(timeout=10)
+    except subprocess.TimeoutExpired as tex:
+        raise tex
+    except Exception as ex:
+        raise Exception(f"Executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` failed with Exception: {ex}")
+    finally:
+        proc.kill()
+
+    if proc.returncode != 0:
+        raise RuntimeError(f'Executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` exited with status code != 0')
+
+    output_match_regex = 'GPL\\sGhostscript\\s\\d+\.\\d+\.\\d+'
+    if re.search(output_match_regex, stdout) is None:
+        raise RuntimeError(f'Executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` produced unexpected output: Expected to find regex `{output_match_regex}` in stdout `{stdout}` but did not')
+
 def run() -> None:
     """
     Runs the application
@@ -302,6 +348,18 @@ def run() -> None:
         app.logger.info('Proxy server auto detection was skipped. No proxy will explicitly be used.')
     else:
         detect_proxy_settings(os.environ)
+
+    # Check for and setup external Ghostscript dependency
+    if Config.PDFA_CONVERSION:
+        if Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None:
+            Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = shutil.which("gs") or ""
+            app.logger.debug(f'Auto-detected Ghostscript path: {Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH}')
+        try:
+            check_for_ghostscript()
+        except Exception as ex:
+            app.logger.error(f'Checking for external dependency "Ghostscript" failed with Error: {ex}')
+            app.logger.error('PDF/A conversion requires Ghostscript. Either install Ghostscript or disable PDF/A conversion. See README for more information.')
+            sys.exit(1)
 
     start_processing_thread()
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

@@ -20,10 +20,11 @@ Quiz archiver service to work in conjunction with the Moodle plugin
 
 This application processes quiz archive jobs. It renders Moodle quiz attempts
 inside a headless webbrowser and exports them to PDF/HTML files, including
-MathJax formulas and other complex elements that require JS processing. Moodle
-backups can optionally be included in the generated archive. The checksum for
-each file within the archive as well as the checksum of the archive itself is
-calculated to allow integrity checks.
+MathJax formulas and other complex elements that require JS processing.
+Generated PDFs can be converted into a PDF/A compliant format for long-term
+storage. Moodle backups can optionally be included in the generated archive. The
+checksum for each file within the archive as well as the checksum of the archive
+itself is calculated to allow integrity checks.
 
 
 # Installation
@@ -39,7 +40,7 @@ Detailed installation and configuration instructions can be found within the
 If you have problems installing the Quiz Archiver or the Quiz Archive Worker
 Service, or you have further questions, please feel free to open an issue within
 the [GitHub issue tracker](https://github.com/ngandrass/moodle-quiz_archiver/issues).
-         
+
 
 ## Docker Compose
 
@@ -122,7 +123,8 @@ For more details and all available configuration parameters see [Configuration](
 4. Switch into the repository directory: `cd moodle-quiz-archive-worker`
 5. Install app dependencies: `poetry install --no-root --only main`
 6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install --only-shell chromium`
-7. Run the application: `poetry run python main.py`
+7. If PDF/A conversion is desired, install [Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html). See [External dependencies](#ghostscript-pdfa-conversion) for more details.
+8. Run the application: `poetry run python main.py`
 
 You can change configuration values by prepending the respective environment
 variables. Example:
@@ -171,6 +173,35 @@ development versions are marked by a `+dev-[TIMESTAMP]` suffix, e.g.,
 `2.4.2+dev-202201011337`.
 
 
+# PDF/A Conversion
+
+The quiz archive worker can produce PDF/A-3b compliant PDF files. PDF/A is an
+ISO-standardized version of the PDF format that is designed for long-term
+archiving and preservation of electronic documents. It ensures that the PDF
+files can be displayed exactly the same way in the future, regardless of the
+software used to create or view them.
+
+For converting attempt PDF files into a PDF/A-3b compliant format, the external
+dependency [Ghostscript](https://ghostscript.com) is required. If you are using
+the official Docker image, Ghostscript is already included and configured
+properly. If you are installing the worker service manually, please refer to the
+[Manual installation](#manual-installation) section above.
+
+PDF/A conversion is enabled by default, but can be disabled by setting
+`QUIZ_ARCHIVER_PDFA_CONVERSION = False`. The location of your Ghostscript binary
+is automatically detected on startup. If automatic detection fails or you want
+to use a specific Ghostscript distribution, you can set the path to your
+Ghostscript binary manually via the corresponding environment variable.
+
+Example:
+```text
+QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH=/bin/ghostscript
+```
+
+For more details on all available configuration parameters see
+[Configuration](#configuration).
+
+
 # Configuration
 
 Configuration parameters are located inside `config.py` and can be overwritten
@@ -199,6 +230,9 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_PROXY_SERVER_URL`: URL of the proxy server to use for all requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used. (default=`None`)
 - `QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS`: Comma-separated list of domains that should always be accessed directly, bypassing the proxy (default=`None`)
 - `QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION`: Whether to skip validation of TLS / SSL certs for all HTTPS connections (default=`False`)
+- `QUIZ_ARCHIVER_PDFA_CONVERSION`: Whether to convert exported attempt PDF files into a PDF/A compliant format (default=`True`)
+- `QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC`: Number of seconds to wait before conversion process is aborted (default=`30`)
+- `QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH`: Path to the ghostscript binary that should be used for PDF/A conversion. If left unset, this will be detected automatically. (default=`None`)
 
 
 # Development

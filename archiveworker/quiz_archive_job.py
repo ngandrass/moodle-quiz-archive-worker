@@ -41,6 +41,8 @@ from archiveworker.requests_factory import RequestsFactory
 DEMOMODE_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/demomode.js')).read()
 READYSIGNAL_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/readysignal.js')).read()
 
+SRGB_ICC_COLOR_PROFILE_PATH = Path(os.path.join(Path(os.path.dirname(__file__)).parent, "res", "sRGB_v4_ICC_preference_displayclass.icc"))
+
 class QuizArchiveJob:
     """
     A single archive job that is processed by the quiz archive worker
@@ -237,14 +239,22 @@ class QuizArchiveJob:
                     raise InterruptedError('Thread stop requested')
                 else:
                     # Process attempt
-                    await self._render_quiz_attempt(context, attemptid, task['paper_format'])
+                    quiz_attempt_pdf_path = await self._render_quiz_attempt(
+                        context,
+                        attemptid,
+                        task['paper_format']
+                    )
                     if task['image_optimize']:
                         await self._compress_pdf(
-                            file=Path(f"{self.archived_attempts[attemptid]}.pdf"),
+                            file=quiz_attempt_pdf_path,
                             pdf_compression_level=6,
                             image_maxwidth=task['image_optimize']['width'],
                             image_maxheight=task['image_optimize']['height'],
                             image_quality=task['image_optimize']['quality']
+                        )
+                    if Config.PDFA_CONVERSION:
+                        await self._convert_pdf_to_pdfa(
+                            input_pdf_file=quiz_attempt_pdf_path,
                         )
 
                     # Report status
@@ -260,13 +270,13 @@ class QuizArchiveJob:
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")
 
-    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: PaperFormat) -> None:
+    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: PaperFormat) -> Path:
         """
         Renders a complete quiz attempt to a PDF file
 
         :param attemptid: ID of the quiz attempt to render
         :param paper_format: Paper format to use for the PDF (e.g. 'A4')
-        :return: None
+        :return: Path of rendered PDF file
         """
         # Retrieve attempt data
         folder_name, attempt_name, attempt_html, attempt_attachments = self.moodle_api.get_attempt_data(
@@ -383,8 +393,9 @@ class QuizArchiveJob:
             self.logger.debug('Not waiting for ready signal. Export immediately ...')
 
         # Save attempt page as PDF
+        pdf_render_path = Path(f"{attempt_dir}/{attempt_name}.pdf")
         await page.pdf(
-            path=f"{attempt_dir}/{attempt_name}.pdf",
+            path=pdf_render_path,
             format=paper_format,
             print_background=True,
             display_header_footer=False,
@@ -418,6 +429,8 @@ class QuizArchiveJob:
 
         # Keep track of processes attempts
         self.archived_attempts[attemptid] = f"{attempt_dir}/{attempt_name}"
+
+        return pdf_render_path
 
     async def _wait_for_page_ready_signal(self, page) -> None:
         """
@@ -501,6 +514,184 @@ class QuizArchiveJob:
             new_filesize = os.path.getsize(file)
             size_percent = round((new_filesize / old_filesize) * 100, 2)
             self.logger.debug(f"  -> Saved compressed PDF as: {file} (size: {os.path.getsize(file)} bytes, {size_percent}% of original)")
+
+    async def _convert_pdf_to_pdfa(self, input_pdf_file: Path) -> None:
+        """
+        Converts given PDF file to the PDF/A-3b format by invoking a ghostscript subprocess.
+        Replaces the given file.
+
+        :param input_pdf_file: Path to the PDF file to convert to PDF/A
+
+        :return: None
+
+        :raises RuntimeError: If the conversion process failes with status code != 0
+        :raises TimeoutError: If the conversion process takes longer then allowed
+        """
+
+        def __generate_ghostscript_command_arguments(
+                working_dir: Path,
+                input_postscript_file: Path,
+                input_pdf_file: Path,
+                output_pdf_file: Path
+        ) -> list[str]:
+            """
+            Generates a list of ghostscript command arguments for PDF/A conversion.
+
+            :param working_dir: Path to the conversion working directory
+            :param input_postscript_file:  Path of the conversion postscript file
+            :param input_pdf_file: Path to the input PDF that should be converted
+            :param output_pdf_file: Path to store the converted output PDF to
+
+            :return: List of command arguments as strings
+            """
+
+            return [
+                # Allow required file reads and writes
+                f'--permit-file-read="{working_dir.absolute()}"',
+                f'--permit-file-read="{input_postscript_file.absolute()}"',
+                f'--permit-file-read="{SRGB_ICC_COLOR_PROFILE_PATH.absolute()}"',
+                f'--permit-file-write="{working_dir.absolute()}"',
+
+                # Output to file instead of rendering
+                '-sDEVICE=pdfwrite',
+
+                # Configure PDF/A color conversion
+                 '-sColorConversionStrategy=RGB',
+                 '-dProcessColorModel=/DeviceRGB',
+                f'-sOutputICCProfile="{SRGB_ICC_COLOR_PROFILE_PATH.absolute()}"',
+                f'-sDefaultRGBProfile="{SRGB_ICC_COLOR_PROFILE_PATH.absolute()}"',
+
+                # Set output file and PDF/A version
+                '-dCompatibilityLevel=1.7',
+                '-dPDFA=3',
+                '-dPDFACompatibilityPolicy=0',
+
+                # Configure compression and embedding
+                '-dEmbedAllFonts=true',
+                '-dSubsetFonts=true',
+                '-dCompressFonts=true',
+                '-dNOSUBSTFONTS=false',
+
+                # Prevent halting on user input
+                '-dNOPAUSE',
+                '-dBATCH',
+                '-dNOOUTERSAVE',
+
+                # File I/O
+                f'-sOutputFile="{output_pdf_file.absolute()}"',
+                f'"{input_postscript_file.absolute()}"',
+                f'"{input_pdf_file.absolute()}"'
+            ]
+
+        def __generate_postscript_file(
+                working_dir: Path,
+                color_profile_path: Path,
+                title:str|None=None,
+        ) -> Path:
+            """
+            Generates postscript file contents required for PDF/A conversion and writes them to disk.
+            (Based on https://github.com/ArtifexSoftware/ghostpdl/blob/19820f3ae748450f5943fdd679d97b3ecd6d12c5/lib/PDFA_def.ps)
+
+            :param working_dir: Path to the conversion working directory
+            :param color_profile_path:  Path of the icc color profile
+            :param title: Title metadata of the converted PDF file (optional)
+
+            :return: Path to the generated postscript file within the working directory
+            """
+
+            pdf_metadata = {
+                'MoodleQuizArchiveWorkerVersion': Config.VERSION,
+            }
+            if title is not None and title != "":
+                pdf_metadata["Title"] = title
+
+            file_content = "\n\r".join([
+                '%!PS',
+
+                # PDF file metadata
+                f'[ {"\n\r  ".join(["/"+k+" ("+v+")" for k,v in pdf_metadata.items()])}',
+                 '  /DOCINFO pdfmark',
+                 '',
+
+                # Configure icc profile
+                 '[/_objdef {icc_PDFA} /type /stream /OBJ pdfmark',
+                 '[{icc_PDFA} << /N 3 >> /PUT pdfmark', # NOTE: N is always 3 because of sRGB profile
+                f'[{{icc_PDFA}} ({color_profile_path.absolute()}) (r) file /PUT pdfmark',
+                 '',
+
+                # Configure output intent
+                '[/_objdef {OutputIntent_PDFA} /type /dict /OBJ pdfmark',
+                '[{OutputIntent_PDFA} <<',
+                '  /Type /OutputIntent',
+                '  /S /GTS_PDFA1',
+                '  /DestOutputProfile {icc_PDFA}',
+                '  /OutputConditionIdentifier (sRGB)',
+                '>> /PUT pdfmark',
+                '[{Catalog} <</OutputIntents [ {OutputIntent_PDFA} ]>> /PUT pdfmark',
+                ''
+                # EOF
+            ])
+
+            file_path = Path(os.path.join(working_dir, "PDFA_def.ps"))
+
+            with open(file=file_path, mode="w") as f:
+                f.write(file_content)
+                f.flush()
+                f.close()
+
+            return file_path
+
+        self.logger.debug(f"Converting '{input_pdf_file.absolute()}' to PDF/A")
+
+        with TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            self.logger.debug(f"Using temporary directory for PDF/A conversion: '{tmpdir.absolute()}'.")
+
+            # NOTE: Ghostscript can not convert the PDF file in place, therefore
+            #       we write to a designated output file and replace the input
+            #       file with it when the subprocess finished successfully.
+            output_pdf_file = Path(os.path.join(tmpdir, "output.pdf"))
+
+            postscript_file = __generate_postscript_file(
+                working_dir=tmpdir,
+                color_profile_path=SRGB_ICC_COLOR_PROFILE_PATH
+            )
+
+            command = " ".join([
+                Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH,
+                *__generate_ghostscript_command_arguments(
+                    working_dir=tmpdir,
+                    input_postscript_file=postscript_file,
+                    input_pdf_file=input_pdf_file,
+                    output_pdf_file=output_pdf_file
+                )
+            ])
+
+            self.logger.debug(f'Creating ghostscript subprocess as `{command}`.')
+            try:
+                proc = await asyncio.create_subprocess_shell(
+                    command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(),
+                    Config.PDFA_CONVERSION_TIMEOUT_SEC,
+                )
+                self.logger.debug(f"ghostscript subprocess stdout was: `{stdout.decode().strip()}`")
+                self.logger.debug(f"ghostscript subprocess stderr was: `{stderr.decode().strip()}`")
+
+                if proc.returncode != 0:
+                    raise RuntimeError("ghostscript subprocess failed with status code != 0")
+
+                os.replace(output_pdf_file.absolute(), input_pdf_file.absolute())
+            except TimeoutError as te:
+                self.logger.error("PDF/A conversion timed out")
+                raise te
+            except Exception as e:
+                self.logger.error(f"PDF/A conversion failed: '{e}'")
+                raise e
 
     async def _process_quiz_attempts_metadata(self) -> None:
         """

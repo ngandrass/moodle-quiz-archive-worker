@@ -222,7 +222,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION`: Whether to skip validation of TLS / SSL certs for all HTTPS connections (default=`False`)
 - `QUIZ_ARCHIVER_PDFA_CONVERSION`: Whether to convert exported attempt PDF files into a PDF/A compliant format (default=`True`)
 - `QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC`: Number of seconds to wait before conversion process is aborted (default=`30`)
-- `QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH`: Path to the ghostscript binary that should be used for PDF/A conversion (default=`None`)
+- `QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH`: Path to the ghostscript binary that should be used for PDF/A conversion. If left unset, this will be detected automatically. (default=`None`)
 
 
 # Development

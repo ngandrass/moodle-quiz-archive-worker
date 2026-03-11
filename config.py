@@ -145,7 +145,7 @@ class Config:
     """Number of seconds to wait before conversion process is aborted"""
 
     PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH', default=None, valtype=str)
-    """Path to the ghostscript binary that should be used for PDF/A conversion"""
+    """Path to the ghostscript binary that should be used for PDF/A conversion. If left unset, this will be detected automatically."""
 
     @staticmethod
     def tostring() -> str:

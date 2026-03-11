@@ -353,10 +353,12 @@ def run() -> None:
     if Config.PDFA_CONVERSION:
         if Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None:
             Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = shutil.which("gs") or ""
+            app.logger.debug(f'Auto-detected Ghostscript path: {Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH}')
         try:
             check_for_ghostscript()
         except Exception as ex:
             app.logger.error(f'Checking for external dependency "Ghostscript" failed with Error: {ex}')
+            app.logger.error('PDF/A conversion requires Ghostscript. Either install Ghostscript or disable PDF/A conversion. See README for more information.')
             sys.exit(1)
 
     start_processing_thread()

@@ -20,10 +20,11 @@ Quiz archiver service to work in conjunction with the Moodle plugin
 
 This application processes quiz archive jobs. It renders Moodle quiz attempts
 inside a headless webbrowser and exports them to PDF/HTML files, including
-MathJax formulas and other complex elements that require JS processing. Moodle
-backups can optionally be included in the generated archive. The checksum for
-each file within the archive as well as the checksum of the archive itself is
-calculated to allow integrity checks.
+MathJax formulas and other complex elements that require JS processing.
+Generated PDFs can be converted into a PDF/A compliant format for long-term
+storage. Moodle backups can optionally be included in the generated archive. The
+checksum for each file within the archive as well as the checksum of the archive
+itself is calculated to allow integrity checks.
 
 
 # Installation
@@ -122,7 +123,7 @@ For more details and all available configuration parameters see [Configuration](
 4. Switch into the repository directory: `cd moodle-quiz-archive-worker`
 5. Install app dependencies: `poetry install --no-root --only main`
 6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install --only-shell chromium`
-7. (To support PDF/A conversion, install [Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html). See [External dependencies](#ghostscript-pdfa-conversion) for more details.)
+7. If PDF/A conversion is desired, install [Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html). See [External dependencies](#ghostscript-pdfa-conversion) for more details.
 8. Run the application: `poetry run python main.py`
 
 You can change configuration values by prepending the respective environment
@@ -172,25 +173,34 @@ development versions are marked by a `+dev-[TIMESTAMP]` suffix, e.g.,
 `2.4.2+dev-202201011337`.
 
 
-# External dependencies
+# PDF/A Conversion
 
-## Ghostscript (PDF/A conversion)
-For converting PDF file exports into a PDF/A-3b compliant format, the
-Quiz Archive Worker utilizes another external executable:
-[Ghostscript](https://ghostscript.com). If you are manually installing the
-Quiz Archive Worker you need to
-[install Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html)
-on your machine as well.
+The quiz archive worker can produce PDF/A-3b compliant PDF files. PDF/A is an
+ISO-standardized version of the PDF format that is designed for long-term
+archiving and preservation of electronic documents. It ensures that the PDF
+files can be displayed exactly the same way in the future, regardless of the
+software used to create or view them.
 
-You can change the default path for the Ghostscript binary by editing the
-corresponding environment variable. Example:
+For converting attempt PDF files into a PDF/A-3b compliant format, the external
+dependency [Ghostscript](https://ghostscript.com) is required. If you are using
+the official Docker image, Ghostscript is already included and configured
+properly. If you are installing the worker service manually, please refer to the
+[Manual installation](#manual-installation) section above.
 
+PDF/A conversion is enabled by default, but can be disabled by setting
+`QUIZ_ARCHIVER_PDFA_CONVERSION = False`. The location of your Ghostscript binary
+is automatically detected on startup. If automatic detection fails or you want
+to use a specific Ghostscript distribution, you can set the path to your
+Ghostscript binary manually via the corresponding environment variable.
+
+Example:
 ```text
 QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH=/bin/ghostscript
 ```
 
 For more details on all available configuration parameters see
 [Configuration](#configuration).
+
 
 # Configuration
 

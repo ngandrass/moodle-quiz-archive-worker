@@ -123,7 +123,7 @@ For more details and all available configuration parameters see [Configuration](
 4. Switch into the repository directory: `cd moodle-quiz-archive-worker`
 5. Install app dependencies: `poetry install --no-root --only main`
 6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install --only-shell chromium`
-7. If PDF/A conversion is desired, install [Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html). See [External dependencies](#ghostscript-pdfa-conversion) for more details.
+7. If PDF/A conversion is desired, install [Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html). See [PDF/A Conversion](#pdfa-conversion) for more details.
 8. Run the application: `poetry run python main.py`
 
 You can change configuration values by prepending the respective environment

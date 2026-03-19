@@ -312,7 +312,7 @@ def check_for_ghostscript() -> None:
     if proc.returncode != 0:
         raise RuntimeError(f'Executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` exited with status code != 0')
 
-    output_match_regex = 'GPL\\sGhostscript\\s\\d+\.\\d+\.\\d+'
+    output_match_regex = 'GPL\\sGhostscript\\s\\d+\\.\\d+\\.\\d+'
     if re.search(output_match_regex, stdout) is None:
         raise RuntimeError(f'Executing `{Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH} --help` produced unexpected output: Expected to find regex `{output_match_regex}` in stdout `{stdout}` but did not')
 

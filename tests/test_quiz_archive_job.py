@@ -41,10 +41,13 @@ class TestQuizArchiveJob:
     def setup_class(cls):
         cls.wait_for_readysignal_orig = Config.REPORT_WAIT_FOR_READY_SIGNAL
         Config.REPORT_WAIT_FOR_READY_SIGNAL = False
+        cls.pdfa_conversion_orig = Config.PDFA_CONVERSION
+        Config.PDFA_CONVERSION = False
 
     @classmethod
     def teardown_class(cls):
         Config.REPORT_WAIT_FOR_READY_SIGNAL = cls.wait_for_readysignal_orig
+        Config.PDFA_CONVERSION = cls.pdfa_conversion_orig
 
     def test_equality(self) -> None:
         """

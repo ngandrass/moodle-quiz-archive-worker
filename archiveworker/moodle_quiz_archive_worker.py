@@ -35,11 +35,6 @@ from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 from config import Config
 
-app = Flask(__name__)
-job_queue = queue.Queue(maxsize=Config.QUEUE_SIZE)
-job_history = deque(maxlen=Config.HISTORY_SIZE)
-
-
 class InterruptableThread(threading.Thread):
     """
     Custom Thread that allows to be interrupted by a stop event
@@ -57,9 +52,19 @@ class InterruptableThread(threading.Thread):
     def stop_requested(self):
         return self._stop_event.is_set()
 
+app = Flask(__name__)
+"""Moodle Quiz Archive Worker REST API"""
+
+job_queue:queue.Queue[QuizArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
+"""Queue collecting all pending jobs"""
+
+job_history:deque[QuizArchiveJob] = deque(maxlen=Config.HISTORY_SIZE)
+"""List of past submitted jobs up to a maximum history size"""
+
 
 def queue_processing_loop():
-    app.logger.info("Spawned queue worker thread")
+    thread_name = threading.current_thread().name
+    app.logger.info(f"Spawned queue worker thread '{thread_name}'")
 
     while getattr(threading.current_thread(), "do_run", True):
         # Start job execution
@@ -79,7 +84,7 @@ def queue_processing_loop():
             t.join()
             app.logger.info(f'Job {job.get_id()} terminated gracefully')
 
-    app.logger.info("Terminating queue worker thread")
+    app.logger.info(f"Queue worker thread '{thread_name}' terminated")
 
 
 def error_response(error_msg: str, status_code):
@@ -202,13 +207,26 @@ def _handle_archive_request(apicls: type[ArchiveRequest]):
     return jsonify({'jobid': job.get_id(), 'status': job.get_status()}), HTTPStatus.OK
 
 
-def start_processing_thread() -> None:
+def start_processing_threads(n:int=1) -> None:
     """
-    Starts the queue processing thread.
+    Starts n queue processing threads.
+
+    :param n: Number of worker threads to be started. If n < 1 it will be set to 1.
+
     :return: None
     """
-    queue_processing_thread = InterruptableThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
-    queue_processing_thread.start()
+
+    if n < 1:
+        app.logger.warning("Can not start less then 1 worker thread! Starting at least one.")
+        n=1
+
+    for i in range(n):
+        queue_processing_thread = InterruptableThread(
+            target=queue_processing_loop,
+            daemon=True,
+            name=f'queue_processing_thread_{i}'
+        )
+        queue_processing_thread.start()
 
 
 def detect_proxy_settings(envvars) -> None:
@@ -361,5 +379,6 @@ def run() -> None:
             app.logger.error('PDF/A conversion requires Ghostscript. Either install Ghostscript or disable PDF/A conversion. See README for more information.')
             sys.exit(1)
 
-    start_processing_thread()
+    start_processing_threads(Config.PARALLEL_JOBS)
+
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

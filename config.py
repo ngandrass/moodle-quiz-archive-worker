@@ -93,6 +93,9 @@ class Config:
     QUEUE_SIZE = parse_env_variable('QUIZ_ARCHIVER_QUEUE_SIZE', default=8, valtype=int)
     """Maximum number of requests that are queued before returning an error."""
 
+    PARALLEL_JOBS = parse_env_variable('QUIZ_ARCHIVER_PARALLEL_JOBS', default=4, valtype=int)
+    """Number of worker threads to process n jobs in parallel simultaneously. Value has to be at least 1."""
+
     HISTORY_SIZE = parse_env_variable('QUIZ_ARCHIVER_HISTORY_SIZE', default=128, valtype=int)
     """Maximum number of jobs to keep in the history before forgetting about them."""
 

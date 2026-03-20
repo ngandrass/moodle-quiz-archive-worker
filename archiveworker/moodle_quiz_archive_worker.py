@@ -23,6 +23,7 @@ import threading
 import subprocess
 import shutil
 import uuid
+import copy
 from collections import deque
 from http import HTTPStatus
 
@@ -55,6 +56,15 @@ class InterruptableThread(threading.Thread):
 app = Flask(__name__)
 """Moodle Quiz Archive Worker REST API"""
 
+worker_threads:list[InterruptableThread] = list()
+"""List collecting all references of started worker threads"""
+
+current_jobs:dict[str,QuizArchiveJob] = dict()
+"""Mapping of worker thread name to their current job"""
+
+current_jobs_mutex = threading.Lock()
+"""Mutex for `current_jobs`'s thread savety"""
+
 job_queue:queue.Queue[QuizArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
 """Queue collecting all pending jobs"""
 
@@ -73,6 +83,10 @@ def queue_processing_loop():
             app.logger.info("Received interrupt signal. Terminating queue worker thread")
             return
 
+        # Reference current job
+        with current_jobs_mutex:
+            current_jobs[thread_name] = job
+
         t = InterruptableThread(target=job.execute)
         t.start()
         t.join(Config.REQUEST_TIMEOUT_SEC)
@@ -83,6 +97,10 @@ def queue_processing_loop():
             app.logger.warning(f'Job {job.get_id()} exceeded runtime limit of {Config.REQUEST_TIMEOUT_SEC} seconds. Request termination ...')
             t.join()
             app.logger.info(f'Job {job.get_id()} terminated gracefully')
+
+        # Remove reference for current job
+        with current_jobs_mutex:
+            current_jobs[thread_name] = None
 
     app.logger.info(f"Queue worker thread '{thread_name}' terminated")
 
@@ -101,18 +119,31 @@ def handle_index():
 
 @app.get('/status')
 def handle_status():
-    if job_queue.empty():
+    current_jobs_copy = None
+    with current_jobs_mutex:
+        current_jobs_copy = copy.deepcopy(current_jobs)
+
+    jobs_processing = []
+    for _, job in current_jobs_copy.items():
+        if job is not None:
+            jobs_processing.append(job.id)
+    occupancy = len(jobs_processing)
+
+    if occupancy == 0:
         status = WorkerStatus.IDLE
-    elif job_queue.qsize() < Config.QUEUE_SIZE:
+    elif occupancy < Config.PARALLEL_JOBS:
         status = WorkerStatus.ACTIVE
-    elif job_queue.full():
+    elif occupancy == Config.PARALLEL_JOBS:
         status = WorkerStatus.BUSY
     else:
         status = WorkerStatus.UNKNOWN
 
     return jsonify({
         'status': status,
-        'queue_len': job_queue.qsize()
+        'jobs_processing': jobs_processing if occupancy > 0 else None,
+        'jobs_max': Config.PARALLEL_JOBS,
+        'queue_len': job_queue.qsize(),
+        'queue_max': Config.QUEUE_SIZE
     }), HTTPStatus.OK
 
 
@@ -226,7 +257,28 @@ def start_processing_threads(n:int=1) -> None:
             daemon=True,
             name=f'queue_processing_thread_{i}'
         )
+        worker_threads.append(queue_processing_thread)
         queue_processing_thread.start()
+
+
+def stop_processing_threads() -> None:
+    """
+    Stops all currently running worker threads. Blocks until all threads are stopped.
+
+    :return: None
+    """
+
+    for t in worker_threads:
+        app.logger.info(f"Signaling thread '{t.name}' to stop ...")
+        t.stop()
+        job_queue.put_nowait(WorkerThreadInterrupter())
+
+    while len(worker_threads) > 0:
+        t = worker_threads[0]
+        app.logger.info(f"Waiting for thread '{t.name}' ...")
+        t.join()
+        app.logger.info(f"Thread '{t.name}' stopped")
+        worker_threads.remove(t)
 
 
 def detect_proxy_settings(envvars) -> None:

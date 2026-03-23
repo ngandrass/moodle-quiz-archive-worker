@@ -32,26 +32,11 @@ from flask import Flask, make_response, request, jsonify
 
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
 from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
+from archiveworker.interruptable_thread import InterruptableThread
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 from config import Config
 
-class InterruptableThread(threading.Thread):
-    """
-    Custom Thread that allows to be interrupted by a stop event
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-
-    def run(self):
-        super().run()
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stop_requested(self):
-        return self._stop_event.is_set()
 
 app = Flask(__name__)
 """Moodle Quiz Archive Worker REST API"""

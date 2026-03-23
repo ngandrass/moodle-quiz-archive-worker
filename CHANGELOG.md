@@ -4,6 +4,8 @@
 
 - Add PDF/A-3b compliant PDF file export
 - Update Python dependencies
+- Automatically build `linux/amd64` and `linux/arm64` variants of the Docker image
+- Update GitHub actions workflow for Docker image build and release
 
 
 ## Version 3.3.9 (2026-02-05)

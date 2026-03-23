@@ -48,7 +48,7 @@ current_jobs:dict[str,QuizArchiveJob] = dict()
 """Mapping of worker thread name to their current job"""
 
 current_jobs_mutex = threading.Lock()
-"""Mutex for `current_jobs`'s thread savety"""
+"""Mutex for `current_jobs`'s thread safety"""
 
 job_queue:queue.Queue[QuizArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
 """Queue collecting all pending jobs"""

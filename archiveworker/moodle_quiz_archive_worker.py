@@ -128,26 +128,31 @@ def handle_status():
         response.headers["Retry-After"] = 10
         return response
 
+    current_queue_size = job_queue.qsize()
+
     jobs_processing = []
     for _, job in current_jobs_copy.items():
         if job is not None:
             jobs_processing.append(job.id)
     occupancy = len(jobs_processing)
 
-    if occupancy == 0:
-        status = WorkerStatus.IDLE
-    elif occupancy < Config.PARALLEL_JOBS:
-        status = WorkerStatus.ACTIVE
-    elif occupancy == Config.PARALLEL_JOBS:
-        status = WorkerStatus.BUSY
+    status = WorkerStatus.UNKNOWN
+    if  current_queue_size == 0:
+        if occupancy == 0:
+            status = WorkerStatus.IDLE
+        elif occupancy <= Config.PARALLEL_JOBS:
+            status = WorkerStatus.ACTIVE
     else:
-        status = WorkerStatus.UNKNOWN
+        if current_queue_size == Config.QUEUE_SIZE:
+            status = WorkerStatus.UNAVAILABLE
+        elif occupancy == Config.PARALLEL_JOBS:
+            status = WorkerStatus.BUSY
 
     return jsonify({
         'status': status,
         'jobs_processing': jobs_processing,
         'jobs_max': Config.PARALLEL_JOBS,
-        'queue_len': job_queue.qsize(),
+        'queue_len': current_queue_size,
         'queue_max': Config.QUEUE_SIZE
     }), HTTPStatus.OK
 
@@ -273,6 +278,9 @@ def stop_processing_threads() -> None:
     :return: None
     """
 
+    queue_size_orig = job_queue.maxsize
+    job_queue.maxsize = -1
+
     for t in worker_threads:
         app.logger.info(f"Signaling thread '{t.name}' to stop ...")
         t.stop()
@@ -284,6 +292,8 @@ def stop_processing_threads() -> None:
         t.join()
         app.logger.info(f"Thread '{t.name}' stopped")
         worker_threads.remove(t)
+
+    job_queue.maxsize = queue_size_orig
 
 
 def detect_proxy_settings(envvars) -> None:

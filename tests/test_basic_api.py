@@ -106,7 +106,8 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['queue_len'] == 0
         assert response.json['queue_max'] == Config.QUEUE_SIZE
         assert response.json['jobs_max'] == Config.PARALLEL_JOBS
-        assert response.json['jobs_processing'] is None
+        assert response.json['jobs_processing'] is not None
+        assert len(response.json['jobs_processing']) == 0
 
     def test_status_active(self, client):
         """
@@ -137,7 +138,7 @@ class TestBasicAPIWithMockedMoodleAPI:
 
     def test_status_busy(self, client):
         """
-        Tests that the worker reports as busy when the queue is full
+        Tests that the worker reports as busy when parallelism limit is reached and at least one job is queued
 
         :param client: Flask test client
         :return: None
@@ -148,7 +149,7 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['status'] == WorkerStatus.IDLE
 
         # Enqueue jobs until all worker threads are busy plus some to queue
-        plus_some = 2
+        plus_some = min(1, int(Config.QUEUE_SIZE/2))
         for _ in range(Config.PARALLEL_JOBS + plus_some):
             response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
             assert response.status_code == 200
@@ -163,6 +164,39 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['jobs_processing'] is not None
         assert len(response.json['jobs_processing']) == Config.PARALLEL_JOBS
         assert response.json['queue_len'] == plus_some
+
+    def test_status_unavailable(self, client):
+        """
+        Tests that the worker reports as unavailable when parallelism limit is reached and the queue is full
+
+        :param client: Flask test client
+        :return: None
+        """
+        # Ensure that the worker is idle before starting
+        response = client.get('/status')
+        assert response.status_code == 200
+        assert response.json['status'] == WorkerStatus.IDLE
+
+        # Enqueue jobs until all worker threads are busy
+        for _ in range(Config.PARALLEL_JOBS):
+            response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
+            assert response.status_code == 200
+
+        # Start processing threads
+        start_processing_threads(Config.PARALLEL_JOBS)
+
+        # Enqueue jobs until queue is full
+        for _ in range(Config.QUEUE_SIZE):
+            response = client.post('/archive', json=fixtures.empty_job.ARCHIVE_API_REQUEST)
+            assert response.status_code == 200
+
+        # Check that the worker reports as busy
+        response = client.get('/status')
+        assert response.status_code == 200
+        assert response.json['status'] == WorkerStatus.UNAVAILABLE
+        assert response.json['jobs_processing'] is not None
+        assert len(response.json['jobs_processing']) == Config.PARALLEL_JOBS
+        assert response.json['queue_len'] == Config.QUEUE_SIZE
 
     @pytest.mark.timeout(30)
     def test_status_timeout(self, client):

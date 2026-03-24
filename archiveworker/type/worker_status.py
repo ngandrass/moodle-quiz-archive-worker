@@ -21,7 +21,18 @@ class WorkerStatus(StrEnum):
     """
     Status values that the quiz archive worker can report
     """
+
     IDLE = 'IDLE'
+    """No jobs are beeing processed and queue is empty"""
+
     ACTIVE = 'ACTIVE'
+    """All present jobs are beeing worked on and queue is empty"""
+
     BUSY = 'BUSY'
+    """Parallelism limit is reached and at least one job is queued"""
+
+    UNAVAILABLE = 'UNAVAILABLE'
+    """Parallelism limit is reached and queue is full"""
+
     UNKNOWN = 'UNKNOWN'
+    """Status is unknown"""

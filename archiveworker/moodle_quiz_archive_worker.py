@@ -32,26 +32,11 @@ from flask import Flask, make_response, request, jsonify
 
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
 from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
+from archiveworker.interruptable_thread import InterruptableThread
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 from config import Config
 
-class InterruptableThread(threading.Thread):
-    """
-    Custom Thread that allows to be interrupted by a stop event
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-
-    def run(self):
-        super().run()
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stop_requested(self):
-        return self._stop_event.is_set()
 
 app = Flask(__name__)
 """Moodle Quiz Archive Worker REST API"""
@@ -63,7 +48,7 @@ current_jobs:dict[str,QuizArchiveJob] = dict()
 """Mapping of worker thread name to their current job"""
 
 current_jobs_mutex = threading.Lock()
-"""Mutex for `current_jobs`'s thread savety"""
+"""Mutex for `current_jobs`'s thread safety"""
 
 job_queue:queue.Queue[QuizArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
 """Queue collecting all pending jobs"""
@@ -248,20 +233,20 @@ def _handle_archive_request(apicls: type[ArchiveRequest]):
     return jsonify({'jobid': job.get_id(), 'status': job.get_status()}), HTTPStatus.OK
 
 
-def start_processing_threads(n:int=1) -> None:
+def start_processing_threads(number_of_threads:int = 1) -> None:
     """
-    Starts n queue processing threads.
+    Starts queue processing threads.
 
-    :param n: Number of worker threads to be started. If n < 1 it will be set to 1.
+    :param number_of_threads: Number of worker threads to be started. If < 1, it will be set to 1.
 
     :return: None
     """
 
-    if n < 1:
+    if number_of_threads < 1:
         app.logger.warning("Can not start less then 1 worker thread! Starting at least one.")
-        n=1
+        number_of_threads=1
 
-    for i in range(n):
+    for i in range(number_of_threads):
         queue_processing_thread = InterruptableThread(
             target=queue_processing_loop,
             daemon=True,

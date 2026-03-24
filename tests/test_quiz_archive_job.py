@@ -421,6 +421,7 @@ class TestQuizArchiveJob:
             assert '-> Compressing PDF content streams on page' in caplog.text
 
     @pytest.mark.timeout(30)
+    @pytest.mark.skipif(shutil.which("gs") is None and Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None, reason="test requires ghostscript binary to be installed")
     def test_pdfa_conversion(self, client, caplog) -> None:
         """
         Tests the quiz archiving process with PDF/A conversion enabled.
@@ -434,8 +435,9 @@ class TestQuizArchiveJob:
             caplog.set_level(logging.DEBUG)
 
             # Setup PDFA conversion
-            Config.PDFA_CONVERSION = True
-            Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = shutil.which("gs") or ""
+            Config.PDFA_CONVERSION = True            
+            if Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None:
+                Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = shutil.which("gs")
 
             # Create job and process it
             r = client.post('/archive', json=fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST)

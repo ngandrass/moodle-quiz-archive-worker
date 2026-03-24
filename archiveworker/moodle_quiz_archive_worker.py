@@ -145,7 +145,7 @@ def handle_status():
 
     return jsonify({
         'status': status,
-        'jobs_processing': jobs_processing if occupancy > 0 else None,
+        'jobs_processing': jobs_processing,
         'jobs_max': Config.PARALLEL_JOBS,
         'queue_len': job_queue.qsize(),
         'queue_max': Config.QUEUE_SIZE

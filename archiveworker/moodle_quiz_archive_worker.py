@@ -120,8 +120,13 @@ def handle_index():
 @app.get('/status')
 def handle_status():
     current_jobs_copy = None
-    with current_jobs_mutex:
+    if current_jobs_mutex.acquire(blocking = True, timeout = 10):
         current_jobs_copy = copy.deepcopy(current_jobs)
+        current_jobs_mutex.release()
+    else:
+        response = error_response("503 Service Unavailable (could not aquire current jobs lock)", HTTPStatus.SERVICE_UNAVAILABLE)
+        response.headers["Retry-After"] = 10
+        return response
 
     jobs_processing = []
     for _, job in current_jobs_copy.items():

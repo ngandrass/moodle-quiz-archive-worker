@@ -24,7 +24,7 @@ from .conftest import client
 import tests.fixtures.quiz_archiver as fixtures
 from config import Config
 from archiveworker.type import JobStatus, WorkerStatus
-from archiveworker.moodle_quiz_archive_worker import start_processing_threads
+from archiveworker.moodle_quiz_archive_worker import start_processing_threads, current_jobs_mutex
 
 
 class TestBasicAPI:
@@ -163,6 +163,25 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['jobs_processing'] is not None
         assert len(response.json['jobs_processing']) == Config.PARALLEL_JOBS
         assert response.json['queue_len'] == plus_some
+
+    @pytest.mark.timeout(30)
+    def test_status_timeout(self, client):
+        """
+        Tests that the worker timeouts status requests when locked resource is busy
+
+        :param client: Flask test client
+        :return: None
+        """
+
+        # Lock and keep resource artificially busy
+        assert current_jobs_mutex.acquire(False)
+
+        # Check if timeout is handled
+        response = client.get('/status')
+        assert response.status_code == 503
+
+        # Release artificial lock
+        current_jobs_mutex.release()
 
     def test_job_status(self, client):
         """

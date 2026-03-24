@@ -17,6 +17,7 @@
 import csv
 import logging
 import os
+import shutil
 import tempfile
 import time
 import uuid
@@ -41,10 +42,13 @@ class TestQuizArchiveJob:
     def setup_class(cls):
         cls.wait_for_readysignal_orig = Config.REPORT_WAIT_FOR_READY_SIGNAL
         Config.REPORT_WAIT_FOR_READY_SIGNAL = False
+        cls.pdfa_conversion_orig = Config.PDFA_CONVERSION
+        Config.PDFA_CONVERSION = False
 
     @classmethod
     def teardown_class(cls):
         Config.REPORT_WAIT_FOR_READY_SIGNAL = cls.wait_for_readysignal_orig
+        Config.PDFA_CONVERSION = cls.pdfa_conversion_orig
 
     def test_equality(self) -> None:
         """
@@ -415,3 +419,43 @@ class TestQuizArchiveJob:
             assert '-> Resizing image' in caplog.text
             assert '-> Replacing image' in caplog.text
             assert '-> Compressing PDF content streams on page' in caplog.text
+
+    @pytest.mark.timeout(30)
+    @pytest.mark.skipif(shutil.which("gs") is None and Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None, reason="test requires ghostscript binary to be installed")
+    def test_pdfa_conversion(self, client, caplog) -> None:
+        """
+        Tests the quiz archiving process with PDF/A conversion enabled.
+
+        :param client: Flask test client
+        :param caplog: Pytest log capturing fixture
+        :return: None
+        """
+        with fixtures.reference_quiz_single_attempt.MoodleAPIMock() as mock:
+            # Setup logging
+            caplog.set_level(logging.DEBUG)
+
+            # Setup PDFA conversion
+            Config.PDFA_CONVERSION = True            
+            if Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None:
+                Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = shutil.which("gs")
+
+            # Create job and process it
+            r = client.post('/archive', json=fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_thread()
+
+            # Wait for job to be processed
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break
+
+            # Ensure that the PDF/A conversion task was executed
+            assert 'PDF/A conversion' in caplog.text
+            assert 'Creating ghostscript subprocess' in caplog.text
+            assert 'Processing pages 1 through' in caplog.text

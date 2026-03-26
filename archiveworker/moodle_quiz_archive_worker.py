@@ -263,7 +263,7 @@ def _handle_archive_request(apicls: type[ArchiveRequest]):
     return jsonify({'jobid': job.get_id(), 'status': job.get_status()}), HTTPStatus.OK
 
 
-def start_processing_threads(number_of_threads:int = 1) -> None:
+def start_processing_threads(number_of_threads:int) -> None:
     """
     Starts queue processing threads.
 

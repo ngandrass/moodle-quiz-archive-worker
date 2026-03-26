@@ -63,7 +63,7 @@ class TestDemoMode:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_threads()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:

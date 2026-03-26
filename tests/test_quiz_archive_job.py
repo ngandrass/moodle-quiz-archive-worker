@@ -444,7 +444,7 @@ class TestQuizArchiveJob:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads()
 
             # Wait for job to be processed
             while True:

@@ -6,7 +6,8 @@
 - Add parallel job execution capability
 - Fix the `status` field of the `GET /status` request: The status will no longer be `IDLE` while processing exactly one job.
 - Changed response of `GET /status` route
-  - Adding field `jobs_processing`: Array of all currently processing job IDs
+  - Adding field `jobs_processing`: Array containing the IDs of all the jobs currently being processed
+  - Adding field `jobs_queued`: Array containing the IDs of all the jobs currently in the queue (in order)
   - Adding field `jobs_max`: Number of maximal jobs that can be run in parallel
   - Adding field `queue_max`: Number of maximal queue size
 - Update Python dependencies

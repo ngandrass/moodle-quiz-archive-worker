@@ -103,9 +103,10 @@ class TestBasicAPIWithMockedMoodleAPI:
 
         assert response.status_code == 200
         assert response.json['status'] == WorkerStatus.IDLE
-        assert response.json['queue_len'] == 0
         assert response.json['queue_max'] == Config.QUEUE_SIZE
         assert response.json['jobs_max'] == Config.PARALLEL_JOBS
+        assert response.json['jobs_queued'] is not None
+        assert len(response.json['jobs_queued']) == 0
         assert response.json['jobs_processing'] is not None
         assert len(response.json['jobs_processing']) == 0
 
@@ -132,9 +133,10 @@ class TestBasicAPIWithMockedMoodleAPI:
         response = client.get('/status')
         assert response.status_code == 200
         assert response.json['status'] == WorkerStatus.ACTIVE
-        assert response.json['queue_len'] == 0
         assert response.json['jobs_processing'] is not None
         assert len(response.json['jobs_processing']) == 1
+        assert response.json['jobs_queued'] is not None
+        assert len(response.json['jobs_queued']) == 0
 
     def test_status_busy(self, client):
         """
@@ -163,7 +165,8 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['status'] == WorkerStatus.BUSY
         assert response.json['jobs_processing'] is not None
         assert len(response.json['jobs_processing']) == Config.PARALLEL_JOBS
-        assert response.json['queue_len'] == plus_some
+        assert response.json['jobs_queued'] is not None
+        assert len(response.json['jobs_queued']) == plus_some
 
     def test_status_unavailable(self, client):
         """
@@ -196,7 +199,8 @@ class TestBasicAPIWithMockedMoodleAPI:
         assert response.json['status'] == WorkerStatus.UNAVAILABLE
         assert response.json['jobs_processing'] is not None
         assert len(response.json['jobs_processing']) == Config.PARALLEL_JOBS
-        assert response.json['queue_len'] == Config.QUEUE_SIZE
+        assert response.json['jobs_queued'] is not None
+        assert len(response.json['jobs_queued']) == Config.QUEUE_SIZE
 
     @pytest.mark.timeout(30)
     def test_status_timeout(self, client):

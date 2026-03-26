@@ -104,23 +104,53 @@ def handle_index():
 
 @app.get('/status')
 def handle_status():
+    # Copying the current_jobs mapping
     current_jobs_copy = None
     if current_jobs_mutex.acquire(blocking = True, timeout = 10):
         current_jobs_copy = copy.deepcopy(current_jobs)
         current_jobs_mutex.release()
     else:
-        response = error_response("503 Service Unavailable (could not aquire current jobs lock)", HTTPStatus.SERVICE_UNAVAILABLE)
+        response = error_response(
+            "503 Service Unavailable (could not aquire current jobs lock)",
+            HTTPStatus.SERVICE_UNAVAILABLE
+        )
         response.headers["Retry-After"] = 10
         return response
 
-    current_queue_size = job_queue.qsize()
+    # Copying the job queue
+    # NOTE: The queue.Queue class does not provide a native thread-safe way of
+    #       accessing all its content without dequeuing. Therefore, we try to
+    #       acquire its internal lock and operate on its internal functions that
+    #       can be safely used while the lock is acquired.
+    job_queue_copy = None
+    if job_queue.mutex.acquire(blocking=True, timeout=10):
+        queue_content = []
+        while job_queue._qsize() > 0:
+            queue_content.append(job_queue._get())
+        for element in queue_content:
+            job_queue._put(element)
+        job_queue_copy = copy.deepcopy(queue_content)
+        job_queue.mutex.release()
+    else:
+        response = error_response(
+            "503 Service Unavailable (could not aquire job queue lock)",
+            HTTPStatus.SERVICE_UNAVAILABLE
+        )
+        response.headers["Retry-After"] = 10
+        return response
 
-    jobs_processing = []
+    # Getting job IDs from object references for json output
+    jobs_processing_ids = []
     for _, job in current_jobs_copy.items():
         if job is not None:
-            jobs_processing.append(job.id)
-    occupancy = len(jobs_processing)
+            jobs_processing_ids.append(job.id)
+    jobs_queued_ids = []
+    for job in job_queue_copy:
+        jobs_queued_ids.append(job.id)
 
+    # Determin worker status based on its processing and queued jobs
+    current_queue_size = len(jobs_queued_ids)
+    occupancy = len(jobs_processing_ids)
     status = WorkerStatus.UNKNOWN
     if  current_queue_size == 0:
         if occupancy == 0:
@@ -135,9 +165,9 @@ def handle_status():
 
     return jsonify({
         'status': status,
-        'jobs_processing': jobs_processing,
+        'jobs_processing': jobs_processing_ids,
+        'jobs_queued': jobs_queued_ids,
         'jobs_max': Config.PARALLEL_JOBS,
-        'queue_len': current_queue_size,
         'queue_max': Config.QUEUE_SIZE
     }), HTTPStatus.OK
 

@@ -26,8 +26,8 @@ from uuid import UUID
 import pytest
 
 from archiveworker.api.worker import ArchiveJobDescriptor
-from archiveworker.type import JobStatus, MoodleBackupStatus, WorkerThreadInterrupter
-from archiveworker.moodle_quiz_archive_worker import app as original_app, job_queue, job_history, InterruptableThread
+from archiveworker.type import JobStatus, MoodleBackupStatus
+from archiveworker.moodle_quiz_archive_worker import app as original_app, current_jobs, job_queue, job_history, stop_processing_threads
 from config import Config
 
 
@@ -39,15 +39,10 @@ def app():
     })
 
     # Kill all still existing threads
-    for t in threading.enumerate():
-        if isinstance(t, InterruptableThread):
-            print(f"Cleaning up thread: {t.name} ...", end='')
-            t.stop()
-            job_queue.put_nowait(WorkerThreadInterrupter())
-            t.join()
-            print(' OK.')
+    stop_processing_threads()
 
     # Ensure an empty queue and history on each run
+    current_jobs.clear()
     job_queue.queue.clear()
     job_history.clear()
 

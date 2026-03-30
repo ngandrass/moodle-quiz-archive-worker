@@ -29,7 +29,7 @@ import pytest
 import tests.fixtures.quiz_archiver as fixtures
 from archiveworker.api.moodle import QuizArchiverMoodleAPI
 from archiveworker.api.worker import ArchiveJobDescriptor
-from archiveworker.moodle_quiz_archive_worker import start_processing_thread
+from archiveworker.moodle_quiz_archive_worker import start_processing_threads
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import JobStatus
 from config import Config
@@ -98,7 +98,7 @@ class TestQuizArchiveJob:
                 jobs.append(r.json['jobid'])
 
             # Start processing thread
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for all jobs to be processed
             while jobs:
@@ -127,7 +127,7 @@ class TestQuizArchiveJob:
             jobid = r.json['jobid']
 
             # Start processing thread
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:
@@ -154,7 +154,7 @@ class TestQuizArchiveJob:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:
@@ -225,7 +225,7 @@ class TestQuizArchiveJob:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:
@@ -273,7 +273,7 @@ class TestQuizArchiveJob:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:
@@ -326,7 +326,7 @@ class TestQuizArchiveJob:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:
@@ -404,7 +404,7 @@ class TestQuizArchiveJob:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:
@@ -435,7 +435,7 @@ class TestQuizArchiveJob:
             caplog.set_level(logging.DEBUG)
 
             # Setup PDFA conversion
-            Config.PDFA_CONVERSION = True            
+            Config.PDFA_CONVERSION = True
             if Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None:
                 Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = shutil.which("gs")
 
@@ -444,7 +444,7 @@ class TestQuizArchiveJob:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:

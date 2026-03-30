@@ -23,7 +23,7 @@ import zipfile
 import pytest
 
 from archiveworker.type import JobStatus
-from archiveworker.moodle_quiz_archive_worker import start_processing_thread
+from archiveworker.moodle_quiz_archive_worker import start_processing_threads
 from config import Config
 from .conftest import client, TestUtils
 import tests.fixtures.quiz_archiver as fixtures
@@ -63,7 +63,7 @@ class TestDemoMode:
             assert r.status_code == 200
             jobid = r.json['jobid']
 
-            start_processing_thread()
+            start_processing_threads(1)
 
             # Wait for job to be processed
             while True:

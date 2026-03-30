@@ -23,6 +23,7 @@ import threading
 import subprocess
 import shutil
 import uuid
+import copy
 from collections import deque
 from http import HTTPStatus
 
@@ -31,35 +32,34 @@ from flask import Flask, make_response, request, jsonify
 
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
 from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
+from archiveworker.interruptable_thread import InterruptableThread
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 from config import Config
 
+
 app = Flask(__name__)
-job_queue = queue.Queue(maxsize=Config.QUEUE_SIZE)
-job_history = deque(maxlen=Config.HISTORY_SIZE)
+"""Moodle Quiz Archive Worker REST API"""
 
+worker_threads:list[InterruptableThread] = list()
+"""List collecting all references of started worker threads"""
 
-class InterruptableThread(threading.Thread):
-    """
-    Custom Thread that allows to be interrupted by a stop event
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
+current_jobs:dict[str,QuizArchiveJob] = dict()
+"""Mapping of worker thread name to their current job"""
 
-    def run(self):
-        super().run()
+current_jobs_mutex = threading.Lock()
+"""Mutex for `current_jobs`'s thread safety"""
 
-    def stop(self):
-        self._stop_event.set()
+job_queue:queue.Queue[QuizArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
+"""Queue collecting all pending jobs"""
 
-    def stop_requested(self):
-        return self._stop_event.is_set()
+job_history:deque[QuizArchiveJob] = deque(maxlen=Config.HISTORY_SIZE)
+"""List of past submitted jobs up to a maximum history size"""
 
 
 def queue_processing_loop():
-    app.logger.info("Spawned queue worker thread")
+    thread_name = threading.current_thread().name
+    app.logger.info(f"Spawned queue worker thread '{thread_name}'")
 
     while getattr(threading.current_thread(), "do_run", True):
         # Start job execution
@@ -67,6 +67,10 @@ def queue_processing_loop():
         if isinstance(job, WorkerThreadInterrupter):
             app.logger.info("Received interrupt signal. Terminating queue worker thread")
             return
+
+        # Reference current job
+        with current_jobs_mutex:
+            current_jobs[thread_name] = job
 
         t = InterruptableThread(target=job.execute)
         t.start()
@@ -79,7 +83,11 @@ def queue_processing_loop():
             t.join()
             app.logger.info(f'Job {job.get_id()} terminated gracefully')
 
-    app.logger.info("Terminating queue worker thread")
+        # Remove reference for current job
+        with current_jobs_mutex:
+            current_jobs[thread_name] = None
+
+    app.logger.info(f"Queue worker thread '{thread_name}' terminated")
 
 
 def error_response(error_msg: str, status_code):
@@ -96,18 +104,71 @@ def handle_index():
 
 @app.get('/status')
 def handle_status():
-    if job_queue.empty():
-        status = WorkerStatus.IDLE
-    elif job_queue.qsize() < Config.QUEUE_SIZE:
-        status = WorkerStatus.ACTIVE
-    elif job_queue.full():
-        status = WorkerStatus.BUSY
+    # Copying the current_jobs mapping
+    current_jobs_copy = None
+    if current_jobs_mutex.acquire(blocking = True, timeout = 10):
+        current_jobs_copy = copy.deepcopy(current_jobs)
+        current_jobs_mutex.release()
     else:
-        status = WorkerStatus.UNKNOWN
+        response = error_response(
+            "503 Service Unavailable (could not aquire current jobs lock)",
+            HTTPStatus.SERVICE_UNAVAILABLE
+        )
+        response.headers["Retry-After"] = 10
+        return response
+
+    # Copying the job queue
+    # NOTE: The queue.Queue class does not provide a native thread-safe way of
+    #       accessing all its content without dequeuing. Therefore, we try to
+    #       acquire its internal lock and operate on its internal functions that
+    #       can be safely used while the lock is acquired.
+    job_queue_copy = None
+    if job_queue.mutex.acquire(blocking=True, timeout=10):
+        queue_content = []
+        while job_queue._qsize() > 0:
+            queue_content.append(job_queue._get())
+        for element in queue_content:
+            job_queue._put(element)
+        job_queue_copy = copy.deepcopy(queue_content)
+        job_queue.mutex.release()
+    else:
+        response = error_response(
+            "503 Service Unavailable (could not aquire job queue lock)",
+            HTTPStatus.SERVICE_UNAVAILABLE
+        )
+        response.headers["Retry-After"] = 10
+        return response
+
+    # Getting job IDs from object references for json output
+    jobs_processing_ids = []
+    for _, job in current_jobs_copy.items():
+        if job is not None:
+            jobs_processing_ids.append(job.id)
+    jobs_queued_ids = []
+    for job in job_queue_copy:
+        jobs_queued_ids.append(job.id)
+
+    # Determin worker status based on its processing and queued jobs
+    current_queue_size = len(jobs_queued_ids)
+    occupancy = len(jobs_processing_ids)
+    status = WorkerStatus.UNKNOWN
+    if  current_queue_size == 0:
+        if occupancy == 0:
+            status = WorkerStatus.IDLE
+        elif occupancy <= Config.PARALLEL_JOBS:
+            status = WorkerStatus.ACTIVE
+    else:
+        if current_queue_size == Config.QUEUE_SIZE:
+            status = WorkerStatus.UNAVAILABLE
+        elif occupancy == Config.PARALLEL_JOBS:
+            status = WorkerStatus.BUSY
 
     return jsonify({
         'status': status,
-        'queue_len': job_queue.qsize()
+        'jobs_processing': jobs_processing_ids,
+        'jobs_queued': jobs_queued_ids,
+        'jobs_max': Config.PARALLEL_JOBS,
+        'queue_max': Config.QUEUE_SIZE
     }), HTTPStatus.OK
 
 
@@ -202,13 +263,52 @@ def _handle_archive_request(apicls: type[ArchiveRequest]):
     return jsonify({'jobid': job.get_id(), 'status': job.get_status()}), HTTPStatus.OK
 
 
-def start_processing_thread() -> None:
+def start_processing_threads(number_of_threads:int) -> None:
     """
-    Starts the queue processing thread.
+    Starts queue processing threads.
+
+    :param number_of_threads: Number of worker threads to be started. If < 1, it will be set to 1.
+
     :return: None
     """
-    queue_processing_thread = InterruptableThread(target=queue_processing_loop, daemon=True, name='queue_processing_thread')
-    queue_processing_thread.start()
+
+    if number_of_threads < 1:
+        app.logger.warning("Can not start less then 1 worker thread! Starting at least one.")
+        number_of_threads=1
+
+    for i in range(number_of_threads):
+        queue_processing_thread = InterruptableThread(
+            target=queue_processing_loop,
+            daemon=True,
+            name=f'queue_processing_thread_{i}'
+        )
+        worker_threads.append(queue_processing_thread)
+        queue_processing_thread.start()
+
+
+def stop_processing_threads() -> None:
+    """
+    Stops all currently running worker threads. Blocks until all threads are stopped.
+
+    :return: None
+    """
+
+    queue_size_orig = job_queue.maxsize
+    job_queue.maxsize = -1
+
+    for t in worker_threads:
+        app.logger.info(f"Signaling thread '{t.name}' to stop ...")
+        t.stop()
+        job_queue.put_nowait(WorkerThreadInterrupter())
+
+    while len(worker_threads) > 0:
+        t = worker_threads[0]
+        app.logger.info(f"Waiting for thread '{t.name}' ...")
+        t.join()
+        app.logger.info(f"Thread '{t.name}' stopped")
+        worker_threads.remove(t)
+
+    job_queue.maxsize = queue_size_orig
 
 
 def detect_proxy_settings(envvars) -> None:
@@ -361,5 +461,6 @@ def run() -> None:
             app.logger.error('PDF/A conversion requires Ghostscript. Either install Ghostscript or disable PDF/A conversion. See README for more information.')
             sys.exit(1)
 
-    start_processing_thread()
+    start_processing_threads(Config.PARALLEL_JOBS)
+
     waitress.serve(app, host=Config.SERVER_HOST, port=Config.SERVER_PORT)

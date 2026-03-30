@@ -173,6 +173,24 @@ development versions are marked by a `+dev-[TIMESTAMP]` suffix, e.g.,
 `2.4.2+dev-202201011337`.
 
 
+# Resource usage guidelines
+
+For reference, the Moodle Quiz Archiver uses **1 CPU** and **1 GiB of RAM** for
+each parallel job while processing. By default, up to four jobs can be executed
+simultaneously. _For complex or large quizzes, you may want to increase the
+amount of RAM provisioned beyond the default reference._
+
+You can adjust the number of parallel jobs manually via the corresponding
+environment variable.
+
+Example:
+```text
+QUIZ_ARCHIVER_PARALLEL_JOBS=2
+```
+
+For more details on all available configuration parameters see
+[Configuration](#configuration).
+
 # PDF/A Conversion
 
 The quiz archive worker can produce PDF/A-3b compliant PDF files. PDF/A is an
@@ -211,6 +229,7 @@ using the following environment variables:
 - `QUIZ_ARCHIVER_SERVER_PORT`: Port to bind to (default=`8080`)
 - `QUIZ_ARCHIVER_LOG_LEVEL`: Logging level. One of `'CRITICAL'`, `'FATAL'`, `'ERROR'`, `'WARN'`, `'WARNING'`, `'INFO'`, `'DEBUG'` (default=`'INFO'`)
 - `QUIZ_ARCHIVER_QUEUE_SIZE`: Maximum number of jobs to enqueue (default=`8`)
+- `QUIZ_ARCHIVER_PARALLEL_JOBS`: Number of worker threads to process archive jobs in parallel. Value has to be greater than 0 (default=`4`)
 - `QUIZ_ARCHIVER_HISTORY_SIZE`: Maximum number of jobs to remember in job history (default=`128`)
 - `QUIZ_ARCHIVER_ZIP_COMPRESSION_ALGO`: Compression algorithm to use for ZIP archives. Use `DEFLATED` for compatibility with Windows and MacOS. Possible values are `STORED` (no compression), `DEFLATED` (light compression, default), `BZIP2` (medium compression), and `LZMA` (strong compression). (default=`DEFLATED`)
 - `QUIZ_ARCHIVER_STATUS_REPORTING_INTERVAL_SEC`: Number of seconds to wait between job progress updates (default=`15`)

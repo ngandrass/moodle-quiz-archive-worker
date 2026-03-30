@@ -14,25 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from enum import StrEnum
+import threading
 
 
-class WorkerStatus(StrEnum):
+class InterruptableThread(threading.Thread):
     """
-    Status values that the quiz archive worker can report
+    Custom Thread that allows to be interrupted by a stop event
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
 
-    IDLE = 'IDLE'
-    """No jobs are beeing processed and queue is empty"""
+    def run(self):
+        super().run()
 
-    ACTIVE = 'ACTIVE'
-    """All present jobs are beeing worked on and queue is empty"""
+    def stop(self):
+        self._stop_event.set()
 
-    BUSY = 'BUSY'
-    """Parallelism limit is reached and at least one job is queued"""
-
-    UNAVAILABLE = 'UNAVAILABLE'
-    """Parallelism limit is reached and queue is full"""
-
-    UNKNOWN = 'UNKNOWN'
-    """Status is unknown"""
+    def stop_requested(self):
+        return self._stop_event.is_set()

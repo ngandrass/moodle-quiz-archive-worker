@@ -10,9 +10,9 @@
   - Adding field `jobs_queued`: Array containing the IDs of all the jobs currently in the queue (in order)
   - Adding field `jobs_max`: Number of maximal jobs that can be run in parallel
   - Adding field `queue_max`: Number of maximal queue size
-- Update Python dependencies
 - Automatically build `linux/amd64` and `linux/arm64` variants of the Docker image
 - Update GitHub actions workflow for Docker image build and release
+- Update Python dependencies
 
 
 ## Version 3.3.9 (2026-02-05)

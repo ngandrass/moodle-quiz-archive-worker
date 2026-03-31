@@ -78,21 +78,22 @@ function detectAndPrepareReadinessComponents() {
             console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
         } else {
             // Formulas found. Wait for MathJax to process them.
-            if (window.MathJax.version.startsWith('2')) {
-                console.debug("MathJax v2 detected. Waiting for MathJax to process equations ...");
+            let mjVersion = window.MathJax.version
+            if (mjVersion.startsWith('2')) {
+                console.debug("MathJax version '" + mjVersion + "' detected. Waiting for MathJax to process equations ...");
                 window.MathJax.Hub.Queue(function () {
                     window.MoodleQuizArchiver.readySignals.mathjax = true;
                     console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
                 });
                 window.MathJax.Hub.processSectionDelay = 0;
-            } else if (window.MathJax.version.startsWith('3')) {
-                console.debug("MathJax v3 detected. Waiting for MathJax to process equations ...");
+            } else if (mjVersion.startsWith('3') || mjVersion.startsWith('4')) {
+                console.debug("MathJax version '" + mjVersion + "' detected. Waiting for MathJax to process equations ...");
                 window.MathJax.startup.promise.then(() => {
                     window.MoodleQuizArchiver.readySignals.mathjax = true;
                     console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
                 });
             } else {
-                console.error("Unknown MathJax version detected: " + window.MathJax.version);
+                console.error("Unknown MathJax version '" + mjVersion + "' detected");
                 console.debug("Just waiting 3 seconds ...")
                 setTimeout(() => {console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);}, 3000);
             }
@@ -151,7 +152,7 @@ function attachGeogebraMutationObserver() {
                     });
 
                     document.getElementsByClassName('GeoGebraFrame').forEach(ggbFrame => {
-                        mutationObserver.observe(ggbFrame, {childList: true, subtree: true});
+                        mutationObserver.observe(ggbFrame, { childList: true, subtree: true });
                         console.log("Attached mutation observer to GeoGebra frame.");
                     });
                     window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date();

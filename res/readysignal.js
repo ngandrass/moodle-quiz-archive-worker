@@ -95,7 +95,10 @@ function detectAndPrepareReadinessComponents() {
             } else {
                 console.error("Unknown MathJax version '" + mjVersion + "' detected");
                 console.debug("Just waiting 3 seconds ...")
-                setTimeout(() => {console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);}, 3000);
+                setTimeout(() => {
+                    window.MoodleQuizArchiver.readySignals.mathjax = true;
+                    console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
+                }, 3000 );
             }
         }
     } else {

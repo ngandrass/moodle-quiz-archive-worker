@@ -4,6 +4,7 @@
 
 - Add PDF/A-3b compliant PDF file export
 - Add parallel job execution capability
+- Add support for MathJax 4 (used by default by Moodle >= 5.2)
 - Fix the `status` field of the `GET /status` request: The status will no longer be `IDLE` while processing exactly one job.
 - Changed response of `GET /status` route
   - Adding field `jobs_processing`: Array containing the IDs of all the jobs currently being processed

@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 4.0.0 (2026-04-01)
 
 - Add PDF/A-3b compliant PDF file export
 - Add parallel job execution capability

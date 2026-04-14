@@ -57,7 +57,7 @@ class Config:
     APP_NAME = "moodle-quiz-archive-worker"
     """Name of this app"""
 
-    VERSION = "4.0.0"
+    VERSION = "4.0.1"
     """Version of this app"""
 
     LOG_LEVEL = logging.getLevelNamesMapping()[parse_env_variable('QUIZ_ARCHIVER_LOG_LEVEL', default='INFO', valtype=str)]

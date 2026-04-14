@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 4.0.1 (2026-04-14)
 
 - Update Python dependencies
   - Fix CVE-2026-40192 in `pillow` package

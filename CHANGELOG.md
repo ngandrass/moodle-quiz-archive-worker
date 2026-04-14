@@ -1,5 +1,13 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix CVE-2026-40192 in `pillow` package
+  - Fix CVE-2026-40260 in `pypdf` package
+  - Fix CVE-2025-71176 in `pytest` package
+
+
 ## Version 4.0.0 (2026-04-01)
 
 - Add PDF/A-3b compliant PDF file export

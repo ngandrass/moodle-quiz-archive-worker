@@ -316,7 +316,8 @@ class QuizArchiverMoodleAPI(MoodleAPIBase):
             filename: str,
             filepath: str,
             itemid: int,
-            sha256sum: str
+            sha256sum: str,
+            chunks: List[str] | None = None
     ) -> bool:
         """
         Calls the Moodle webservice function to process an uploaded artifact
@@ -331,6 +332,7 @@ class QuizArchiverMoodleAPI(MoodleAPIBase):
         :param filepath: Moodle File API filepath
         :param itemid: Moodle File API itemid
         :param sha256sum: SHA256 checksum of the artifact file
+        :param chunks: optional file names of individually uploaded chunks
 
         :return: True on success
 
@@ -353,7 +355,8 @@ class QuizArchiverMoodleAPI(MoodleAPIBase):
                     artifact_filepath=filepath,
                     artifact_itemid=itemid,
                     artifact_sha256sum=sha256sum,
-                )
+                    artifact_chunks=','.join(chunks) if chunks is not None else '',
+                ),
             )
             response = r.json()
         except Exception:

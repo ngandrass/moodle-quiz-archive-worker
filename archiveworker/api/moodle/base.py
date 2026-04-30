@@ -233,7 +233,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
                 self.logger.info(f'Uploading chunk {chunk_no} file "{chunk_file_name}" (size: {len(chunk_bytes)} bytes)')
 
                 chunk_files.append(chunk_file_name)
-                upload_metadada = self._upload_to_moodle(
+                upload_metadata = self._upload_to_moodle(
                     files={
                         f'chunk_{chunk_no}': (
                             chunk_file_name,
@@ -243,21 +243,26 @@ class MoodleAPIBase(metaclass=ABCMeta):
                     },
                     data=self._generate_file_request_params(filepath='/', itemid=moodle_item_id)
                 )
+                if len(upload_metadata) == 0:
+                    raise ValueError("Moodle webservice upload returned no file metadata")
+                if len(upload_metadata) > 1:
+                    raise ValueError("Moodle webservice upload returned multiple file metadata unexpectedly")
+                upload_metadata = upload_metadata[0]
 
-                for k, v in upload_metadada.items():
+                for k, v in upload_metadata.items():
                     if k not in upload_metadata_collector or upload_metadata_collector[k] != v:
                         upload_metadata_collector[k] = v
 
                 if moodle_item_id == 0:
-                    moodle_item_id = upload_metadada["itemid"]
+                    moodle_item_id = upload_metadata["itemid"]
 
                 chunk_no += 1
 
-        upload_metadada_return = {key: upload_metadata_collector[key] for key in self.MOODLE_UPLOAD_FILE_FIELDS}
-        upload_metadada_return["filename"] = file.name
-        upload_metadada_return["chunks"] = chunk_files
+        upload_metadata_return = {key: upload_metadata_collector[key] for key in self.MOODLE_UPLOAD_FILE_FIELDS}
+        upload_metadata_return["filename"] = file.name
+        upload_metadata_return["chunks"] = chunk_files
 
-        return upload_metadada_return
+        return upload_metadata_return
 
     def check_connection(self) -> bool:
         """
@@ -406,7 +411,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
         self.logger.info(f'Uploading file "{file}" (size: {filesize} bytes) to "{self.ws_upload_url}"')
 
         upload_metadata = None
-        if filesize < self.max_upload_bytes:
+        if filesize <= self.max_upload_bytes:
             upload_metadata = self._single_upload(file)
         else:
             self.logger.info(f'File exceeds maximal upload size of {self.max_upload_bytes} bytes and will be uploaded in {math.ceil(filesize/self.max_upload_bytes):d} chunks')

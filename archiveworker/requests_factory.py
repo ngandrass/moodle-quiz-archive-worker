@@ -38,6 +38,9 @@ class RequestsFactory:
         s.proxies = cls._generate_proxy_settings()
         s.verify = not Config.SKIP_HTTPS_CERT_VALIDATION
 
+        if Config.DEV_XDEBUG_SESSION is not None:
+            s.cookies.set("XDEBUG_SESSION", Config.DEV_XDEBUG_SESSION)
+
         return s
 
     @classmethod

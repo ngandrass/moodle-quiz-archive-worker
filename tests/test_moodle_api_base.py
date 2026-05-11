@@ -179,7 +179,7 @@ class TestUploadFile:
         assert result['filename'] == expected['filename']
         assert result['filepath'] == expected['filepath']
         assert result['itemid'] == expected['itemid']
-        assert 'chunks' not in result.keys()
+        assert result['artifactcount'] == 1, f"Expected 1 artifact to process, got {result['artifactcount']}"
 
         mock_session.post.assert_called_once()
 
@@ -220,9 +220,7 @@ class TestUploadFile:
         assert result['filename'] == large_test_file.name
         assert result['filepath'] == expected['filepath']
         assert result['itemid'] == expected['itemid']
-        assert 'chunks' in result, "Large file upload should include 'chunks' field"
-        assert isinstance(result['chunks'], list), "'chunks' should be a list"
-        assert len(result['chunks']) == expected_chunks, f"Expected {expected_chunks} chunks, got {len(result['chunks'])}"
+        assert result['artifactcount'] == expected_chunks, f"Expected {expected_chunks} artifact (chunks), got {result['artifactcount']}"
 
     def test_nonexistent_file_raises_error(self, moodle_base_api):
         """

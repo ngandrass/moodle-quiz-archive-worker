@@ -40,6 +40,8 @@ class MoodleAPIBase(metaclass=ABCMeta):
     MOODLE_UPLOAD_FILE_FIELDS = ['component', 'contextid', 'userid', 'filearea', 'filename', 'filepath', 'itemid']
     """Keys that are present in the response for each file, received after uploading a file to Moodle"""
 
+    MOODLE_UPLOAD_ARTIFACT_COUNT_FIELD = 'artifactcount'
+
     REQUEST_TIMEOUTS = (10, 60)
     """Tuple of connection and read timeouts for default requests to the Moodle API in seconds"""
 
@@ -221,10 +223,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
             chunk_no = 0
             moodle_item_id = 0
             while True:
-                # NOTE: Zero padding to ensure sortability and five digits as a
-                #       compromize between short/-er filenames and possible tiny
-                #       upload sizes, resulting in many chunks.
-                chunk_file_name = f'c{chunk_no:05d}.bin'
+                chunk_file_name = f'{f.name}.chunk{chunk_no:09d}.bin'
 
                 chunk_bytes = f.read(chunk_byte_size)
                 if chunk_bytes is None or len(chunk_bytes) == 0:
@@ -260,7 +259,6 @@ class MoodleAPIBase(metaclass=ABCMeta):
 
         upload_metadata_return = {key: upload_metadata_collector[key] for key in self.MOODLE_UPLOAD_FILE_FIELDS}
         upload_metadata_return["filename"] = file.name
-        upload_metadata_return["chunks"] = chunk_files
 
         return upload_metadata_return
 
@@ -413,9 +411,12 @@ class MoodleAPIBase(metaclass=ABCMeta):
         upload_metadata = None
         if filesize <= self.max_upload_bytes:
             upload_metadata = self._single_upload(file)
+            upload_metadata[self.MOODLE_UPLOAD_ARTIFACT_COUNT_FIELD] = 1
         else:
-            self.logger.info(f'File exceeds maximal upload size of {self.max_upload_bytes} bytes and will be uploaded in {math.ceil(filesize/self.max_upload_bytes):d} chunks')
+            chunk_count = math.ceil(filesize/self.max_upload_bytes)
+            self.logger.info(f'File exceeds maximal upload size of {self.max_upload_bytes} bytes and will be uploaded in {chunk_count:d} chunks')
             upload_metadata = self._chunked_upload(file, chunk_byte_size=self.max_upload_bytes)
+            upload_metadata[self.MOODLE_UPLOAD_ARTIFACT_COUNT_FIELD] = chunk_count
 
         return upload_metadata
 
@@ -510,7 +511,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
             filepath: str,
             itemid: int,
             sha256sum: str,
-            chunks: List[str] | None = None
+            artifactcount: int
     ) -> bool:
         """
         Calls the Moodle webservice function to process an uploaded artifact
@@ -525,7 +526,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
         :param filepath: Moodle File API filepath
         :param itemid: Moodle File API itemid
         :param sha256sum: SHA256 checksum of the artifact file
-        :param chunks: optional file names of individually uploaded chunks
+        :param artifactcount: number of individually uploaded files (indicates chunked file upload if value > 1)
 
         :return: True on success
 

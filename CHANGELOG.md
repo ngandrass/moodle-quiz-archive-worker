@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 4.0.2 (2026-05-12)
 
 - Update Python dependencies
   - Fix CVE-2026-44432 in `urllib3` package

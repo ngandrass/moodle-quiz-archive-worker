@@ -1,5 +1,13 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix CVE-2026-44432 in `urllib3` package
+  - Fix CVE-2026-41314, CVE-2026-41312, CVE-2026-41313, CVE-2026-41168 in `pypdf` package
+  - Fix CVE-2025-71176 in `pytest` package
+
+
 ## Version 4.0.1 (2026-04-14)
 
 - Update Python dependencies

@@ -131,8 +131,11 @@ class QuizArchiverMoodleAPI(MoodleAPIBase):
         except Exception:
             raise ConnectionError(f'Failed to get status of backup {backupid} for job {jobid}')
 
+        # Check if Moodle wsfunction returned an error or exception
         if 'errorcode' in response and 'debuginfo' in response:
             raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_GET_BACKUP} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+        if 'exception' in response and 'messaeg' in response:
+            raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_GET_BACKUP} returned an exception "{response["exception"]}". Message: {response["message"]}')
 
         if response['status'] == MoodleBackupStatus.PENDING:
             return MoodleBackupStatus.PENDING

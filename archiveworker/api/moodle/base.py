@@ -165,9 +165,17 @@ class MoodleAPIBase(metaclass=ABCMeta):
         if 'errorcode' in response and 'debuginfo' in response:
             self.logger.debug(f'Upload response: {response}')
             raise RuntimeError(f'Moodle webservice upload returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+        if 'exception' in response and 'message' in response:
+            self.logger.debug(f'Upload response: {response}')
+            raise RuntimeError(f'Moodle webservice upload returned an exception "{response["exception"]}". Message: {response["message"]}')
 
         # Validate response
         for uploaded_file_metadata in response:
+
+            if 'error' in uploaded_file_metadata and 'errortype' in uploaded_file_metadata:
+                self.logger.debug(f'Upload response: {response}')
+                raise ValueError(f'Moodle webservice upload returned error "{uploaded_file_metadata['error']}" of type "{uploaded_file_metadata['errortype']}" ')
+
             for key in self.MOODLE_UPLOAD_FILE_FIELDS:
                 if key not in uploaded_file_metadata:
                     self.logger.debug(f'Upload response: {response}')

@@ -248,6 +248,23 @@ class TestUploadFile:
         with pytest.raises(RuntimeError) as exc_info:
             moodle_base_api.upload_file(small_test_file)
 
+    def test_moodle_upload_exception(self, moodle_base_api, mock_session, small_test_file):
+        """
+        Test that a Moodle API error response (with exception and message) raises RuntimeError.
+        """
+        # Arrange
+        error_response = Mock()
+        error_response.status_code = 400
+        error_response.json.return_value = {
+            'exception': 'error',
+            'message': 'Class "Exception" has no method "just_fix_it".'
+        }
+        mock_session.post.return_value = error_response
+
+        # Act + Assert
+        with pytest.raises(RuntimeError) as exc_info:
+            moodle_base_api.upload_file(small_test_file)
+
 class TestDownloadMoodleFile:
     """
     TODO: implement

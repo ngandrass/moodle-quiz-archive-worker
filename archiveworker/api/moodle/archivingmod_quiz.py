@@ -325,9 +325,11 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
         except Exception:
             ConnectionError(f'Failed to call upload processing hook "{self.MOODLE_WSFUNCTION_PROESS_UPLOAD}" at "{self.ws_rest_url}"')
 
-        # Check if Moodle wsfunction returned an error
+        # Check if Moodle wsfunction returned an error or exception
         if 'errorcode' in response and 'debuginfo' in response:
             raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+        if 'exception' in response and 'message' in response:
+            raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned an exception "{response["exception"]}". Message: {response["message"]}')
 
         # Check that everything went smoothly on the Moodle side (not that we could change anything here...)
         if response['status'] != 'OK':

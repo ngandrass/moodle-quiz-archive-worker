@@ -32,7 +32,7 @@ jobs:
 
       - name: Initialize playwright
         run: |
-          poetry run playwright install chromium
+          poetry run playwright install --only-shell chromium
 
       - name: Test with pytest
         run: |

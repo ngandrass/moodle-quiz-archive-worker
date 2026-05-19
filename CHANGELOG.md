@@ -2,6 +2,7 @@
 
 ## Version X.Y.Z (YYYY-MM-DD)
 
+- ci: Optimize Playwright installation in PyTest container
 - ci: Update Python base image used for PyTest to v3.13
 
 

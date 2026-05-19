@@ -1,5 +1,10 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- ci: Update Python base image used for PyTest to v3.13
+
+
 ## Version 4.0.2 (2026-05-12)
 
 - Update Python dependencies

@@ -1,0 +1,22 @@
+# Run unit tests with pytest in GitLab CI
+
+stages:
+  - test
+
+pytest:
+  stage: test
+  image: python:3.13
+  before_script:
+    - pip install pipx
+    - pipx install poetry
+    - export PATH="$PATH:/root/.local/bin"
+    - poetry config virtualenvs.create false
+    - poetry install --no-root --with dev
+    - poetry run playwright install --only-shell chromium
+    - poetry run playwright install-deps chromium-headless-shell
+  script:
+    - poetry run pytest
+  only:
+    - master
+    - develop
+    - merge_requests

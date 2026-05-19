@@ -6,7 +6,7 @@
 - ci: Update Python base image used for PyTest to v3.13
 - ci: Create GitLab CI definition for unit test execution
 - Add automatic chunking when uploading large files to moodle
-- Allow passing of php xdebug session id via the environment variable `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION` for developlemnt purposes
+- Allow passing of php xdebug session id via the environment variable `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION` for development purposes
 
 
 ## Version 4.0.2 (2026-05-12)

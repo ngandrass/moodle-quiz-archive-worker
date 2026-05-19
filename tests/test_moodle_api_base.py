@@ -31,6 +31,12 @@ def mock_session():
 
 @pytest.fixture
 def max_upload_bytes():
+    """
+    This fixture provides a mock maximum byte upload size value for this test
+    suite to use when testing behaviour about conforming to or exceeding this
+    hard limit. The value is arbitrarily chosen, but intentionally small
+    compared to the default 512 MiB value of default moodle configurations.
+    """
     return 1024*1024*5 # 5 MiB
 
 @pytest.fixture(autouse=False)

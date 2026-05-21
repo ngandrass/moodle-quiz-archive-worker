@@ -2,9 +2,11 @@
 
 ## Version X.Y.Z (YYYY-MM-DD)
 
+- Automatically split large archive uploads into chunks, respecting the maximum upload filesize of Moodle
 - ci: Optimize Playwright installation in PyTest container
 - ci: Update Python base image used for PyTest to v3.13
 - ci: Create GitLab CI definition for unit test execution
+- Allow passing of php xdebug session id via the environment variable `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION` for development purposes
 
 
 ## Version 4.0.2 (2026-05-12)

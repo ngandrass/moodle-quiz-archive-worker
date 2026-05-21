@@ -278,7 +278,8 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
             filename: str,
             filepath: str,
             itemid: int,
-            sha256sum: str
+            sha256sum: str,
+            artifactcount: int
     ) -> bool:
         """
         Calls the Moodle webservice function to process an uploaded artifact
@@ -293,6 +294,7 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
         :param filepath: Moodle File API filepath
         :param itemid: Moodle File API itemid
         :param sha256sum: SHA256 checksum of the artifact file
+        :param artifactcount: number of individually uploaded files (indicates chunked file upload if value > 1)
 
         :return: True on success
 
@@ -316,15 +318,18 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
                     artifact_filepath=filepath,
                     artifact_itemid=itemid,
                     artifact_sha256sum=sha256sum,
+                    artifact_count=artifactcount,
                 )
             )
             response = r.json()
         except Exception:
             ConnectionError(f'Failed to call upload processing hook "{self.MOODLE_WSFUNCTION_PROESS_UPLOAD}" at "{self.ws_rest_url}"')
 
-        # Check if Moodle wsfunction returned an error
+        # Check if Moodle wsfunction returned an error or exception
         if 'errorcode' in response and 'debuginfo' in response:
             raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+        if 'exception' in response and 'message' in response:
+            raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned an exception "{response["exception"]}". Message: {response["message"]}')
 
         # Check that everything went smoothly on the Moodle side (not that we could change anything here...)
         if response['status'] != 'OK':

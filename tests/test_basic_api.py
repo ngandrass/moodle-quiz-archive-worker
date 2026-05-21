@@ -326,6 +326,7 @@ class TestBasicAPIWithMockedMoodleAPI:
         'moodle_base_url',
         'moodle_ws_url',
         'moodle_upload_url',
+        'moodle_max_upload_bytes',
         'wstoken',
         'courseid',
         'cmid',

@@ -17,7 +17,9 @@
 import hashlib
 import json
 import logging
+import math
 import os
+from io import BytesIO
 from abc import ABCMeta, abstractmethod
 from json import JSONDecodeError
 from pathlib import Path
@@ -38,6 +40,8 @@ class MoodleAPIBase(metaclass=ABCMeta):
     MOODLE_UPLOAD_FILE_FIELDS = ['component', 'contextid', 'userid', 'filearea', 'filename', 'filepath', 'itemid']
     """Keys that are present in the response for each file, received after uploading a file to Moodle"""
 
+    MOODLE_UPLOAD_ARTIFACT_COUNT_FIELD = 'artifactcount'
+
     REQUEST_TIMEOUTS = (10, 60)
     """Tuple of connection and read timeouts for default requests to the Moodle API in seconds"""
 
@@ -50,7 +54,14 @@ class MoodleAPIBase(metaclass=ABCMeta):
     FILENAME_FORBIDDEN_CHARACTERS = FOLDERNAME_FORBIDDEN_CHARACTERS + ["/"]
     """List of characters that are forbidden inside a file name"""
 
-    def __init__(self, base_url: str, ws_rest_url: str, ws_upload_url: str, wstoken: str):
+    def __init__(
+            self,
+            base_url: str,
+            ws_rest_url: str,
+            ws_upload_url: str,
+            wstoken: str,
+            max_upload_bytes: int
+    ):
         """
         Initialize the Moodle API adapter
 
@@ -58,6 +69,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
         :param ws_rest_url: Full URL to the REST endpoint of the Moodle Web Service API
         :param ws_upload_url: Full URL to the upload endpoint of the Moodle Web Service API
         :param wstoken: Web Service token to authenticate with at the Moodle API
+        :param max_upload_bytes: The maximum size of files that can be uploaded to the REST endpoint of the Moodle Web Service API
         """
         self.logger = logging.getLogger(f"{__name__}")
 
@@ -65,6 +77,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
         self.ws_rest_url = ws_rest_url
         self.ws_upload_url = ws_upload_url
         self.wstoken = wstoken
+        self.max_upload_bytes = max_upload_bytes
         self.restformat = 'json'
         self._validate_properties()
 
@@ -121,6 +134,141 @@ class MoodleAPIBase(metaclass=ABCMeta):
             'token': self.wstoken,
             **kwargs
         }
+
+    def _upload_to_moodle(self, files: Dict[str, any], data: Dict[str, any]) -> List[Dict[str, any]]:
+        """
+        Uploads a file to the Moodle API. Uploaded files will be stored in a
+        temporary file area. The precise location can be found in the returned
+        metadata.
+
+        :param files: Mapping of file identifier to readable filehandle for POST request file upload
+        :param data: Dictionary auf data for POST request body
+        :return: List of dictionaries for each uploaded file, containing metadata about that file according to the self.MOODLE_UPLOAD_FILE_FIELDS at least
+        :raises ConnectionError: if the upload failed due to network issues
+        :raises RuntimeError: if the Moodle webservice API reported an error
+        :raises ValueError: if the metadata response from the Moodle webservice API was incomplete or invalid
+        """
+
+        response = None
+        try:
+            r = self.session.post(
+                url=self.ws_upload_url,
+                timeout=self.REQUEST_TIMEOUTS_EXTENDED,
+                files=files,
+                data=data
+            )
+            response = r.json()
+        except Exception as e:
+            raise ConnectionError(f'Failed to upload file to "{self.ws_upload_url}". Exception: {str(e)}. Response: {r.text}')
+
+        # Check if upload failed
+        if 'errorcode' in response and 'debuginfo' in response:
+            self.logger.debug(f'Upload response: {response}')
+            raise RuntimeError(f'Moodle webservice upload returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+        if 'exception' in response and 'message' in response:
+            self.logger.debug(f'Upload response: {response}')
+            raise RuntimeError(f'Moodle webservice upload returned an exception "{response["exception"]}". Message: {response["message"]}')
+
+        # Validate response
+        for uploaded_file_metadata in response:
+
+            if 'error' in uploaded_file_metadata and 'errortype' in uploaded_file_metadata:
+                self.logger.debug(f'Upload response: {response}')
+                raise ValueError(f'Moodle webservice upload returned error "{uploaded_file_metadata['error']}" of type "{uploaded_file_metadata['errortype']}" ')
+
+            for key in self.MOODLE_UPLOAD_FILE_FIELDS:
+                if key not in uploaded_file_metadata:
+                    self.logger.debug(f'Upload response: {response}')
+                    raise ValueError('Moodle webservice upload returned an invalid response')
+
+        return response
+
+    def _single_upload(self, file: Path) -> Dict[str, any]:
+        """
+        Uploads a single file to the Moodle API. Uploaded file will be stored in
+        a temporary file area. The precise location can be found in the returned
+        metadata.
+
+        :param file: Path of file to be uploaded
+        :return: Dictionary of file upload metadata at least according to the self.MOODLE_UPLOAD_FILE_FIELDS
+        :raises ConnectionError: if the upload failed due to network issues
+        :raises RuntimeError: if the Moodle webservice API reported an error
+        :raises ValueError: if the metadata response from the Moodle webservice API was incomplete or invalid
+        """
+
+        upload_metadata = None
+        with open(file, "rb") as f:
+            upload_metadata = self._upload_to_moodle(
+                files={'file_1': f},
+                data=self._generate_file_request_params(filepath='/', itemid=0)
+            )
+            if len(upload_metadata) == 0:
+                raise ValueError("Moodle webservice upload returned no file metadata")
+            if len(upload_metadata) > 1:
+                raise ValueError("Moodle webservice upload returned multiple file metadata unexpectedly")
+            upload_metadata = upload_metadata[0]
+
+        return {key: upload_metadata[key] for key in self.MOODLE_UPLOAD_FILE_FIELDS}
+
+    def _chunked_upload(self, file: Path, chunk_byte_size: int) -> Dict[str, any]:
+        """
+        Uploads a single file to the Moodle API in multiple chunks of given
+        size. Uploaded files will be stored in a temporary file area. The
+        precise location can be found in the returned metadata. Chunkes then
+        must be reasambled by a Moodle service.
+
+        :param file: Path of file to be uploaded
+        :return: Dictionary of file upload metadata at least according to the self.MOODLE_UPLOAD_FILE_FIELDS, with additional chunking information
+        :raises ConnectionError: if the upload failed due to network issues
+        :raises RuntimeError: if the Moodle webservice API reported an error
+        :raises ValueError: if the metadata response from the Moodle webservice API was incomplete or invalid
+        """
+
+        upload_metadata_collector = {}
+        chunk_files = []
+
+        with open(file, "rb") as f:
+            chunk_no = 0
+            moodle_item_id = 0
+            while True:
+                chunk_file_name = f'{f.name}.chunk{chunk_no:09d}.bin'
+
+                chunk_bytes = f.read(chunk_byte_size)
+                if chunk_bytes is None or len(chunk_bytes) == 0:
+                    break
+
+                self.logger.info(f'Uploading chunk {chunk_no} file "{chunk_file_name}" (size: {len(chunk_bytes)} bytes)')
+
+                chunk_files.append(chunk_file_name)
+                upload_metadata = self._upload_to_moodle(
+                    files={
+                        f'chunk_{chunk_no}': (
+                            chunk_file_name,
+                            BytesIO(chunk_bytes),
+                            'application/octet-stream'
+                        )
+                    },
+                    data=self._generate_file_request_params(filepath='/', itemid=moodle_item_id)
+                )
+                if len(upload_metadata) == 0:
+                    raise ValueError("Moodle webservice upload returned no file metadata")
+                if len(upload_metadata) > 1:
+                    raise ValueError("Moodle webservice upload returned multiple file metadata unexpectedly")
+                upload_metadata = upload_metadata[0]
+
+                for k, v in upload_metadata.items():
+                    if k not in upload_metadata_collector or upload_metadata_collector[k] != v:
+                        upload_metadata_collector[k] = v
+
+                if moodle_item_id == 0:
+                    moodle_item_id = upload_metadata["itemid"]
+
+                chunk_no += 1
+
+        upload_metadata_return = {key: upload_metadata_collector[key] for key in self.MOODLE_UPLOAD_FILE_FIELDS}
+        upload_metadata_return["filename"] = file.name
+
+        return upload_metadata_return
 
     def check_connection(self) -> bool:
         """
@@ -252,47 +400,33 @@ class MoodleAPIBase(metaclass=ABCMeta):
         """
         Uploads a file to the Moodle API. Uploaded files will be stored in a
         temporary file area. The precise location can be found in the returned
-        metadata.
+        metadata. If the file is too large to be uploaded in one go, it will be
+        chunked into multiple files that need to be reassembled by a Moodle
+        service afterwards.
 
         :param file: Path to the file to upload
-        :return: Dictionary with metadata about the uploaded file, according
-        to self.MOODLE_UPLOAD_FILE_FIELDS
+        :return: Dictionary with metadata about the uploaded file, according to self.MOODLE_UPLOAD_FILE_FIELDS
         :raises ConnectionError: if the upload failed due to network issues
         :raises RuntimeError: if the Moodle webservice API reported an error
-        :raises ValueError: if the metadata response from the Moodle webservice
-        API was incomplete or invalid
+        :raises ValueError: if the metadata response from the Moodle webservice API was incomplete or invalid
         """
 
-        with open(file, "rb") as f:
-            try:
-                file_stats = os.stat(file)
-                filesize = file_stats.st_size
-                self.logger.info(f'Uploading file "{file}" (size: {filesize} bytes) to "{self.ws_upload_url}"')
+        file_stats = os.stat(file)
+        filesize = file_stats.st_size
 
-                r = self.session.post(
-                    url=self.ws_upload_url,
-                    timeout=self.REQUEST_TIMEOUTS_EXTENDED,
-                    files={'file_1': f},
-                    data=self._generate_file_request_params(filepath='/', itemid=0)
-                )
-                response = r.json()
-            except Exception as e:
-                raise ConnectionError(f'Failed to upload file to "{self.ws_upload_url}". Exception: {str(e)}. Response: {r.text}')
+        self.logger.info(f'Uploading file "{file}" (size: {filesize} bytes) to "{self.ws_upload_url}"')
 
-        # Check if upload failed
-        if 'errorcode' in response and 'debuginfo' in response:
-            self.logger.debug(f'Upload response: {response}')
-            raise RuntimeError(f'Moodle webservice upload returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+        upload_metadata = None
+        if filesize <= self.max_upload_bytes:
+            upload_metadata = self._single_upload(file)
+            upload_metadata[self.MOODLE_UPLOAD_ARTIFACT_COUNT_FIELD] = 1
+        else:
+            chunk_count = math.ceil(filesize/self.max_upload_bytes)
+            self.logger.info(f'File exceeds maximal upload size of {self.max_upload_bytes} bytes and will be uploaded in {chunk_count:d} chunks')
+            upload_metadata = self._chunked_upload(file, chunk_byte_size=self.max_upload_bytes)
+            upload_metadata[self.MOODLE_UPLOAD_ARTIFACT_COUNT_FIELD] = chunk_count
 
-        # Validate response
-        upload_metadata = response[0]
-        for key in self.MOODLE_UPLOAD_FILE_FIELDS:
-            if key not in upload_metadata:
-                self.logger.debug(f'Upload response: {response}')
-                raise ValueError(f'Moodle webservice upload returned an invalid response')
-
-        # Return metadata
-        return {key: upload_metadata[key] for key in self.MOODLE_UPLOAD_FILE_FIELDS}
+        return upload_metadata
 
     @abstractmethod
     def _get_check_connection_wsfunction_name(self) -> str:
@@ -384,7 +518,8 @@ class MoodleAPIBase(metaclass=ABCMeta):
             filename: str,
             filepath: str,
             itemid: int,
-            sha256sum: str
+            sha256sum: str,
+            artifactcount: int
     ) -> bool:
         """
         Calls the Moodle webservice function to process an uploaded artifact
@@ -399,6 +534,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
         :param filepath: Moodle File API filepath
         :param itemid: Moodle File API itemid
         :param sha256sum: SHA256 checksum of the artifact file
+        :param artifactcount: number of individually uploaded files (indicates chunked file upload if value > 1)
 
         :return: True on success
 

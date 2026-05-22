@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 4.0.3 (2026-05-22)
 
 - ci: Optimize Playwright installation in PyTest container
 - ci: Update Python base image used for PyTest to v3.13

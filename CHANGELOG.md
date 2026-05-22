@@ -5,6 +5,8 @@
 - ci: Optimize Playwright installation in PyTest container
 - ci: Update Python base image used for PyTest to v3.13
 - ci: Create GitLab CI definition for unit test execution
+- Bump PyTest to v9
+- Update Python dependencies
 
 
 ## Version 4.0.2 (2026-05-12)

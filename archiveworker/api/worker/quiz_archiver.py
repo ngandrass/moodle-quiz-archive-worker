@@ -77,6 +77,7 @@ class QuizArchiverArchiveRequest(ArchiveRequest):
                 fetch_attachments=True if json['task_archive_quiz_attempts']['sections']['attachments'] == '1' else False,
                 paper_format=PaperFormat[json['task_archive_quiz_attempts']['paper_format']],
                 keep_html_files=json['task_archive_quiz_attempts']['keep_html_files'],
+                flatten_archive=json['task_archive_quiz_attempts']['flatten_archive'],
                 foldername_pattern=json['task_archive_quiz_attempts']['foldername_pattern'],
                 filename_pattern=json['task_archive_quiz_attempts']['filename_pattern'],
                 image_optimize=True if image_optimize_data else False,

@@ -72,6 +72,7 @@ class ArchivingmodQuizArchiveRequest(ArchiveRequest):
             fetch_attachments=json['job']['fetch_attachments'],
             paper_format=PaperFormat[json['job']['paper_format']],
             keep_html_files=json['job']['keep_html_files'],
+            flatten_archive=json['job']['flatten_archive'],
             foldername_pattern=json['job']['foldername_pattern'],
             filename_pattern=json['job']['filename_pattern'],
             image_optimize=True if image_optimize_data else False,

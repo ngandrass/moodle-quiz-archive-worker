@@ -96,6 +96,7 @@ class ArchiveJobDescriptor:
         fetch_attachments: bool,
         paper_format: PaperFormat,
         keep_html_files: bool,
+        flatten_archive: bool,
         foldername_pattern: str,
         filename_pattern: str,
         image_optimize: bool,
@@ -139,6 +140,7 @@ class ArchiveJobDescriptor:
             'fetch_attachments': fetch_attachments,
             'paper_format': paper_format,
             'keep_html_files': keep_html_files,
+            'flatten_archive': flatten_archive,
             'foldername_pattern': foldername_pattern,
             'filename_pattern': filename_pattern,
             'image_optimize': {

@@ -1,5 +1,11 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Update Python dependencies
+  - Fix various CVEs in `pypdf` package
+
+
 ## Version 4.0.3 (2026-05-22)
 
 - ci: Optimize Playwright installation in PyTest container

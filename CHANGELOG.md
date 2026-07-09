@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 4.0.4 (2026-07-09)
 
 - Update Python dependencies
   - Fix various CVEs in `pypdf` package

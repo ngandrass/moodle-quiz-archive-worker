@@ -168,7 +168,7 @@ class QuizArchiveJob:
 
                     QuizArchiveBuilder(
                         self._archive_organizer,
-                        True, # TODO: Make configurable through another archive export setting?
+                        self.descr.tasks['quiz_attempts']['include_filehashes'],
                         Config.ZIP_COMPRESSION_ALGO
                     ).write(self.workspace, archive_file_path)
 

@@ -80,6 +80,7 @@ class QuizArchiverArchiveRequest(ArchiveRequest):
                 flatten_archive=json['task_archive_quiz_attempts']['flatten_archive'],
                 foldername_pattern=json['task_archive_quiz_attempts']['foldername_pattern'],
                 filename_pattern=json['task_archive_quiz_attempts']['filename_pattern'],
+                include_filehashes=json['task_archive_quiz_attempts']['include_filehashes'],
                 image_optimize=True if image_optimize_data else False,
                 image_optimize_width=image_optimize_data['width'] if image_optimize_data else None,
                 image_optimize_height=image_optimize_data['height'] if image_optimize_data else None,

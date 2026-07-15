@@ -75,6 +75,7 @@ class ArchivingmodQuizArchiveRequest(ArchiveRequest):
             flatten_archive=json['job']['flatten_archive'],
             foldername_pattern=json['job']['foldername_pattern'],
             filename_pattern=json['job']['filename_pattern'],
+            include_filehashes=json['job']['include_filehashes'],
             image_optimize=True if image_optimize_data else False,
             image_optimize_width=image_optimize_data['width'] if image_optimize_data else None,
             image_optimize_height=image_optimize_data['height'] if image_optimize_data else None,

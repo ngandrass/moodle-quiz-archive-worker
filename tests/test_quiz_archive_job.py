@@ -64,6 +64,8 @@ class TestQuizArchiveJob:
                 wstoken="opensesame",
             ),
             archive_filename="foo",
+            archive_flatten=False,
+            archive_filehashes=True,
             quizid=1,
             cmid=1,
             courseid=1
@@ -360,7 +362,7 @@ class TestQuizArchiveJob:
                         assert not os.path.isfile(fbase+'.html.sha256'), 'Unexpected HTML SHA256 file in artifact'
 
                         actualnumattempts += 1
-                        actualattemptdirs += [f'attempts/{attemptdir.name}/attempt']
+                        actualattemptdirs += [f'/attempts/{attemptdir.name}/attempt.pdf']
 
                     # Ensure that all attempts are present
                     assert actualnumattempts == expectednumattempts, f'Expected {expectednumattempts} attempts, found {actualnumattempts}'

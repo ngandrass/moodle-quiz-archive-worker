@@ -48,7 +48,9 @@ ARCHIVE_API_REQUEST = {
         "image_optimize": False,
     },
     "task_moodle_backups": False,
-    "archive_filename": "archive"
+    "archive_filename": "archive",
+    "archive_flatten": False,
+    "archive_filehashes": True,
 }
 
 

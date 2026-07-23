@@ -46,7 +46,9 @@ ARCHIVE_API_REQUEST = {
         "image_optimize": False,
     },
     "task_moodle_backups": False,
-    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12"
+    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12",
+    "archive_flatten": False,
+    "archive_filehashes": True,
 }
 
 

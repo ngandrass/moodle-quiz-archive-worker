@@ -188,8 +188,7 @@ class MoodleAPIMockBase:
     def download_moodle_file(
             self,
             download_url: str,
-            target_path: Path,
-            target_filename: str,
+            target_file: Path,
             sha1sum_expected: str = None,
             maxsize_bytes: int = Config.DOWNLOAD_MAX_FILESIZE_BYTES
     ) -> int:

@@ -79,7 +79,9 @@ ARCHIVE_API_REQUEST = {
             "file_download_url":"http://localhost/webservice/pluginfile.php/64/backup/course/quiz_archiver-course-backup-9.mbz"
         }
     ],
-    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12"
+    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12",
+    "archive_flatten": False,
+    "archive_filehashes": True,
 }
 
 
@@ -117,13 +119,11 @@ class MoodleAPIMock(MoodleAPIMockBase):
     def download_moodle_file(
             self,
             download_url: str,
-            target_path: Path,
-            target_filename: str,
+            target_file: Path,
             sha1sum_expected: str = None,
             maxsize_bytes: int = Config.DOWNLOAD_MAX_FILESIZE_BYTES
     ) -> int:
         # Lookup file
-        target_file = os.path.join(target_path, target_filename)
         source_file = None
         if download_url == ARCHIVE_API_REQUEST['task_moodle_backups'][0]['file_download_url']:
             source_file = f'{self.RESOURCE_BASE}/backups/{ARCHIVE_API_REQUEST['task_moodle_backups'][0]["filename"]}'
@@ -135,6 +135,6 @@ class MoodleAPIMock(MoodleAPIMockBase):
             raise RuntimeError(f'Unexpected download URL: {download_url}')
 
         # "Download" file to target location
-        os.makedirs(target_path, exist_ok=True)
+        os.makedirs(target_file.parent.absolute(), exist_ok=True)
         shutil.copy2(source_file, target_file)
         return os.path.getsize(target_file)

@@ -282,7 +282,7 @@ class QuizArchiveJob:
             html_report = attempt_artifact.html_report(f"{attempt_name}.html")
             with open(html_report.path, "w+") as f:
                 f.write(attempt_html)
-            self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {attempt_artifact.path}")
+            self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {html_report.path}")
         else:
             self.logger.debug(f"Skipping HTML DOM saving of quiz attempt {attemptid}")
 
@@ -693,10 +693,11 @@ class QuizArchiveJob:
             for artifact in self.workspace.get_artifacts(type_filter=AttemptArtifact.PdfReport)
         }
         for entry in metadata:
-            if entry['attemptid'] not in attempt_artifacts.keys():
+            attempt_id = int(entry['attemptid'])
+            if attempt_id not in attempt_artifacts.keys():
                 raise RuntimeError("Attempt artifact is missing from workspace to populate quiz attempts metadata")
-            (file_path, file_name) = self._archive_organizer.organize(attempt_artifacts[entry['attemptid']])
-            entry['filepath'] = f'{file_path}/{file_name}'
+            (file_path, file_name) = self._archive_organizer.organize(attempt_artifacts[attempt_id])
+            entry['path'] = f'{file_path}/{file_name}'
 
         # Write metadata to CSV file
         attempts_metadata_artifact = self.workspace.file('attempts_metadata.csv')
@@ -825,4 +826,3 @@ class QuizArchiveJob:
             **upload_medata
         )
         self.logger.info('Processed uploaded artifact successfully.')
-

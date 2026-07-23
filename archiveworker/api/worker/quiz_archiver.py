@@ -56,7 +56,9 @@ class QuizArchiverArchiveRequest(ArchiveRequest):
             courseid=json['courseid'],
             cmid=json['cmid'],
             quizid=json['quizid'],
-            archive_filename=json['archive_filename']
+            archive_filename=json['archive_filename'],
+            archive_flatten=json['archive_flatten'],
+            archive_filehashes=json['archive_filehashes']
         )
 
         # Add archive quiz attempts task
@@ -77,10 +79,8 @@ class QuizArchiverArchiveRequest(ArchiveRequest):
                 fetch_attachments=True if json['task_archive_quiz_attempts']['sections']['attachments'] == '1' else False,
                 paper_format=PaperFormat[json['task_archive_quiz_attempts']['paper_format']],
                 keep_html_files=json['task_archive_quiz_attempts']['keep_html_files'],
-                flatten_archive=json['task_archive_quiz_attempts']['flatten_archive'],
                 foldername_pattern=json['task_archive_quiz_attempts']['foldername_pattern'],
                 filename_pattern=json['task_archive_quiz_attempts']['filename_pattern'],
-                include_filehashes=json['task_archive_quiz_attempts']['include_filehashes'],
                 image_optimize=True if image_optimize_data else False,
                 image_optimize_width=image_optimize_data['width'] if image_optimize_data else None,
                 image_optimize_height=image_optimize_data['height'] if image_optimize_data else None,

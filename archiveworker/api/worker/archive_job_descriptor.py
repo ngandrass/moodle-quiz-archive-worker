@@ -42,6 +42,8 @@ class ArchiveJobDescriptor:
         self,
         moodle_api: 'MoodleAPIBase',
         archive_filename: str,
+        archive_flatten: bool,
+        archive_filehashes: bool,
         taskid: int = None,
         courseid: int = None,
         cmid: int = None,
@@ -57,6 +59,9 @@ class ArchiveJobDescriptor:
         self.cmid = int(cmid) if cmid else None
         self.quizid = int(quizid) if quizid else None
         self.archive_filename = archive_filename
+        self.archive_flatten = archive_flatten
+        self.archive_filehashes = archive_filehashes
+
         self.tasks = {
             'quiz_attempts': None,
             'moodle_backups': None
@@ -96,10 +101,8 @@ class ArchiveJobDescriptor:
         fetch_attachments: bool,
         paper_format: PaperFormat,
         keep_html_files: bool,
-        flatten_archive: bool,
         foldername_pattern: str,
         filename_pattern: str,
-        include_filehashes: bool,
         image_optimize: bool,
         image_optimize_width: int = None,
         image_optimize_height: int = None,
@@ -141,10 +144,8 @@ class ArchiveJobDescriptor:
             'fetch_attachments': fetch_attachments,
             'paper_format': paper_format,
             'keep_html_files': keep_html_files,
-            'flatten_archive': flatten_archive,
             'foldername_pattern': foldername_pattern,
             'filename_pattern': filename_pattern,
-            'include_filehashes': include_filehashes,
             'image_optimize': {
                 'width': image_optimize_width,
                 'height': image_optimize_height,

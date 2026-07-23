@@ -58,7 +58,7 @@ class QuizArchiveJob:
         self.workspace: Workspace = None
         self._archive_organizer = (
             FlatArchiveOrganizer()
-            if descriptor.tasks['quiz_attempts']['flatten_archive']
+            if descriptor.archive_flatten
             else HirarchicalArchiveOrganizer()
         )
         self.archived_attempts_count = 0
@@ -168,7 +168,7 @@ class QuizArchiveJob:
 
                     QuizArchiveBuilder(
                         self._archive_organizer,
-                        self.descr.tasks['quiz_attempts']['include_filehashes'],
+                        self.descr.archive_filehashes,
                         Config.ZIP_COMPRESSION_ALGO
                     ).write(self.workspace, archive_file_path)
 

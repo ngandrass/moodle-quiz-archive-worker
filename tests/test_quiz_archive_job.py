@@ -22,6 +22,7 @@ import tempfile
 import time
 import uuid
 import zipfile
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -221,7 +222,7 @@ class TestQuizArchiveJob:
         """
         with fixtures.reference_quiz_single_attempt.MoodleAPIMock() as mock:
             # Create job and process it
-            jobjson = fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST.copy()
+            jobjson = deepcopy(fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST)
             jobjson['task_archive_quiz_attempts'] = None
             r = client.post('/archive', json=jobjson)
             assert r.status_code == 200
@@ -323,7 +324,7 @@ class TestQuizArchiveJob:
         """
         with fixtures.reference_quiz_two_attempts_foldername_collision.MoodleAPIMock() as mock:
             # Create job and process it
-            jobjson = fixtures.reference_quiz_two_attempts_foldername_collision.ARCHIVE_API_REQUEST.copy()
+            jobjson = deepcopy(fixtures.reference_quiz_two_attempts_foldername_collision.ARCHIVE_API_REQUEST)
             r = client.post('/archive', json=jobjson)
             assert r.status_code == 200
             jobid = r.json['jobid']
@@ -395,7 +396,7 @@ class TestQuizArchiveJob:
             caplog.set_level(logging.DEBUG)
 
             # Create job and process it
-            jobjson = fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST.copy()
+            jobjson = deepcopy(fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST)
             jobjson['task_archive_quiz_attempts']['image_optimize'] = {
                 'width': 64,
                 'height': 64,

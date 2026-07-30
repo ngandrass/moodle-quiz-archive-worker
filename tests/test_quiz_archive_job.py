@@ -155,6 +155,7 @@ class TestQuizArchiveJob:
                 ws_rest_url="http://localhost/webservice/rest/server.php",
                 ws_upload_url="http://localhost/webservice/upload.php",
                 wstoken="opensesame",
+                max_upload_bytes=536870912 # 512 MiB
             ),
             archive_filename="foo",
             archive_flatten=False,

@@ -50,7 +50,8 @@ class QuizArchiverArchiveRequest(ArchiveRequest):
                 json['moodle_base_url'],
                 json['moodle_ws_url'],
                 json['moodle_upload_url'],
-                json['wstoken']
+                json['wstoken'],
+                json['moodle_max_upload_bytes'],
             ),
             taskid=None,
             courseid=json['courseid'],

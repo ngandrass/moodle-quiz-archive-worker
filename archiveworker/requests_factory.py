@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+import logging
 from typing import Dict
 
 import requests
@@ -37,6 +38,12 @@ class RequestsFactory:
         s = requests.Session()
         s.proxies = cls._generate_proxy_settings()
         s.verify = not Config.SKIP_HTTPS_CERT_VALIDATION
+
+        if Config.DEV_XDEBUG_SESSION is not None:
+            logging.getLogger(f"{__name__}").debug(
+                f'Adding php xdebug cookie "XDEBUG_SESSION={Config.DEV_XDEBUG_SESSION}" to any http request header'
+            )
+            s.cookies.set("XDEBUG_SESSION", Config.DEV_XDEBUG_SESSION)
 
         return s
 

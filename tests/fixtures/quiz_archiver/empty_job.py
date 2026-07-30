@@ -22,6 +22,7 @@ ARCHIVE_API_REQUEST = {
     'moodle_base_url': 'http://localhost',
     'moodle_ws_url': 'http://localhost/webservice/rest/server.php',
     'moodle_upload_url': 'http://localhost/webservice/upload.php',
+    'moodle_max_upload_bytes': 536870912, # 512 MiB
     'wstoken': 'opensesame',
     'courseid': 1,
     'cmid': 1,

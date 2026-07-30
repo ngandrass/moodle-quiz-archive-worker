@@ -150,6 +150,9 @@ class Config:
     PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH', default=None, valtype=str)
     """Path to the ghostscript binary that should be used for PDF/A conversion. If left unset, this will be detected automatically."""
 
+    DEV_XDEBUG_SESSION = parse_env_variable('QUIZ_ARCHIVER_DEV_XDEBUG_SESSION', default=None, valtype=str)
+    """For development only: PHP XDEBUG session id to trigger debugging of moodle webservice API calls."""
+
     @staticmethod
     def tostring() -> str:
         """

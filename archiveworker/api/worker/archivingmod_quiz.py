@@ -16,6 +16,7 @@
 
 from archiveworker.api.moodle.archivingmod_quiz import ArchivingmodQuizMoodleAPI
 from archiveworker.type import PaperFormat
+
 from . import ArchiveJobDescriptor, ArchiveRequest
 
 
@@ -49,7 +50,8 @@ class ArchivingmodQuizArchiveRequest(ArchiveRequest):
                 json['moodle_api']['base_url'],
                 json['moodle_api']['webservice_url'],
                 json['moodle_api']['upload_url'],
-                json['moodle_api']['wstoken']
+                json['moodle_api']['wstoken'],
+                json['moodle_api']['max_upload_bytes'],
             ),
             taskid=json['taskid'],
             archive_filename=json['job']['archive_filename'],

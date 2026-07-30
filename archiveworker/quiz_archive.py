@@ -43,22 +43,22 @@ class HirarchicalArchiveOrganizer(ArchiveOrganizer):
         ):
             attempt = artifact.attempt
             return (
-                f"/attempts/{attempt.dir}",
+                f"attempts/{attempt.dir}",
                 artifact.name
             )
         elif isinstance(artifact, AttemptArtifact.Attachment):
             attempt = artifact.attempt
             return (
-                f"/attempts/{attempt.dir}/attachments/{artifact.slot}",
+                f"attempts/{attempt.dir}/attachments/{artifact.slot}",
                 artifact.name
             )
         elif isinstance(artifact, BackupArtifact):
             return (
-                "/backups",
+                "backups",
                 artifact.name
             )
         elif type(artifact) == ArchivingArtifact:
-            return ("/", artifact.name)
+            return ("", artifact.name)
         else:
             raise NotImplementedError(
                 f'Missing organization mapping for class {type(artifact).__name__}'
@@ -148,7 +148,7 @@ class QuizArchiveBuilder:
 
             for artifact in workspace.get_artifacts():
                 (path, name) = self._organizer.organize(artifact)
-                zip_file_name = f'{path}/{name}'
+                zip_file_name = f'{path}/{name}'.lstrip('/')
 
                 # Ensure unique file paths
                 if zip_file_name in file_count:

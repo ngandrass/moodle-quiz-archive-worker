@@ -697,7 +697,7 @@ class QuizArchiveJob:
             if attempt_id not in attempt_artifacts.keys():
                 raise RuntimeError("Attempt artifact is missing from workspace to populate quiz attempts metadata")
             (file_path, file_name) = self._archive_organizer.organize(attempt_artifacts[attempt_id])
-            entry['path'] = f'{file_path}/{file_name}'
+            entry['path'] = f'{file_path}/{file_name}'.lstrip('/')
 
         # Write metadata to CSV file
         attempts_metadata_artifact = self.workspace.file('attempts_metadata.csv')

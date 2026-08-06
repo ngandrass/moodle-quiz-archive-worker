@@ -46,8 +46,10 @@ ARCHIVE_API_REQUEST = {
         "filename_pattern": "attempt-${attemptid}-${username}_${date}-${time}",
         "image_optimize": False,
     },
-    "task_moodle_backups": False,
-    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12"
+    "task_moodle_backups": None,
+    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12",
+    "archive_flatten": False,
+    "archive_filehashes": True,
 }
 
 

@@ -28,6 +28,8 @@ ARCHIVE_API_REQUEST = {
     'cmid': 1,
     'quizid': 1,
     'archive_filename': 'archive',
+    "archive_flatten": False,
+    "archive_filehashes": True,
     'task_archive_quiz_attempts': None,
     'task_moodle_backups': None,
 }

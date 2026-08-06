@@ -16,15 +16,11 @@
 
 import asyncio
 import csv
-import glob
 import hashlib
 import logging
 import os
 import re
-import threading
-import zipfile
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from time import time
 from typing import Dict
 from uuid import UUID
@@ -37,6 +33,10 @@ from config import Config
 from archiveworker.type import JobStatus, ReportSignal, MoodleBackupStatus, PaperFormat
 from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.requests_factory import RequestsFactory
+from archiveworker.workspace import Workspace, AttemptArtifact
+from archiveworker.quiz_archive import QuizArchiveBuilder, HierarchicalArchiveOrganizer, FlatArchiveOrganizer
+from archiveworker.interruptable_thread import raise_error_if_stop_requested
+
 
 DEMOMODE_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/demomode.js')).read()
 READYSIGNAL_JAVASCRIPT = open(os.path.join(os.path.dirname(__file__), '../res/readysignal.js')).read()
@@ -55,8 +55,13 @@ class QuizArchiveJob:
         self.moodle_api = descriptor.moodle_api
         self.statusextras = None
         self.last_moodle_status_update = None
-        self.workdir = None
-        self.archived_attempts = {}
+        self.workspace: Workspace = None
+        self._archive_organizer = (
+            FlatArchiveOrganizer()
+            if descriptor.archive_flatten
+            else HierarchicalArchiveOrganizer()
+        )
+        self.archived_attempts_count = 0
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")
 
         # Limit number of attempts in demo mode
@@ -136,9 +141,9 @@ class QuizArchiveJob:
         self.set_status(JobStatus.RUNNING, statusextras={'progress': 0}, notify_moodle=True)
 
         try:
-            with TemporaryDirectory() as tempdir:
-                self.workdir = tempdir
-                self.logger.debug(f"Using temporary working directory: {self.workdir}")
+            with Workspace() as workspace:
+                self.workspace = workspace
+                self.logger.debug(f"Using temporary workspace directory: {self.workspace.name}")
 
                 # Process task: Archive quiz attempts
                 if self.descr.tasks['quiz_attempts']:
@@ -154,44 +159,31 @@ class QuizArchiveJob:
                 # Transition to state: FINALIZING
                 self.set_status(JobStatus.FINALIZING, notify_moodle=True)
 
-                # Hash every file
-                self.logger.info("Calculating file hashes ...")
-                archive_files = glob.glob(f'{self.workdir}/**/*', recursive=True)
-                for archive_file in archive_files:
-                    if os.path.isfile(archive_file):
-                        with open(archive_file, 'rb') as f:
-                            if threading.current_thread().stop_requested():
-                                raise InterruptedError('Thread stop requested')
-
-                            sha256_hash = hashlib.sha256()
-                            for byte_block in iter(lambda: f.read(4096), b""):
-                                sha256_hash.update(byte_block)
-                            with open(f'{f.name}.sha256', 'w+') as hashfile:
-                                hashfile.write(sha256_hash.hexdigest())
-
                 # Create final archive
                 self.logger.info("Generating final archive ...")
-                with TemporaryDirectory() as zipdir:
-                    # Add files
-                    archive_file = f'{zipdir}/{self.descr.archive_filename}.zip'
-                    with zipfile.ZipFile(archive_file, 'w', Config.ZIP_COMPRESSION_ALGO) as archive:
-                        for root, _, files in os.walk(self.workdir):
-                            for file in files:
-                                file_path = os.path.join(root, file)
-                                arcname = os.path.relpath(file_path, self.workdir)
-                                archive.write(file_path, arcname=arcname)
+                with self.workspace.tmp_dir() as zipdir:
+                    zipdir = Path(zipdir)
+
+                    archive_file_path = Path(zipdir, f'{self.descr.archive_filename}.zip')
+
+                    QuizArchiveBuilder(
+                        self._archive_organizer,
+                        self.descr.archive_filehashes,
+                        Config.ZIP_COMPRESSION_ALGO
+                    ).write(self.workspace, archive_file_path)
 
                     # Calculate checksum
-                    with open(archive_file, 'rb') as f:
-                        if threading.current_thread().stop_requested():
-                            raise InterruptedError('Thread stop requested')
-
+                    with open(archive_file_path, 'rb') as f:
                         archive_sha256sum = hashlib.sha256()
                         for byte_block in iter(lambda: f.read(4096), b""):
+                            raise_error_if_stop_requested()
                             archive_sha256sum.update(byte_block)
 
                     # Push final file to Moodle
-                    self._push_artifact_to_moodle(archive_file, archive_sha256sum.hexdigest())
+                    self._push_artifact_to_moodle(
+                        archive_file_path,
+                        archive_sha256sum.hexdigest()
+                    )
 
         except InterruptedError:
             self.logger.warning(f'Job termination requested. Terminated gracefully.')
@@ -212,7 +204,6 @@ class QuizArchiveJob:
         :return: None
         """
         task = self.descr.tasks['quiz_attempts']
-        os.makedirs(f'{self.workdir}/attempts', exist_ok=True)
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(
@@ -235,37 +226,36 @@ class QuizArchiveJob:
             self.logger.debug("Spawned new playwright Browser and BrowserContext")
 
             for attemptid in task['attemptids']:
-                if threading.current_thread().stop_requested():
-                    raise InterruptedError('Thread stop requested')
-                else:
-                    # Process attempt
-                    quiz_attempt_pdf_path = await self._render_quiz_attempt(
-                        context,
-                        attemptid,
-                        task['paper_format']
-                    )
-                    if task['image_optimize']:
-                        await self._compress_pdf(
-                            file=quiz_attempt_pdf_path,
-                            pdf_compression_level=6,
-                            image_maxwidth=task['image_optimize']['width'],
-                            image_maxheight=task['image_optimize']['height'],
-                            image_quality=task['image_optimize']['quality']
-                        )
-                    if Config.PDFA_CONVERSION:
-                        await self._convert_pdf_to_pdfa(
-                            input_pdf_file=quiz_attempt_pdf_path,
-                        )
+                raise_error_if_stop_requested()
 
-                    # Report status
-                    if time() >= self.last_moodle_status_update + Config.STATUS_REPORTING_INTERVAL_SEC:
-                        self.set_status(
-                            JobStatus.RUNNING,
-                            statusextras={'progress': round((len(self.archived_attempts) / len(task['attemptids'])) * 100)},
-                            notify_moodle=True
-                        )
-                    else:
-                        self.logger.debug("Skipping status update because reporting interval has not been reached yet")
+                # Process attempt
+                quiz_attempt_pdf_path = await self._render_quiz_attempt(
+                    context,
+                    attemptid,
+                    task['paper_format']
+                )
+                if task['image_optimize']:
+                    await self._compress_pdf(
+                        file=quiz_attempt_pdf_path,
+                        pdf_compression_level=6,
+                        image_maxwidth=task['image_optimize']['width'],
+                        image_maxheight=task['image_optimize']['height'],
+                        image_quality=task['image_optimize']['quality']
+                    )
+                if Config.PDFA_CONVERSION:
+                    await self._convert_pdf_to_pdfa(
+                        input_pdf_file=quiz_attempt_pdf_path,
+                    )
+
+                # Report status
+                if time() >= self.last_moodle_status_update + Config.STATUS_REPORTING_INTERVAL_SEC:
+                    self.set_status(
+                        JobStatus.RUNNING,
+                        statusextras={'progress': round((self.archived_attempts_count / len(task['attemptids'])) * 100)},
+                        notify_moodle=True
+                    )
+                else:
+                    self.logger.debug("Skipping status update because reporting interval has not been reached yet")
 
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")
@@ -285,24 +275,14 @@ class QuizArchiveJob:
             attemptid
         )
 
-        # Prepare attempt dir
-        attempts_dir = f"{self.workdir}/attempts"
-        os.makedirs(attempts_dir, exist_ok=True)
-
-        attempt_dir = f"{attempts_dir}/{folder_name}"
-        if os.path.isdir(attempt_dir):
-            # Prepend unique attemptid to folder name if it already exists
-            self.logger.warning(f"Attempt directory '{folder_name}' already exists. Using '{folder_name}_{attemptid}' instead.")
-            folder_name = f"{folder_name}_{attemptid}"
-            attempt_dir = f"{attempts_dir}/{folder_name}"
-
-        os.makedirs(attempt_dir, exist_ok=False)
+        attempt_artifact = self.workspace.attempt(attemptid, attempt_name, folder_name)
 
         # Save HTML DOM, if desired
         if self.descr.tasks['quiz_attempts']['keep_html_files']:
-            with open(f"{attempt_dir}/{attempt_name}.html", "w+") as f:
+            html_report = attempt_artifact.html_report(f"{attempt_name}.html")
+            with open(html_report.path, "w+") as f:
                 f.write(attempt_html)
-            self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {attempt_dir}/{attempt_name}.html")
+            self.logger.debug(f"Saved HTML DOM of quiz attempt {attemptid} to {html_report.path}")
         else:
             self.logger.debug(f"Skipping HTML DOM saving of quiz attempt {attemptid}")
 
@@ -393,9 +373,9 @@ class QuizArchiveJob:
             self.logger.debug('Not waiting for ready signal. Export immediately ...')
 
         # Save attempt page as PDF
-        pdf_render_path = Path(f"{attempt_dir}/{attempt_name}.pdf")
+        pdf_report = attempt_artifact.pdf_report(f"{attempt_name}.pdf")
         await page.pdf(
-            path=pdf_render_path,
+            path=pdf_report.path,
             format=paper_format,
             print_background=True,
             display_header_footer=False,
@@ -413,24 +393,26 @@ class QuizArchiveJob:
 
         # Save attempt attachments
         if attempt_attachments:
-            self.logger.debug(f"Saving {len(attempt_attachments)} attachments ...")
             for attachment in attempt_attachments:
-                target_dir = f"{attempt_dir}/attachments/{attachment['slot']}"
+                self.logger.debug(f"Saving {len(attempt_attachments)} attachments ...")
+
+                attachment_artifact = attempt_artifact.attachment(
+                    attachment['slot'],
+                    attachment['filename']
+                )
 
                 downloaded_bytes = self.moodle_api.download_moodle_file(
                     download_url=attachment['downloadurl'],
-                    target_path=Path(target_dir),
-                    target_filename=attachment['filename'],
+                    target_file=attachment_artifact.path,
                     sha1sum_expected=attachment['contenthash'],
                     maxsize_bytes=Config.QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES
                 )
 
-                self.logger.info(f'Downloaded {downloaded_bytes} bytes of quiz slot {attachment["slot"]} attachment {attachment["filename"]} to {target_dir}')
+                self.logger.info(f'Downloaded {downloaded_bytes} bytes of quiz slot {attachment["slot"]} attachment {attachment["filename"]} to {attachment_artifact.path}')
 
-        # Keep track of processes attempts
-        self.archived_attempts[attemptid] = f"{attempt_dir}/{attempt_name}"
+        self.archived_attempts_count += 1
 
-        return pdf_render_path
+        return pdf_report.path
 
     async def _wait_for_page_ready_signal(self, page) -> None:
         """
@@ -643,7 +625,7 @@ class QuizArchiveJob:
 
         self.logger.debug(f"Converting '{input_pdf_file.absolute()}' to PDF/A")
 
-        with TemporaryDirectory() as tmpdir:
+        with self.workspace.tmp_dir() as tmpdir:
             tmpdir = Path(tmpdir)
             self.logger.debug(f"Using temporary directory for PDF/A conversion: '{tmpdir.absolute()}'.")
 
@@ -706,11 +688,20 @@ class QuizArchiveJob:
         )
 
         # Add path to each entry for metadata processing
+        attempt_artifacts = {
+            artifact.attempt.id: artifact
+            for artifact in self.workspace.get_artifacts(type_filter=AttemptArtifact.PdfReport)
+        }
         for entry in metadata:
-            entry['path'] = os.path.relpath(self.archived_attempts[int(entry['attemptid'])], self.workdir)
+            attempt_id = int(entry['attemptid'])
+            if attempt_id not in attempt_artifacts.keys():
+                raise RuntimeError("Attempt artifact is missing from workspace to populate quiz attempts metadata")
+            (file_path, file_name) = self._archive_organizer.organize(attempt_artifacts[attempt_id])
+            entry['path'] = f'{file_path}/{file_name}'.lstrip('/')
 
         # Write metadata to CSV file
-        with open(f'{self.workdir}/attempts_metadata.csv', 'w+') as f:
+        attempts_metadata_artifact = self.workspace.file('attempts_metadata.csv')
+        with open(attempts_metadata_artifact.path, 'w+') as f:
             writer = csv.DictWriter(
                 f,
                 fieldnames=metadata[0].keys(),
@@ -751,11 +742,13 @@ class QuizArchiveJob:
         """
         self.logger.debug(f'Processing Moodle backup with id {backupid}')
 
+        backup_artifact = self.workspace.backup(filename)
+
         # Handle demo mode
         if Config.DEMO_MODE:
             self.logger.info(f'Demo mode: Skipping download of backup {backupid}. Replacing with placeholder ...')
-            os.makedirs(f'{self.workdir}/backups', exist_ok=True)
-            with open(f'{self.workdir}/backups/{filename}', 'w+') as f:
+
+            with open(backup_artifact.path, 'w+') as f:
                 f.write('!!!DEMO MODE!!!\r\nThis is a placeholder file for a Moodle backup.\r\n\r\nPlease disable demo mode to download the actual backups.')
 
             return
@@ -764,8 +757,7 @@ class QuizArchiveJob:
         while True:
             status = self.moodle_api.get_backup_status(self.id, self.descr, backupid)
 
-            if threading.current_thread().stop_requested():
-                raise InterruptedError('Thread stop requested')
+            raise_error_if_stop_requested()
 
             if status == MoodleBackupStatus.SUCCESS:
                 break
@@ -808,12 +800,11 @@ class QuizArchiveJob:
         # Download backup
         downloaded_bytes = self.moodle_api.download_moodle_file(
             download_url=download_url,
-            target_path=Path(f'{self.workdir}/backups'),
-            target_filename=filename,
+            target_file=backup_artifact.path,
             maxsize_bytes=Config.BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES,
         )
 
-        self.logger.info(f'Downloaded {downloaded_bytes} bytes of backup {backupid} to {self.workdir}/{filename}')
+        self.logger.info(f'Downloaded {downloaded_bytes} bytes of backup {backupid} to {backup_artifact.path}')
 
     def _push_artifact_to_moodle(self, artifact_file: Path, artifact_sha256sum: str) -> None:
         """
@@ -835,4 +826,3 @@ class QuizArchiveJob:
             **upload_medata
         )
         self.logger.info('Processed uploaded artifact successfully.')
-

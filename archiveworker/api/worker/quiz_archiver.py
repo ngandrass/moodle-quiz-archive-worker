@@ -57,7 +57,9 @@ class QuizArchiverArchiveRequest(ArchiveRequest):
             courseid=json['courseid'],
             cmid=json['cmid'],
             quizid=json['quizid'],
-            archive_filename=json['archive_filename']
+            archive_filename=json['archive_filename'],
+            archive_flatten=json['archive_flatten'],
+            archive_filehashes=json['archive_filehashes']
         )
 
         # Add archive quiz attempts task

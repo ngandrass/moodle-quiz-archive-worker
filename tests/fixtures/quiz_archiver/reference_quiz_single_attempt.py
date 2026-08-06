@@ -72,7 +72,9 @@ ARCHIVE_API_REQUEST = {
             "file_download_url":"http://localhost/webservice/pluginfile.php/64/backup/course/quiz_archiver-course-backup-9.mbz"
         }
     ],
-    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12"
+    "archive_filename": "quiz-archive-QA-REF-9-Reference Quiz (standard question types)-12",
+    "archive_flatten": False,
+    "archive_filehashes": True,
 }
 
 

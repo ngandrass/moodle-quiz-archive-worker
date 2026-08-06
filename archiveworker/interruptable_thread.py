@@ -33,3 +33,16 @@ class InterruptableThread(threading.Thread):
 
     def stop_requested(self):
         return self._stop_event.is_set()
+
+
+def raise_error_if_stop_requested():
+    """
+    Checks if the current thread is interruptable and raises an error if it is
+    requested to stop.
+
+    :return: None
+    :raises InterruptedError: If the thread was requested to stop
+    """
+    thread = threading.current_thread()
+    if isinstance(thread, InterruptableThread) and thread.stop_requested():
+        raise InterruptedError('Thread stop requested')

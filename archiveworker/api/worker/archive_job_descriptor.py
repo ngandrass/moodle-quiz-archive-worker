@@ -42,6 +42,8 @@ class ArchiveJobDescriptor:
         self,
         moodle_api: 'MoodleAPIBase',
         archive_filename: str,
+        archive_flatten: bool,
+        archive_filehashes: bool,
         taskid: int = None,
         courseid: int = None,
         cmid: int = None,
@@ -57,6 +59,9 @@ class ArchiveJobDescriptor:
         self.cmid = int(cmid) if cmid else None
         self.quizid = int(quizid) if quizid else None
         self.archive_filename = archive_filename
+        self.archive_flatten = archive_flatten
+        self.archive_filehashes = archive_filehashes
+
         self.tasks = {
             'quiz_attempts': None,
             'moodle_backups': None

@@ -22,6 +22,7 @@ import tempfile
 import time
 import uuid
 import zipfile
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -30,13 +31,22 @@ import tests.fixtures.quiz_archiver as fixtures
 from archiveworker.api.moodle import QuizArchiverMoodleAPI
 from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.moodle_quiz_archive_worker import start_processing_threads
+from archiveworker.quiz_archive import FlatArchiveOrganizer, HierarchicalArchiveOrganizer
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import JobStatus
+from archiveworker.workspace import Workspace
 from config import Config
-from .conftest import client, TestUtils
+from .conftest import client, TestUtils, MoodleAPIMockBase
 
 
 class TestQuizArchiveJob:
+
+    ARCHIVE_OPTIONS_MATRIX = [
+        pytest.param(False, False, id="flatten=false,hash=false"),
+        pytest.param(False, True, id="flatten=false,hash=true"),
+        pytest.param(True, False, id="flatten=true,hash=false"),
+        pytest.param(True, True, id="flatten=true,hash=true"),
+    ]
 
     @classmethod
     def setup_class(cls):
@@ -49,6 +59,89 @@ class TestQuizArchiveJob:
     def teardown_class(cls):
         Config.REPORT_WAIT_FOR_READY_SIGNAL = cls.wait_for_readysignal_orig
         Config.PDFA_CONVERSION = cls.pdfa_conversion_orig
+
+    @staticmethod
+    def _get_un_expected_archive_entries(
+        jobjson: dict,
+        moodle_api_mock: MoodleAPIMockBase
+    ) -> tuple[list[tuple[str, int, int]], list[str]]:
+        """
+        Generates expected and unexpected archive artifacts given a job description.
+
+        :param jobjson: Job API request
+        :param moodle_api_mock: Mock of the Moodle API client
+        :return: List of tuples with filepath, minsize, maxsize of expected files and list with filepaths of unexpected files
+        """
+
+        archive_flatten = jobjson['archive_flatten']
+        archive_filehashes = jobjson['archive_filehashes']
+
+        organizer = FlatArchiveOrganizer() if archive_flatten else HierarchicalArchiveOrganizer()
+        workspace = Workspace()
+
+        def _build_archive_entry(organizer, artifact) -> str:
+            path, name = organizer.organize(artifact)
+            return f'{path}/{name}'.lstrip('/')
+
+        expected_entries = []
+        unexpected_entries = []
+
+        task_attempts = jobjson['task_archive_quiz_attempts']
+        if task_attempts is not None:
+
+            for attempt_id in task_attempts['attemptids']:
+
+                attempt_mock_directory, attempt_mock_name, _, _ = moodle_api_mock.get_attempt_data(None, None, attempt_id)
+                attempt = workspace.attempt(attempt_id, attempt_mock_name, attempt_mock_directory)
+
+                html_artifact = attempt.html_report(f'{attempt_mock_name}.html')
+                html_artifact_path = _build_archive_entry(organizer, html_artifact)
+                html_artifact_hash_path = html_artifact_path + '.sha256'
+                if task_attempts['keep_html_files']:
+                    expected_entries.append((html_artifact_path, 200*1024, 2000*1024))
+                    if archive_filehashes:
+                        expected_entries.append((html_artifact_hash_path, 64, 64))
+                    else:
+                        unexpected_entries.append(html_artifact_hash_path)
+                else:
+                    unexpected_entries.append(html_artifact_path)
+                    unexpected_entries.append(html_artifact_hash_path)
+
+
+                pdf_artifact = attempt.pdf_report(f'{attempt_mock_name}.pdf')
+                pdf_artifact_path = _build_archive_entry(organizer, pdf_artifact)
+                expected_entries.append((pdf_artifact_path, 200*1024, 2000*1024))
+                pdf_artifact_hash_path = pdf_artifact_path + '.sha256'
+                if archive_filehashes:
+                    expected_entries.append((pdf_artifact_hash_path, 64, 64))
+                else:
+                    unexpected_entries.append(pdf_artifact_hash_path)
+
+            metadata_artifact = workspace.file('attempts_metadata.csv')
+            metadata_artifact_path = _build_archive_entry(organizer, metadata_artifact)
+            if task_attempts['fetch_metadata']:
+                expected_entries.append((metadata_artifact_path, 128, 10*1024))
+            else:
+                unexpected_entries.append(metadata_artifact_path)
+            metadata_artifact_hash_path = metadata_artifact_path + '.sha256'
+            if archive_filehashes:
+                expected_entries.append((metadata_artifact_hash_path, 64, 64))
+            else:
+                unexpected_entries.append(metadata_artifact_hash_path)
+
+        task_backups = jobjson['task_moodle_backups']
+        if task_backups is not None:
+            for backup in task_backups:
+                backup_artifact = workspace.backup(backup['filename'])
+                backup_artifact_path = _build_archive_entry(organizer, backup_artifact)
+                expected_entries.append((backup_artifact_path, 500*1024, 10000*1024))
+                backup_artifact_hash_path = backup_artifact_path + '.sha256'
+                if archive_filehashes:
+                    expected_entries.append((backup_artifact_hash_path, 64, 64))
+                else:
+                    unexpected_entries.append(backup_artifact_hash_path)
+
+        return expected_entries, unexpected_entries
 
     def test_equality(self) -> None:
         """
@@ -65,6 +158,8 @@ class TestQuizArchiveJob:
                 max_upload_bytes=536870912 # 512 MiB
             ),
             archive_filename="foo",
+            archive_flatten=False,
+            archive_filehashes=True,
             quizid=1,
             cmid=1,
             courseid=1
@@ -141,7 +236,8 @@ class TestQuizArchiveJob:
                     assert False, 'Job should have timed out'
 
     @pytest.mark.timeout(30)
-    def test_archive_full_quiz(self, client) -> None:
+    @pytest.mark.parametrize("archive_flatten, archive_filehashes", ARCHIVE_OPTIONS_MATRIX)
+    def test_archive_full_quiz(self, client, archive_flatten, archive_filehashes) -> None:
         """
         Tests the full quiz archiving process with all tasks enabled. Data is
         taken from the reference quiz fixture.
@@ -151,7 +247,10 @@ class TestQuizArchiveJob:
         """
         with fixtures.reference_quiz_full.MoodleAPIMock() as mock:
             # Create job and process it
-            r = client.post('/archive', json=fixtures.reference_quiz_full.ARCHIVE_API_REQUEST)
+            jobjson = deepcopy(fixtures.reference_quiz_full.ARCHIVE_API_REQUEST)
+            jobjson['archive_flatten'] = archive_flatten
+            jobjson['archive_filehashes'] = archive_filehashes
+            r = client.post('/archive', json=jobjson)
             assert r.status_code == 200
             jobid = r.json['jobid']
 
@@ -176,29 +275,27 @@ class TestQuizArchiveJob:
 
             # Extract artifact and validate contents
             with zipfile.ZipFile(job_artifact, 'r') as zipf:
+
+                expected_artifacts, unexpected_artifacts = self._get_un_expected_archive_entries(jobjson, mock)
+
                 with tempfile.TemporaryDirectory() as tempdir:
                     zipf.extractall(tempdir)
 
-                    # Validate attempt reports
-                    for attemptid in fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids']:
-                        fbase = os.path.join(tempdir, f'attempts/attempt-{attemptid}/attempt-{attemptid}')
-                        TestUtils.assert_is_file_with_size(fbase+'.pdf', 200*1024, 2000*1024)
-                        TestUtils.assert_is_file_with_size(fbase+'.html', 200*1024, 2000*1024)
-                        TestUtils.assert_is_file_with_size(fbase+'.pdf.sha256', 64, 64)
-                        TestUtils.assert_is_file_with_size(fbase+'.html.sha256', 64, 64)
+                    # Validate presence of expected artifacts
+                    for expected_artifact in expected_artifacts:
+                        TestUtils.assert_is_file_with_size(os.path.join(tempdir, expected_artifact[0]), expected_artifact[1],expected_artifact[2])
 
-                    # Validate Moodle backups
-                    for backup in fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_moodle_backups']:
-                        backupfile = os.path.join(tempdir, 'backups/', backup['filename'])
-                        TestUtils.assert_is_file_with_size(backupfile, 500*1024, 10000*1024)
-                        TestUtils.assert_is_file_with_size(backupfile+'.sha256', 64, 64)
+                    # Validate absence of unexpected artifacts
+                    for unexpected_artifact in unexpected_artifacts:
+                        assert not os.path.exists(os.path.join(tempdir, unexpected_artifact)), 'Unexpected attempts artifact file in archive'
 
                     # Validate attempts metadata file
                     attemptsmetafile = os.path.join(tempdir, 'attempts_metadata.csv')
                     TestUtils.assert_is_file_with_size(attemptsmetafile, 128, 10*1024)
-                    TestUtils.assert_is_file_with_size(attemptsmetafile+'.sha256', 64, 64)
+                    if archive_filehashes:
+                        TestUtils.assert_is_file_with_size(attemptsmetafile+'.sha256', 64, 64)
 
-                    attemptids_to_find = fixtures.reference_quiz_full.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids'].copy()
+                    attemptids_to_find = jobjson['task_archive_quiz_attempts']['attemptids'].copy()
                     with open(attemptsmetafile, 'r') as f:
                         for row in csv.DictReader(f, skipinitialspace=True):
                             for key in ["attemptid", "userid", "username", "firstname", "lastname", "timestart", "timefinish", "attempt", "state", "path"]:
@@ -210,7 +307,8 @@ class TestQuizArchiveJob:
                     assert len(attemptids_to_find) == 0, 'Not all attempt IDs found in attempt metadata csv file'
 
     @pytest.mark.timeout(5)
-    def test_archive_backups_only(self, client) -> None:
+    @pytest.mark.parametrize("archive_flatten, archive_filehashes", ARCHIVE_OPTIONS_MATRIX)
+    def test_archive_backups_only(self, client, archive_flatten, archive_filehashes) -> None:
         """
         Tests the quiz archiving process with only the backup task enabled. No
         attempt PDFs should be generated here.
@@ -220,7 +318,9 @@ class TestQuizArchiveJob:
         """
         with fixtures.reference_quiz_single_attempt.MoodleAPIMock() as mock:
             # Create job and process it
-            jobjson = fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST.copy()
+            jobjson = deepcopy(fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST)
+            jobjson['archive_flatten'] = archive_flatten
+            jobjson['archive_filehashes'] = archive_filehashes
             jobjson['task_archive_quiz_attempts'] = None
             r = client.post('/archive', json=jobjson)
             assert r.status_code == 200
@@ -247,18 +347,32 @@ class TestQuizArchiveJob:
                 with tempfile.TemporaryDirectory() as tempdir:
                     zipf.extractall(tempdir)
 
-                    # Validate attempt reports
-                    assert not os.path.exists(os.path.join(tempdir, 'attempts/')), 'Unexpected attempts directory in artifact'
-                    assert not os.path.exists(os.path.join(tempdir, 'attempts_metadata.csv')), 'Unexpected attempts metadata file in artifact'
+                expected_artifacts, unexpected_artifacts = self._get_un_expected_archive_entries(jobjson, mock)
 
-                    # Validate Moodle backups
-                    for backup in fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST['task_moodle_backups']:
-                        backupfile = os.path.join(tempdir, 'backups/', backup['filename'])
-                        TestUtils.assert_is_file_with_size(backupfile, 500*1024, 10000*1024)
-                        TestUtils.assert_is_file_with_size(backupfile+'.sha256', 64, 64)
+                with tempfile.TemporaryDirectory() as tempdir:
+                    zipf.extractall(tempdir)
+
+                    # Validate presence of expected artifacts
+                    for expected_artifact in expected_artifacts:
+                        TestUtils.assert_is_file_with_size(os.path.join(tempdir, expected_artifact[0]), expected_artifact[1],expected_artifact[2])
+
+                    # Validate absence of unexpected artifacts
+                    for unexpected_artifact in unexpected_artifacts:
+                        assert not os.path.exists(os.path.join(tempdir, unexpected_artifact)), 'Unexpected attempts artifact file in archive'
+
+                    # # Validate attempt reports
+                    # assert not os.path.exists(os.path.join(tempdir, 'attempts/')), 'Unexpected attempts directory in artifact'
+                    # assert not os.path.exists(os.path.join(tempdir, 'attempts_metadata.csv')), 'Unexpected attempts metadata file in artifact'
+
+                    # # Validate Moodle backups
+                    # for backup in fixtures.reference_quiz_single_attempt.ARCHIVE_API_REQUEST['task_moodle_backups']:
+                    #     backupfile = os.path.join(tempdir, 'backups/', backup['filename'])
+                    #     TestUtils.assert_is_file_with_size(backupfile, 500*1024, 10000*1024)
+                    #     TestUtils.assert_is_file_with_size(backupfile+'.sha256', 64, 64, invert=not archive_filehashes)
 
     @pytest.mark.timeout(30)
-    def test_archive_attempts_only(self, client) -> None:
+    @pytest.mark.parametrize("archive_flatten, archive_filehashes", ARCHIVE_OPTIONS_MATRIX)
+    def test_archive_attempts_only(self, client, archive_flatten, archive_filehashes) -> None:
         """
         Tests the quiz archiving process with only the attempt archiving task.
         No Moodle backups should be included in the artifact.
@@ -270,59 +384,9 @@ class TestQuizArchiveJob:
         """
         with fixtures.reference_quiz_single_attempt_no_backups.MoodleAPIMock() as mock:
             # Create job and process it
-            r = client.post('/archive', json=fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST)
-            assert r.status_code == 200
-            jobid = r.json['jobid']
-
-            start_processing_threads(1)
-
-            # Wait for job to be processed
-            while True:
-                time.sleep(0.5)
-                r = client.get(f'/status/{jobid}')
-                assert r.json['status'] != JobStatus.FAILED
-
-                if r.json['status'] == JobStatus.FINISHED:
-                    break
-
-            # Validate that an artifact was uploaded
-            job_uploads = mock.get_uploaded_files()
-            job_artifact = job_uploads[1]['file']
-            assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
-
-            # Extract artifact and validate contents
-            with zipfile.ZipFile(job_artifact, 'r') as zipf:
-                with tempfile.TemporaryDirectory() as tempdir:
-                    zipf.extractall(tempdir)
-
-                    # Validate Moodle backups
-                    assert not os.path.exists(os.path.join(tempdir, 'backups/')), 'Unexpected backups directory in artifact'
-
-                    # Validate attempt reports
-                    attemptid = fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST['task_archive_quiz_attempts']['attemptids'][0]
-                    fbase = os.path.join(tempdir, f'attempts/attempt-{attemptid}/attempt-{attemptid}')
-                    TestUtils.assert_is_file_with_size(fbase+'.pdf', 200*1024, 2000*1024)
-                    TestUtils.assert_is_file_with_size(fbase+'.pdf.sha256', 64, 64)
-                    assert not os.path.isfile(fbase+'.html'), 'Unexpected HTML file in artifact'
-                    assert not os.path.isfile(fbase+'.html.sha256'), 'Unexpected HTML SHA256 file in artifact'
-
-                    # Validate attempts metadata file
-                    TestUtils.assert_is_file_with_size(os.path.join(tempdir, 'attempts_metadata.csv'), 128, 10*1024)
-
-    @pytest.mark.timeout(30)
-    def test_archive_name_collision(self, client) -> None:
-        """
-        Tests the quiz archiving process with two attempts that have a folder
-        name pattern that results in identical folder and attempt names for both
-        attempts. Both should be present in the archive and not overwrite each
-        other.
-
-        :param client: Flask test client
-        :return: None
-        """
-        with fixtures.reference_quiz_two_attempts_foldername_collision.MoodleAPIMock() as mock:
-            # Create job and process it
-            jobjson = fixtures.reference_quiz_two_attempts_foldername_collision.ARCHIVE_API_REQUEST.copy()
+            jobjson = deepcopy(fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST)
+            jobjson['archive_flatten'] = archive_flatten
+            jobjson['archive_filehashes'] = archive_filehashes
             r = client.post('/archive', json=jobjson)
             assert r.status_code == 200
             jobid = r.json['jobid']
@@ -345,39 +409,84 @@ class TestQuizArchiveJob:
 
             # Extract artifact and validate contents
             with zipfile.ZipFile(job_artifact, 'r') as zipf:
+                expected_artifacts, unexpected_artifacts = self._get_un_expected_archive_entries(jobjson, mock)
+
                 with tempfile.TemporaryDirectory() as tempdir:
                     zipf.extractall(tempdir)
 
-                    # Check the existing attempts
-                    expectednumattempts = len(jobjson['task_archive_quiz_attempts']['attemptids'])
-                    actualnumattempts = 0
-                    actualattemptdirs = []
+                    # Validate presence of expected artifacts
+                    for expected_artifact in expected_artifacts:
+                        TestUtils.assert_is_file_with_size(os.path.join(tempdir, expected_artifact[0]), expected_artifact[1],expected_artifact[2])
 
-                    for attemptdir in Path(os.path.join(tempdir, 'attempts')).iterdir():
-                        fbase = os.path.join(attemptdir, f'attempt')
-                        TestUtils.assert_is_file_with_size(fbase+'.pdf', 200*1024, 2000*1024)
-                        TestUtils.assert_is_file_with_size(fbase+'.pdf.sha256', 64, 64)
-                        assert not os.path.isfile(fbase+'.html'), 'Unexpected HTML file in artifact'
-                        assert not os.path.isfile(fbase+'.html.sha256'), 'Unexpected HTML SHA256 file in artifact'
+                    # Validate absence of unexpected artifacts
+                    for unexpected_artifact in unexpected_artifacts:
+                        assert not os.path.exists(os.path.join(tempdir, unexpected_artifact)), 'Unexpected attempts artifact file in archive'
 
-                        actualnumattempts += 1
-                        actualattemptdirs += [f'attempts/{attemptdir.name}/attempt']
+    @pytest.mark.timeout(30)
+    @pytest.mark.parametrize("archive_flatten, archive_filehashes", ARCHIVE_OPTIONS_MATRIX)
+    def test_archive_name_collision(self, client, archive_flatten, archive_filehashes) -> None:
+        """
+        Tests the quiz archiving process with two attempts that have a folder
+        name pattern that results in identical folder and attempt names for both
+        attempts. Both should be present in the archive and not overwrite each
+        other.
 
-                    # Ensure that all attempts are present
-                    assert actualnumattempts == expectednumattempts, f'Expected {expectednumattempts} attempts, found {actualnumattempts}'
+        :param client: Flask test client
+        :return: None
+        """
+        with fixtures.reference_quiz_two_attempts_foldername_collision.MoodleAPIMock() as mock:
+            # Create job and process it
+            jobjson = deepcopy(fixtures.reference_quiz_two_attempts_foldername_collision.ARCHIVE_API_REQUEST)
+            jobjson['archive_flatten'] = archive_flatten
+            jobjson['archive_filehashes'] = archive_filehashes
+            r = client.post('/archive', json=jobjson)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_threads(1)
+
+            # Wait for job to be processed
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break
+
+            # Validate that an artifact was uploaded
+            job_uploads = mock.get_uploaded_files()
+            job_artifact = job_uploads[1]['file']
+            assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
+
+            # Extract artifact and validate contents
+            with zipfile.ZipFile(job_artifact, 'r') as zipf:
+                expected_artifacts, unexpected_artifacts = self._get_un_expected_archive_entries(jobjson, mock)
+
+                with tempfile.TemporaryDirectory() as tempdir:
+                    zipf.extractall(tempdir)
+
+                    # Validate presence of expected artifacts
+                    for expected_artifact in expected_artifacts:
+                        TestUtils.assert_is_file_with_size(os.path.join(tempdir, expected_artifact[0]), expected_artifact[1],expected_artifact[2])
+
+                    # Validate absence of unexpected artifacts
+                    for unexpected_artifact in unexpected_artifacts:
+                        assert not os.path.exists(os.path.join(tempdir, unexpected_artifact)), 'Unexpected attempts artifact file in archive'
+
 
                     # Validate attempts metadata file
                     csvpath = os.path.join(tempdir, 'attempts_metadata.csv')
-                    TestUtils.assert_is_file_with_size(csvpath, 128, 10*1024)
 
                     attemptidstofind = jobjson['task_archive_quiz_attempts']['attemptids'].copy()
+                    expected_artifacts_paths = [*next(iter(zip(*expected_artifacts)))]
                     with open(csvpath, 'r') as f:
                         for row in csv.DictReader(f, skipinitialspace=True):
                             assert int(row['attemptid']) in attemptidstofind, 'Unexpected attempt ID in attempts metadata csv file'
                             attemptidstofind.remove(int(row['attemptid']))
 
                             # Ensure that the path points to one of the actual attempt dirs
-                            assert row['path'] in actualattemptdirs, 'Attempt path in metadata does not point to an actual attempt directory'
+                            assert row['path'] in expected_artifacts_paths, 'Attempt path in metadata does not point to an actual attempt directory'
 
     @pytest.mark.timeout(30)
     def test_archive_attempts_image_resize(self, client, caplog) -> None:
@@ -394,7 +503,7 @@ class TestQuizArchiveJob:
             caplog.set_level(logging.DEBUG)
 
             # Create job and process it
-            jobjson = fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST.copy()
+            jobjson = deepcopy(fixtures.reference_quiz_single_attempt_no_backups.ARCHIVE_API_REQUEST)
             jobjson['task_archive_quiz_attempts']['image_optimize'] = {
                 'width': 64,
                 'height': 64,

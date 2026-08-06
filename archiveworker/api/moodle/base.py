@@ -325,8 +325,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
     def download_moodle_file(
             self,
             download_url: str,
-            target_path: Path,
-            target_filename: str,
+            target_file: Path,
             sha1sum_expected: str = None,
             maxsize_bytes: int = Config.DOWNLOAD_MAX_FILESIZE_BYTES
     ) -> int:
@@ -335,8 +334,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
         are performed in chunks.
 
         :param download_url: The URL to download the file from
-        :param target_path: The path to store the downloaded file into
-        :param target_filename: The name of the file to store
+        :param target_file: The path to store the downloaded file into
         :param sha1sum_expected: SHA1 sum of the file contents to check against, ignored if None
         :param maxsize_bytes: Maximum number of bytes before the download is forcefully aborted
 
@@ -347,10 +345,8 @@ class MoodleAPIBase(metaclass=ABCMeta):
         the downloaded file did not match the given SHA1 sum
         :raises ConnectionError: if the download failed for any other reason
         """
-        target_file = target_path.joinpath(target_filename)
 
         try:
-            os.makedirs(target_path, exist_ok=True)
             with open(target_file, 'wb+') as f:
                 r = self.session.get(
                     url=download_url,
@@ -368,7 +364,7 @@ class MoodleAPIBase(metaclass=ABCMeta):
         except RuntimeError as e:
             raise e
         except IOError:
-            raise RuntimeError(f'Encountered internal IOError while writing a downloading Moodle file from {download_url} to {target_filename}')
+            raise RuntimeError(f'Encountered internal IOError while writing a downloading Moodle file from "{download_url}" to "{target_file}"')
         except Exception:
             ConnectionError(f'Failed to download Moodle file from: {download_url}')
 

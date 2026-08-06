@@ -1,5 +1,17 @@
 # Changelog
 
+## Version X.Y.Z (YYYY-MM-DD)
+
+- Add support for chunked uploads
+  - Archives larger than the maximum upload filesize of Moodle will be split into multiple chunks
+  - Uploaded chunks will be automatically reassembled by the Moodle plugin
+- Rework current archive creation process into a flexible and extensible archive packer structure
+- Add support for flat archive structures where all files are stored in a single directory instead of a nested directory structure
+- Make SHA256 checksum generation configurable via the companion plugin
+- Allow passing of php xdebug session id via the environment variable `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION` for development purposes
+- Update Python dependencies
+ 
+
 ## Version 4.0.4 (2026-07-09)
 
 - Update Python dependencies
@@ -8,11 +20,9 @@
 
 ## Version 4.0.3 (2026-05-22)
 
-- Automatically split large archive uploads into chunks, respecting the maximum upload filesize of Moodle
 - ci: Optimize Playwright installation in PyTest container
 - ci: Update Python base image used for PyTest to v3.13
 - ci: Create GitLab CI definition for unit test execution
-- Allow passing of php xdebug session id via the environment variable `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION` for development purposes
 - Bump PyTest to v9
 - Update Python dependencies
 

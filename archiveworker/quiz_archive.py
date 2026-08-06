@@ -81,15 +81,16 @@ class FlatArchiveOrganizer(ArchiveOrganizer):
             isinstance(artifact, AttemptArtifact.PdfReport) or
             isinstance(artifact, AttemptArtifact.HtmlReport)
         ):
+            attempt = artifact.attempt
             return (
                 "",
-                f"attempt.{artifact.name}"
+                f"attempt_{attempt.id}.{artifact.name}"
             )
         elif isinstance(artifact, AttemptArtifact.Attachment):
             attempt = artifact.attempt
             return (
                 "",
-                f"attempt.{attempt.name}.attachment.{artifact.slot}.{artifact.name}"
+                f"attempt_{attempt.id}.{attempt.name}.attachment.{artifact.slot}.{artifact.name}"
             )
         elif isinstance(artifact, BackupArtifact):
             return (

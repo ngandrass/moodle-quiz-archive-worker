@@ -83,7 +83,7 @@ class TestFlatArchiveOrganizer:
             path, name = FlatArchiveOrganizer().organize(artifact)
 
             assert path == ""
-            assert name == "attempt.report.pdf"
+            assert name == "attempt_11.report.pdf"
 
     def test_prefixes_attachment_names(self) -> None:
         """Attachment artifacts should carry an attachment-specific prefix."""
@@ -95,7 +95,7 @@ class TestFlatArchiveOrganizer:
             path, name = FlatArchiveOrganizer().organize(artifact)
 
             assert path == ""
-            assert name == "attempt.Attempt 12.attachment.2.answer.png"
+            assert name == "attempt_12.Attempt 12.attachment.2.answer.png"
 
     def test_prefixes_backup_names(self) -> None:
         """Backup artifacts should be prefixed to avoid collisions."""

@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 4.0.4 (2026-07-09)
+
+- Update Python dependencies
+  - Fix various CVEs in `pypdf` package
+
+
 ## Version 4.0.3 (2026-05-22)
 
 - Automatically split large archive uploads into chunks, respecting the maximum upload filesize of Moodle

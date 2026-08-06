@@ -25,7 +25,7 @@ class ArchiveOrganizer(metaclass=ABCMeta):
         pass
 
 
-class HirarchicalArchiveOrganizer(ArchiveOrganizer):
+class HierarchicalArchiveOrganizer(ArchiveOrganizer):
     """
     Organizes artifacts in a hierarchical structure based on their type and
     context.

@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from archiveworker.quiz_archive import ArchiveOrganizer, FlatArchiveOrganizer, HirarchicalArchiveOrganizer, QuizArchiveBuilder
+from archiveworker.quiz_archive import ArchiveOrganizer, FlatArchiveOrganizer, HierarchicalArchiveOrganizer, QuizArchiveBuilder
 from archiveworker.workspace import Workspace
 
 
@@ -20,7 +20,7 @@ class TestArchiveOrganizer:
             ArchiveOrganizer()
 
 
-class TestHirarchicalArchiveOrganizer:
+class TestHierarchicalArchiveOrganizer:
     """Tests for the hierarchical archive organizer."""
 
     def test_place_pdf_reports_in_attempt_folder(self) -> None:
@@ -30,7 +30,7 @@ class TestHirarchicalArchiveOrganizer:
             attempt = workspace.attempt(7, "Attempt 7", "attempt-7")
             artifact = attempt.pdf_report("report.pdf")
 
-            path, name = HirarchicalArchiveOrganizer().organize(artifact)
+            path, name = HierarchicalArchiveOrganizer().organize(artifact)
 
             assert path == "attempts/attempt-7"
             assert name == "report.pdf"
@@ -42,7 +42,7 @@ class TestHirarchicalArchiveOrganizer:
             attempt = workspace.attempt(9, "Attachment attempt", "attempt-9")
             artifact = attempt.attachment(3, "answer.txt")
 
-            path, name = HirarchicalArchiveOrganizer().organize(artifact)
+            path, name = HierarchicalArchiveOrganizer().organize(artifact)
 
             assert path == "attempts/attempt-9/attachments/3"
             assert name == "answer.txt"
@@ -53,7 +53,7 @@ class TestHirarchicalArchiveOrganizer:
         with Workspace() as workspace:
             artifact = workspace.backup("backup.mbz")
 
-            path, name = HirarchicalArchiveOrganizer().organize(artifact)
+            path, name = HierarchicalArchiveOrganizer().organize(artifact)
 
             assert path == "backups"
             assert name == "backup.mbz"
@@ -64,7 +64,7 @@ class TestHirarchicalArchiveOrganizer:
         with Workspace() as workspace:
             artifact = workspace.file("notes.txt")
 
-            path, name = HirarchicalArchiveOrganizer().organize(artifact)
+            path, name = HierarchicalArchiveOrganizer().organize(artifact)
 
             assert path == ""
             assert name == "notes.txt"
@@ -126,7 +126,7 @@ class TestQuizArchiveBuilder:
     def test_builder_writes_artifacts_using_the_selected_organizer(self) -> None:
         """The builder should write entries according to the organizer output."""
 
-        for organizer in [HirarchicalArchiveOrganizer(), FlatArchiveOrganizer()]:
+        for organizer in [HierarchicalArchiveOrganizer(), FlatArchiveOrganizer()]:
 
             with tempfile.TemporaryDirectory() as tempdir:
 

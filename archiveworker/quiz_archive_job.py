@@ -34,7 +34,7 @@ from archiveworker.type import JobStatus, ReportSignal, MoodleBackupStatus, Pape
 from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.requests_factory import RequestsFactory
 from archiveworker.workspace import Workspace, AttemptArtifact
-from archiveworker.quiz_archive import QuizArchiveBuilder, HirarchicalArchiveOrganizer, FlatArchiveOrganizer
+from archiveworker.quiz_archive import QuizArchiveBuilder, HierarchicalArchiveOrganizer, FlatArchiveOrganizer
 from archiveworker.interruptable_thread import raise_error_if_stop_requested
 
 
@@ -59,7 +59,7 @@ class QuizArchiveJob:
         self._archive_organizer = (
             FlatArchiveOrganizer()
             if descriptor.archive_flatten
-            else HirarchicalArchiveOrganizer()
+            else HierarchicalArchiveOrganizer()
         )
         self.archived_attempts_count = 0
         self.logger = logging.getLogger(f"{__name__}::<{self.id}>")

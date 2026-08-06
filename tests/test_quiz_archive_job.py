@@ -31,7 +31,7 @@ import tests.fixtures.quiz_archiver as fixtures
 from archiveworker.api.moodle import QuizArchiverMoodleAPI
 from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.moodle_quiz_archive_worker import start_processing_threads
-from archiveworker.quiz_archive import FlatArchiveOrganizer, HirarchicalArchiveOrganizer
+from archiveworker.quiz_archive import FlatArchiveOrganizer, HierarchicalArchiveOrganizer
 from archiveworker.quiz_archive_job import QuizArchiveJob
 from archiveworker.type import JobStatus
 from archiveworker.workspace import Workspace
@@ -76,7 +76,7 @@ class TestQuizArchiveJob:
         archive_flatten = jobjson['archive_flatten']
         archive_filehashes = jobjson['archive_filehashes']
 
-        organizer = FlatArchiveOrganizer() if archive_flatten else HirarchicalArchiveOrganizer()
+        organizer = FlatArchiveOrganizer() if archive_flatten else HierarchicalArchiveOrganizer()
         workspace = Workspace()
 
         def _build_archive_entry(organizer, artifact) -> str:

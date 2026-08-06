@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import os
 import zipfile
 from pathlib import Path
 from abc import ABCMeta, abstractmethod
@@ -154,7 +155,8 @@ class QuizArchiveBuilder:
                 # Ensure unique file paths
                 if zip_file_name in file_count:
                     file_count[zip_file_name] += 1
-                    zip_file_name_override = f'{path}/({file_count[zip_file_name]}).{name}'
+                    file_path, file_ext = os.path.splitext(zip_file_name)
+                    zip_file_name_override = f'{file_path}({file_count[zip_file_name]}){file_ext}'
                     logging.warning(
                         f'File path "{zip_file_name}" was already used by another artifact. Check your attempt folder and report naming! Will use "{zip_file_name_override}" instead. Can not update metadata file!'
                     )

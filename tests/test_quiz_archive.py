@@ -195,19 +195,16 @@ class TestQuizArchiveBuilder:
 
         with tempfile.TemporaryDirectory() as tempdir:
 
-            first_duplicate_name = 'duplicate.txt'
-            second_duplicate_name = 'other duplicate.txt'
-
             with Workspace() as workspace:
-                first = workspace.file(first_duplicate_name)
+                first = workspace.file('duplicate.txt')
                 first.path.write_text("first", encoding="utf-8")
-                second = workspace.file(first_duplicate_name)
+                second = workspace.file('duplicate.txt')
                 second.path.write_text("second", encoding="utf-8")
-                third = workspace.file(first_duplicate_name)
+                third = workspace.file('duplicate.txt')
                 third.path.write_text("third", encoding="utf-8")
-                other_first = workspace.file(second_duplicate_name)
+                other_first = workspace.file('other duplicate.txt')
                 other_first.path.write_text("other first", encoding="utf-8")
-                other_second = workspace.file(second_duplicate_name)
+                other_second = workspace.file('other duplicate.txt')
                 other_second.path.write_text("other second", encoding="utf-8")
 
                 archive_path = os.path.join(tempdir, "archive.zip")
@@ -216,9 +213,9 @@ class TestQuizArchiveBuilder:
 
             with zipfile.ZipFile(archive_path, 'r') as archive:
                 assert len(archive.namelist()) == 5
-                assert first_duplicate_name in archive.namelist()
-                assert '(1).'+ first_duplicate_name in archive.namelist(), "Duplicates are not discerned"
-                assert '(2).'+ first_duplicate_name in archive.namelist(), "Duplicates are not counted properly"
-                assert second_duplicate_name in archive.namelist()
-                assert '(1).' + second_duplicate_name in archive.namelist(), "Different duplicates are not counted separately"
+                assert 'duplicate.txt' in archive.namelist()
+                assert 'duplicate(1).txt' in archive.namelist(), "Duplicates are not discerned"
+                assert 'duplicate(2).txt' in archive.namelist(), "Duplicates are not counted properly"
+                assert 'other duplicate.txt' in archive.namelist()
+                assert 'other duplicate(1).txt' in archive.namelist(), "Different duplicates are not counted separately"
                 assert 'already used by another artifact' in caplog.text

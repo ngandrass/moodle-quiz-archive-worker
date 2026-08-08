@@ -1,3 +1,19 @@
+# Moodle Quiz Archive Worker
+# Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import hashlib
 import logging
 import os
@@ -106,9 +122,9 @@ class FlatArchiveOrganizer(ArchiveOrganizer):
             )
 
 
-class QuizArchiveBuilder:
+class ArchiveBuilder:
     """
-    Builds a quiz archive from workspace artifacts using a specified organizer
+    Builds an archive from workspace artifacts using a specified organizer
     and compression algorithm.
     """
     def __init__(
@@ -118,7 +134,7 @@ class QuizArchiveBuilder:
         compression_algorithm: int,
     ):
         """
-        Initializes the QuizArchiveBuilder.
+        Initializes the ArchiveBuilder.
 
         :param organizer: The ArchiveOrganizer to use for organizing artifacts
         :param calculate_file_hashes: Whether to include SHA256 hashes for files

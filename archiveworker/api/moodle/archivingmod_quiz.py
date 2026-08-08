@@ -21,8 +21,7 @@ from uuid import UUID
 
 from archiveworker.type import JobStatus, MoodleBackupStatus
 from archiveworker.api.worker import ArchiveJobDescriptor
-
-from . import MoodleAPIBase
+from archiveworker.api.moodle.base import MoodleAPIBase
 
 
 class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
@@ -33,7 +32,7 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
     MOODLE_WSFUNCTION_ARCHIVE = 'archivingmod_quiz_generate_attempt_report'
     """Name of the Moodle webservice function to call to trigger an quiz attempt export"""
 
-    MOODLE_WSFUNCTION_PROESS_UPLOAD = 'archivingmod_quiz_process_uploaded_artifact'
+    MOODLE_WSFUNCTION_PROCESS_UPLOAD = 'archivingmod_quiz_process_uploaded_artifact'
     """Name of the Moodle webservice function to call after an artifact was uploaded successfully"""
 
     MOODLE_WSFUNCTION_UPDATE_JOB_STATUS = 'archivingmod_quiz_update_task_status'
@@ -266,7 +265,6 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
         # Looks fine - Data seems valid :)
         return data['foldername'], data['filename'], data['report'], data['attachments']
 
-
     def process_uploaded_artifact(
             self,
             jobid: UUID,
@@ -307,7 +305,7 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
                 url=self.ws_rest_url,
                 timeout=self.REQUEST_TIMEOUTS_EXTENDED,
                 params=self._generate_wsfunc_request_params(
-                    wsfunction=self.MOODLE_WSFUNCTION_PROESS_UPLOAD,
+                    wsfunction=self.MOODLE_WSFUNCTION_PROCESS_UPLOAD,
                     uuid=str(jobid),
                     taskid=str(jobdescriptor.taskid),
                     artifact_component=component,
@@ -323,13 +321,13 @@ class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
             )
             response = r.json()
         except Exception:
-            ConnectionError(f'Failed to call upload processing hook "{self.MOODLE_WSFUNCTION_PROESS_UPLOAD}" at "{self.ws_rest_url}"')
+            ConnectionError(f'Failed to call upload processing hook "{self.MOODLE_WSFUNCTION_PROCESS_UPLOAD}" at "{self.ws_rest_url}"')
 
         # Check if Moodle wsfunction returned an error or exception
         if 'errorcode' in response and 'debuginfo' in response:
-            raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
+            raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROCESS_UPLOAD} returned error "{response["errorcode"]}". Message: {response["debuginfo"]}')
         if 'exception' in response and 'message' in response:
-            raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROESS_UPLOAD} returned an exception "{response["exception"]}". Message: {response["message"]}')
+            raise RuntimeError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_PROCESS_UPLOAD} returned an exception "{response["exception"]}". Message: {response["message"]}')
 
         # Check that everything went smoothly on the Moodle side (not that we could change anything here...)
         if response['status'] != 'OK':

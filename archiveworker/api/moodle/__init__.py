@@ -16,3 +16,4 @@
 
 from .base import MoodleAPIBase
 from .quiz_archiver import QuizArchiverMoodleAPI
+from .archivingmod_quiz import ArchivingmodQuizMoodleAPI

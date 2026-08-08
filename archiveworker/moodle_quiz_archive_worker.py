@@ -32,7 +32,6 @@ from flask import Flask, make_response, request, jsonify
 
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
 from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
-from archiveworker.api.worker.archivingmod_assign import ArchivingmodAssignArchiveRequest
 from archiveworker.interruptable_thread import InterruptableThread
 from archiveworker.job import ArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter

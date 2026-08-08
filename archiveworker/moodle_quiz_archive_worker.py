@@ -32,8 +32,9 @@ from flask import Flask, make_response, request, jsonify
 
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
 from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
+from archiveworker.api.worker.archivingmod_assign import ArchivingmodAssignArchiveRequest
 from archiveworker.interruptable_thread import InterruptableThread
-from archiveworker.quiz_archive_job import QuizArchiveJob
+from archiveworker.job import ArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 from config import Config
 
@@ -44,16 +45,16 @@ app = Flask(__name__)
 worker_threads:list[InterruptableThread] = list()
 """List collecting all references of started worker threads"""
 
-current_jobs:dict[str,QuizArchiveJob] = dict()
+current_jobs:dict[str,ArchiveJob] = dict()
 """Mapping of worker thread name to their current job"""
 
 current_jobs_mutex = threading.Lock()
 """Mutex for `current_jobs`'s thread safety"""
 
-job_queue:queue.Queue[QuizArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
+job_queue:queue.Queue[ArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
 """Queue collecting all pending jobs"""
 
-job_history:deque[QuizArchiveJob] = deque(maxlen=Config.HISTORY_SIZE)
+job_history:deque[ArchiveJob] = deque(maxlen=Config.HISTORY_SIZE)
 """List of past submitted jobs up to a maximum history size"""
 
 
@@ -231,7 +232,7 @@ def _handle_archive_request(apicls: type[ArchiveRequest]):
             return error_response(f'Could not establish a connection to Moodle webservice API at "{job_descriptor.moodle_api.ws_rest_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
 
         # Enqueue request
-        job = QuizArchiveJob(uuid.uuid1(), job_descriptor)
+        job = apicls.JOB_CLASS(uuid.uuid1(), job_descriptor)
         job_queue.put_nowait(job)  # Actual queue capacity limit is enforced here!
         job_history.append(job)
         job.set_status(JobStatus.AWAITING_PROCESSING, notify_moodle=False)

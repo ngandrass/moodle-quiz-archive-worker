@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from archiveworker.api.moodle.archivingmod_quiz import ArchivingmodQuizMoodleAPI
+from archiveworker.job import QuizArchiveJob
 from archiveworker.type import PaperFormat
 
 from . import ArchiveJobDescriptor, ArchiveRequest
@@ -27,6 +28,8 @@ class ArchivingmodQuizArchiveRequest(ArchiveRequest):
     """
 
     API_VERSION = 1
+
+    JOB_CLASS = QuizArchiveJob
 
     @staticmethod
     def from_raw_request_data(json: dict) -> ArchiveJobDescriptor:
@@ -76,7 +79,6 @@ class ArchivingmodQuizArchiveRequest(ArchiveRequest):
             fetch_attachments=json['job']['fetch_attachments'],
             paper_format=PaperFormat[json['job']['paper_format']],
             keep_html_files=json['job']['keep_html_files'],
-            flatten_archive=json['job']['flatten_archive'],
             foldername_pattern=json['job']['foldername_pattern'],
             filename_pattern=json['job']['filename_pattern'],
             image_optimize=True if image_optimize_data else False,

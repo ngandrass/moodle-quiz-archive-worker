@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from archiveworker.api.moodle import QuizArchiverMoodleAPI
+from archiveworker.job import QuizArchiveJob
 from archiveworker.type import PaperFormat
 
 from . import ArchiveJobDescriptor, ArchiveRequest
@@ -27,6 +28,8 @@ class QuizArchiverArchiveRequest(ArchiveRequest):
     """
 
     API_VERSION = 7
+
+    JOB_CLASS = QuizArchiveJob
 
     @staticmethod
     def from_raw_request_data(json: dict) -> ArchiveJobDescriptor:

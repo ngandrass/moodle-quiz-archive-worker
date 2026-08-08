@@ -25,6 +25,15 @@ class ArchiveRequest(metaclass=ABCMeta):
     """
 
     API_VERSION = 0
+    """
+    The current version of the API. This must be a monotonically increasing integer.
+    """
+
+    JOB_CLASS = None
+    """
+    The concrete ArchiveJob subclass to instantiate for jobs created from this
+    request type. Must be set by concrete subclasses.
+    """
 
     @staticmethod
     @abstractmethod

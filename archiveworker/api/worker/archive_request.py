@@ -17,6 +17,7 @@
 from abc import ABCMeta, abstractmethod
 
 from archiveworker.api.worker import ArchiveJobDescriptor
+from archiveworker.job import ArchiveJob
 
 
 class ArchiveRequest(metaclass=ABCMeta):
@@ -24,12 +25,12 @@ class ArchiveRequest(metaclass=ABCMeta):
     Abstract base class for all incoming archive requests.
     """
 
-    API_VERSION = 0
+    API_VERSION: int = 0
     """
     The current version of the API. This must be a monotonically increasing integer.
     """
 
-    JOB_CLASS = None
+    JOB_CLASS: ArchiveJob | None = None
     """
     The concrete ArchiveJob subclass to instantiate for jobs created from this
     request type. Must be set by concrete subclasses.

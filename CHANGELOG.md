@@ -2,6 +2,14 @@
 
 ## Version X.Y.Z (YYYY-MM-DD)
 
+- **⚠️ BREAKING ⚠️** Renamed project from "Moodle Quiz Archive Worker" to "Moodle Archiving Worker" to reflect generalized future support for Moodle activities beyond `mod_quiz`
+  - GitHub repository renamed `moodle-archiving-worker` (old URLs redirect automatically)
+  - Docker image renamed to `ngandrass/moodle-archiving-worker`
+    - Update your `docker-compose.yml` / `docker run` commands accordingly
+  - All `QUIZ_ARCHIVER_*` environment variables have been renamed to `MOODLE_ARCHIVER_*`
+    - Update your deployment configuration before upgrading, or the worker will silently fall back to default values
+  - The `app` field returned by `GET /status` now reports `moodle-archiving-worker` instead of `moodle-quiz-archive-worker`
+  - API routes and request/response payloads are otherwise unchanged
 - Add support for chunked uploads
   - Archives larger than the maximum upload filesize of Moodle will be split into multiple chunks
   - Uploaded chunks will be automatically reassembled by the Moodle plugin

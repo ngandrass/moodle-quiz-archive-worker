@@ -15,8 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import csv
-from pathlib import Path
 from time import time
+from typing import Dict, List, Union
 
 from playwright.async_api import async_playwright, BrowserContext
 
@@ -58,7 +58,8 @@ class QuizArchiveJob(ArchiveJob):
 
     async def _process_quiz_attempts(self) -> None:
         """
-        Renders all quiz attempts to HTML and PDF files
+        Processes all quiz attempts of this job (rendering, attachments,
+        post-processing) and reports progress to Moodle
 
         :return: None
         """
@@ -71,27 +72,14 @@ class QuizArchiveJob(ArchiveJob):
             for attemptid in task['attemptids']:
                 raise_error_if_stop_requested()
 
-                # Process attempt
-                quiz_attempt_pdf_path = await self._render_quiz_attempt(
+                # Process a single attempt
+                await self._process_quiz_attempt(
                     context,
                     attemptid,
-                    task['paper_format']
+                    task['paper_format'],
+                    task['keep_html_files'],
+                    task['image_optimize']
                 )
-                if task['image_optimize']:
-                    await report_renderer.compress_pdf(
-                        file=quiz_attempt_pdf_path,
-                        pdf_compression_level=6,
-                        image_maxwidth=task['image_optimize']['width'],
-                        image_maxheight=task['image_optimize']['height'],
-                        image_quality=task['image_optimize']['quality'],
-                        logger=self.logger
-                    )
-                if Config.PDFA_CONVERSION:
-                    await report_renderer.convert_pdf_to_pdfa(
-                        input_pdf_file=quiz_attempt_pdf_path,
-                        tmp_dir_factory=self.workspace.tmp_dir,
-                        logger=self.logger
-                    )
 
                 # Report status
                 if time() >= self.last_moodle_status_update + Config.STATUS_REPORTING_INTERVAL_SEC:
@@ -106,25 +94,36 @@ class QuizArchiveJob(ArchiveJob):
             await browser.close()
             self.logger.debug("Destroyed playwright Browser and BrowserContext")
 
-    async def _render_quiz_attempt(self, bctx: BrowserContext, attemptid: int, paper_format: PaperFormat) -> Path:
+    async def _process_quiz_attempt(
+            self,
+            bctx: BrowserContext,
+            attemptid: int,
+            paper_format: PaperFormat,
+            keep_html_files: bool,
+            image_optimize: Union[Dict, bool]
+    ) -> None:
         """
-        Renders a complete quiz attempt to a PDF file
+        Processes a single quiz attempt: renders it to HTML/PDF, downloads
+        its attachments, and applies the configured PDF post-processing
+        (image optimization, PDF/A conversion)
 
-        :param attemptid: ID of the quiz attempt to render
+        :param bctx: Playwright BrowserContext to render the attempt with
+        :param attemptid: ID of the quiz attempt to process
         :param paper_format: Paper format to use for the PDF (e.g. 'A4')
-        :return: Path of rendered PDF file
+        :param keep_html_files: Whether to keep the rendered HTML DOM as a separate file
+        :param image_optimize: Image optimization settings to apply to the PDF, or False to skip
+        :return: None
         """
-        # Retrieve attempt data
+        # Retrieve attempt data and setup workspace
         folder_name, attempt_name, attempt_html, attempt_attachments = self.moodle_api.get_attempt_data(
             self.get_id(),
             self.descr,
             attemptid
         )
-
         attempt_artifact = self.workspace.attempt(attemptid, attempt_name, folder_name)
 
         # Save HTML DOM, if desired
-        if self.descr.tasks['quiz_attempts']['keep_html_files']:
+        if keep_html_files:
             html_report = attempt_artifact.html_report(f"{attempt_name}.html")
             with open(html_report.path, "w+") as f:
                 f.write(attempt_html)
@@ -142,31 +141,57 @@ class QuizArchiveJob(ArchiveJob):
             output_path=pdf_report.path,
             logger=self.logger
         )
-
         self.logger.info(f"Generated \"{attempt_name}\"")
 
+        # Post-process rendered PDF
+        if image_optimize:
+            await report_renderer.compress_pdf(
+                file=pdf_report.path,
+                pdf_compression_level=6,
+                image_maxwidth=image_optimize['width'],
+                image_maxheight=image_optimize['height'],
+                image_quality=image_optimize['quality'],
+                logger=self.logger
+            )
+        if Config.PDFA_CONVERSION:
+            await report_renderer.convert_pdf_to_pdfa(
+                input_pdf_file=pdf_report.path,
+                tmp_dir_factory=self.workspace.tmp_dir,
+                logger=self.logger
+            )
+
         # Save attempt attachments
-        if attempt_attachments:
-            for attachment in attempt_attachments:
-                self.logger.debug(f"Saving {len(attempt_attachments)} attachments ...")
-
-                attachment_artifact = attempt_artifact.attachment(
-                    attachment['slot'],
-                    attachment['filename']
-                )
-
-                downloaded_bytes = self.moodle_api.download_moodle_file(
-                    download_url=attachment['downloadurl'],
-                    target_file=attachment_artifact.path,
-                    sha1sum_expected=attachment['contenthash'],
-                    maxsize_bytes=Config.QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES
-                )
-
-                self.logger.info(f'Downloaded {downloaded_bytes} bytes of quiz slot {attachment["slot"]} attachment {attachment["filename"]} to {attachment_artifact.path}')
+        self._save_attempt_attachments(attempt_artifact, attempt_attachments)
 
         self.archived_items_count += 1
 
-        return pdf_report.path
+    def _save_attempt_attachments(self, attempt_artifact: AttemptArtifact, attachments: List[Dict]) -> None:
+        """
+        Downloads and saves all given attachments of a quiz attempt
+
+        :param attempt_artifact: Workspace artifact of the quiz attempt the attachments belong to
+        :param attachments: Attachments to download, as returned by the Moodle API
+        :return: None
+        """
+        if not attachments:
+            self.logger.debug('No attachments to save')
+            return
+
+        self.logger.debug(f"Saving {len(attachments)} attachments ...")
+        for attachment in attachments:
+            attachment_artifact = attempt_artifact.attachment(
+                attachment['slot'],
+                attachment['filename']
+            )
+
+            downloaded_bytes = self.moodle_api.download_moodle_file(
+                download_url=attachment['downloadurl'],
+                target_file=attachment_artifact.path,
+                sha1sum_expected=attachment['contenthash'],
+                maxsize_bytes=Config.QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES
+            )
+
+            self.logger.info(f'Downloaded {downloaded_bytes} bytes of quiz slot {attachment["slot"]} attachment {attachment["filename"]} to {attachment_artifact.path}')
 
     async def _process_quiz_attempts_metadata(self) -> None:
         """

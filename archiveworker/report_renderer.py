@@ -105,25 +105,42 @@ async def render_html_to_pdf(
         page.on('domcontentloaded', lambda _: logger.debug('Playwright DOM content loaded'))
         # page.on('requestfinished', lambda req: logger.debug(f'Playwright request finished: {req.url}'))
 
-    # Create mock responder to serve the HTML document
-    # This is done to avoid CORS errors when loading the HTML and to
-    # prevent errors when dynamically loading JavaScript modules via
-    # requireJS. Using the base URL of the corresponding Moodle LMS seems to
-    # work absolutely fine for now.
-    async def mock_responder(route: Route):
+    async def __mock_responder(route: Route):
+        """
+        Create mock responder to serve the HTML document.
+
+        This is done to avoid CORS errors when loading the HTML and to
+        prevent errors when dynamically loading JavaScript modules via
+        RequireJS. Using the base URL of the corresponding Moodle LMS seems to
+        work absolutely fine for now.
+
+        :param route: Playwright route to respond to
+        :return: None
+        """
         await route.fulfill(body=html, content_type='text/html')
 
-    # Aborts navigations to login page
-    async def login_redirection_interceptor(route: Route):
+    async def __login_redirection_interceptor(route: Route):
+        """
+        Aborts navigations to login page
+
+        :param route: Playwright route to intercept
+        :return: None
+        """
         logger.warning(f'Prevented belated redirection to: {route.request.url}')
         await route.abort('blockedbyclient')
 
-    # Removes javascript code that redirects to the login page
-    # This can happen if ajax requests fail with permission errors due to missing sessions.
-    # We alter the javascript code because we cannot prevent the redirection event once it is fired. Intercepting
-    # the request after it fired may lead to situations where the HTML DOM of the page is already
-    # destructed, leading to empty pages and thus to blank PDF files.
-    async def javascript_redirection_patcher(route: Route):
+    async def __javascript_redirection_patcher(route: Route):
+        """
+        Removes JavaScript code that redirects to the login page.
+
+        This can happen if AJAX requests fail with permission errors due to missing sessions.
+        We alter the JavaScript code because we cannot prevent the redirection event once it is fired.
+        Intercepting the request after it fired may lead to situations where the HTML DOM of the page
+        is already destructed, leading to empty pages and thus to blank PDF files.
+
+        :param route: Playwright route to intercept
+        :return: None
+        """
         try:
             # Perform request
             response = await route.fetch(timeout=Config.REQUEST_TIMEOUT_SEC if not Config.UNIT_TESTS_RUNNING else 0.1)
@@ -152,10 +169,10 @@ async def render_html_to_pdf(
     try:
         # Flush and re-register custom route handlers as required
         await bctx.unroute_all()
-        await bctx.route(f"{base_url}/mock/attempt", mock_responder)
+        await bctx.route(f"{base_url}/mock/attempt", __mock_responder)
         if Config.PREVENT_REDIRECT_TO_LOGIN:
-            await bctx.route('**/login/*.php', login_redirection_interceptor)
-            await bctx.route('**/*.js', javascript_redirection_patcher)
+            await bctx.route('**/login/*.php', __login_redirection_interceptor)
+            await bctx.route('**/*.js', __javascript_redirection_patcher)
 
         # Load HTML
         await page.goto(f"{base_url}/mock/attempt")

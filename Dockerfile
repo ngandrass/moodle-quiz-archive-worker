@@ -16,9 +16,9 @@
 
 FROM python:3.13
 
-ENV USER_NAME archiveworker
-ENV USER_GROUP archiveworker
-ENV USER_HOME /app
+ENV USER_NAME=archiveworker
+ENV USER_GROUP=archiveworker
+ENV USER_HOME=/app
 
 RUN set -e && \
     mkdir ${USER_HOME}

@@ -8,6 +8,7 @@
 - Rework current archive creation process into a flexible and extensible archive packer structure
 - Add support for flat archive structures where all files are stored in a single directory instead of a nested directory structure
 - Make SHA256 checksum generation configurable via the companion plugin
+- Refactor the archive worker codebase to allow for easier extendability and maintainability
 - Allow passing of php xdebug session id via the environment variable `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION` for development purposes
 - Update Python dependencies
  

@@ -392,7 +392,7 @@ async def convert_pdf_to_pdfa(
         """
 
         pdf_metadata = {
-            'MoodleQuizArchiveWorkerVersion': Config.VERSION,
+            'MoodleArchivingWorkerVersion': Config.VERSION,
         }
         if title is not None and title != "":
             pdf_metadata["Title"] = title

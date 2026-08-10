@@ -16,7 +16,7 @@
 
 import pytest
 
-from archiveworker.moodle_quiz_archive_worker import detect_proxy_settings
+from archiveworker.worker import detect_proxy_settings
 
 from config import Config
 

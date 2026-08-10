@@ -19,7 +19,7 @@ from enum import StrEnum
 
 class JobStatus(StrEnum):
     """
-    Status values a single quiz archive worker job can have
+    Status values a single archiving worker job can have
     """
     UNINITIALIZED = 'UNINITIALIZED'
     AWAITING_PROCESSING = 'AWAITING_PROCESSING'

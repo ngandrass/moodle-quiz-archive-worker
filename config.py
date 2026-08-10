@@ -60,25 +60,25 @@ class Config:
     VERSION = "4.0.4"
     """Version of this app"""
 
-    LOG_LEVEL = logging.getLevelNamesMapping()[parse_env_variable('QUIZ_ARCHIVER_LOG_LEVEL', default='INFO', valtype=str)]
+    LOG_LEVEL = logging.getLevelNamesMapping()[parse_env_variable('MOODLE_ARCHIVER_LOG_LEVEL', default='INFO', valtype=str)]
     """Python Logger logging level"""
 
-    DEMO_MODE = parse_env_variable('QUIZ_ARCHIVER_DEMO_MODE', default=False, valtype=bool)
+    DEMO_MODE = parse_env_variable('MOODLE_ARCHIVER_DEMO_MODE', default=False, valtype=bool)
     """Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included."""
 
     UNIT_TESTS_RUNNING = False
     """Whether unit tests are currently running. This should always be kept at `False` and is only changed by pytest."""
 
-    SERVER_HOST = parse_env_variable('QUIZ_ARCHIVER_SERVER_HOST', default='0.0.0.0', valtype=str)
+    SERVER_HOST = parse_env_variable('MOODLE_ARCHIVER_SERVER_HOST', default='0.0.0.0', valtype=str)
     """Host for Flask to bind to"""
 
-    SERVER_PORT = parse_env_variable('QUIZ_ARCHIVER_SERVER_PORT', default='8080', valtype=int)
+    SERVER_PORT = parse_env_variable('MOODLE_ARCHIVER_SERVER_PORT', default='8080', valtype=int)
     """Port for Flask to listen on"""
 
-    SKIP_HTTPS_CERT_VALIDATION = parse_env_variable('QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION', default=False, valtype=bool)
+    SKIP_HTTPS_CERT_VALIDATION = parse_env_variable('MOODLE_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION', default=False, valtype=bool)
     """Whether to skip validation of TLS / SSL certs for all HTTPS connections. WARNING: If set to true, invalid certificates are accepted without error."""
 
-    PROXY_SERVER_URL = parse_env_variable('QUIZ_ARCHIVER_PROXY_SERVER_URL', default=None, valtype=str)
+    PROXY_SERVER_URL = parse_env_variable('MOODLE_ARCHIVER_PROXY_SERVER_URL', default=None, valtype=str)
     """URL of the proxy server to use for all playwright requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used."""
 
     PROXY_USERNAME = None
@@ -87,70 +87,70 @@ class Config:
     PROXY_PASSWORD = None
     """Optional password to authenticate at the proxy server. Will be populated based on PROXY_SERVER_URL."""
 
-    PROXY_BYPASS_DOMAINS = parse_env_variable('QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS', default=None, valtype=str)
+    PROXY_BYPASS_DOMAINS = parse_env_variable('MOODLE_ARCHIVER_PROXY_BYPASS_DOMAINS', default=None, valtype=str)
     """Comma-separated list of domains that should always be accessed directly, bypassing the proxy"""
 
-    QUEUE_SIZE = parse_env_variable('QUIZ_ARCHIVER_QUEUE_SIZE', default=8, valtype=int)
+    QUEUE_SIZE = parse_env_variable('MOODLE_ARCHIVER_QUEUE_SIZE', default=8, valtype=int)
     """Maximum number of requests that are queued before returning an error."""
 
-    PARALLEL_JOBS = parse_env_variable('QUIZ_ARCHIVER_PARALLEL_JOBS', default=4, valtype=int)
+    PARALLEL_JOBS = parse_env_variable('MOODLE_ARCHIVER_PARALLEL_JOBS', default=4, valtype=int)
     """Number of worker threads to process archive jobs in parallel. Value has to be greater than 0"""
 
-    HISTORY_SIZE = parse_env_variable('QUIZ_ARCHIVER_HISTORY_SIZE', default=128, valtype=int)
+    HISTORY_SIZE = parse_env_variable('MOODLE_ARCHIVER_HISTORY_SIZE', default=128, valtype=int)
     """Maximum number of jobs to keep in the history before forgetting about them."""
 
-    ZIP_COMPRESSION_ALGO = getattr(zipfile, 'ZIP_' + parse_env_variable('QUIZ_ARCHIVER_ZIP_COMPRESSION_ALGO', default='DEFLATED', valtype=str))
+    ZIP_COMPRESSION_ALGO = getattr(zipfile, 'ZIP_' + parse_env_variable('MOODLE_ARCHIVER_ZIP_COMPRESSION_ALGO', default='DEFLATED', valtype=str))
     """Compression algorithm to use for ZIP archives. Use `DEFLATED` for compatibility with Windows and MacOS. Possible values are `STORED` (no compression), `DEFLATED` (light compression, default), `BZIP2` (medium compression), and `LZMA` (strong compression)."""
 
-    STATUS_REPORTING_INTERVAL_SEC = parse_env_variable('QUIZ_ARCHIVER_STATUS_REPORTING_INTERVAL_SEC', default=15, valtype=int)
+    STATUS_REPORTING_INTERVAL_SEC = parse_env_variable('MOODLE_ARCHIVER_STATUS_REPORTING_INTERVAL_SEC', default=15, valtype=int)
     """Number of seconds to wait between job progress updates"""
 
-    REQUEST_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(60 * 60), valtype=int)
+    REQUEST_TIMEOUT_SEC = parse_env_variable('MOODLE_ARCHIVER_REQUEST_TIMEOUT_SEC', default=(60 * 60), valtype=int)
     """Number of seconds before execution of a single request is aborted."""
 
-    BACKUP_STATUS_RETRY_SEC = parse_env_variable('QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30, valtype=int)
+    BACKUP_STATUS_RETRY_SEC = parse_env_variable('MOODLE_ARCHIVER_BACKUP_STATUS_RETRY_SEC', default=30, valtype=int)
     """Number of seconds between status checks of pending backups via the Moodle API"""
 
-    DOWNLOAD_MAX_FILESIZE_BYTES = parse_env_variable('QUIZ_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES', default=int(1024 * 10e6), valtype=int)
+    DOWNLOAD_MAX_FILESIZE_BYTES = parse_env_variable('MOODLE_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES', default=int(1024 * 10e6), valtype=int)
     """Maximum number of bytes a generic Moodle file is allowed to have for downloading"""
 
-    BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES = parse_env_variable('QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES', default=int(512 * 10e6), valtype=int)
+    BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES = parse_env_variable('MOODLE_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES', default=int(512 * 10e6), valtype=int)
     """Maximum number of bytes a backup is allowed to have for downloading"""
 
-    QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES = parse_env_variable('QUIZ_ARCHIVER_QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES', default=int(128 * 10e6), valtype=int)
+    QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES = parse_env_variable('MOODLE_ARCHIVER_QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES', default=int(128 * 10e6), valtype=int)
     """Maximum number of bytes a question attachment is allowed to have for downloading"""
 
-    REPORT_BASE_VIEWPORT_WIDTH = parse_env_variable('QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH', default=1240, valtype=int)
+    REPORT_BASE_VIEWPORT_WIDTH = parse_env_variable('MOODLE_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH', default=1240, valtype=int)
     """Width of the viewport created for rendering quiz attempts in pixel"""
 
-    REPORT_PAGE_MARGIN = parse_env_variable('QUIZ_ARCHIVER_REPORT_PAGE_MARGIN', default='5mm', valtype=str)
+    REPORT_PAGE_MARGIN = parse_env_variable('MOODLE_ARCHIVER_REPORT_PAGE_MARGIN', default='5mm', valtype=str)
     """Margin (top, bottom, left, right) of the report PDF pages including unit (mm, cm, in, px)"""
 
-    REPORT_WAIT_FOR_READY_SIGNAL = parse_env_variable('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL', default=True, valtype=bool)
+    REPORT_WAIT_FOR_READY_SIGNAL = parse_env_variable('MOODLE_ARCHIVER_WAIT_FOR_READY_SIGNAL', default=True, valtype=bool)
     """Whether to wait for the ready signal from the report page JS before generating the export"""
 
-    REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC', default=30, valtype=int)
+    REPORT_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC = parse_env_variable('MOODLE_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC', default=30, valtype=int)
     """Number of seconds to wait for the ready signal from the report page JS before considering the export as failed"""
 
-    REPORT_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT = parse_env_variable('QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT', default=False, valtype=bool)
+    REPORT_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT = parse_env_variable('MOODLE_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT', default=False, valtype=bool)
     """Whether to continue with the export if the ready signal was not received in time"""
 
-    REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC', default=30, valtype=int)
+    REPORT_WAIT_FOR_NAVIGATION_TIMEOUT_SEC = parse_env_variable('MOODLE_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC', default=30, valtype=int)
     """Number of seconds to wait for the report page to load before aborting the job"""
 
-    PREVENT_REDIRECT_TO_LOGIN = parse_env_variable('QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN', default=True, valtype=bool)
+    PREVENT_REDIRECT_TO_LOGIN = parse_env_variable('MOODLE_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN', default=True, valtype=bool)
     """Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests due to with permission errors."""
 
-    PDFA_CONVERSION = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION', default=True, valtype=bool)
+    PDFA_CONVERSION = parse_env_variable('MOODLE_ARCHIVER_PDFA_CONVERSION', default=True, valtype=bool)
     """Whether to convert exported attempt PDF files into a PDF/A compliant format"""
 
-    PDFA_CONVERSION_TIMEOUT_SEC = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC', default=30, valtype=int)
+    PDFA_CONVERSION_TIMEOUT_SEC = parse_env_variable('MOODLE_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC', default=30, valtype=int)
     """Number of seconds to wait before conversion process is aborted"""
 
-    PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = parse_env_variable('QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH', default=None, valtype=str)
+    PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = parse_env_variable('MOODLE_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH', default=None, valtype=str)
     """Path to the ghostscript binary that should be used for PDF/A conversion. If left unset, this will be detected automatically."""
 
-    DEV_XDEBUG_SESSION = parse_env_variable('QUIZ_ARCHIVER_DEV_XDEBUG_SESSION', default=None, valtype=str)
+    DEV_XDEBUG_SESSION = parse_env_variable('MOODLE_ARCHIVER_DEV_XDEBUG_SESSION', default=None, valtype=str)
     """For development only: PHP XDEBUG session id to trigger debugging of moodle webservice API calls."""
 
     @staticmethod

@@ -21,6 +21,6 @@ class ReportSignal(StrEnum):
     """
     Signals that can be emitted by the report page JS
     """
-    READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export"
-    MATHJAX_FOUND = "x-quiz-archiver-mathjax-found"
-    MATHJAX_NOT_FOUND = "x-quiz-archiver-mathjax-not-found"
+    READY_FOR_EXPORT = "x-moodle-archiver-page-ready-for-export"
+    MATHJAX_FOUND = "x-moodle-archiver-mathjax-found"
+    MATHJAX_NOT_FOUND = "x-moodle-archiver-mathjax-not-found"

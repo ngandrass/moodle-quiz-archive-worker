@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ from config import Config
 
 
 app = Flask(__name__)
-"""Moodle Quiz Archive Worker REST API"""
+"""Moodle Archiving Worker REST API"""
 
 worker_threads:list[InterruptableThread] = list()
 """List collecting all references of started worker threads"""
@@ -327,7 +327,7 @@ def detect_proxy_settings(envvars) -> None:
 
     # Try to detect HTTP proxy
     for varname in [
-        'QUIZ_ARCHIVER_PROXY_SERVER_URL',
+        'MOODLE_ARCHIVER_PROXY_SERVER_URL',
         'http_proxy',
         'HTTP_PROXY',
         'https_proxy',
@@ -427,7 +427,7 @@ def run() -> None:
     # Print demo mode notice if enabled
     if Config.DEMO_MODE:
         app.logger.warning('---> ATTENTION: Running in demo mode! This will add a watermark to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included. <---')
-        app.logger.info('---> To disable demo mode, set the environment variable QUIZ_ARCHIVER_DEMO_MODE to "False". <---')
+        app.logger.info('---> To disable demo mode, set the environment variable MOODLE_ARCHIVER_DEMO_MODE to "False". <---')
 
     # Handle DEBUG specifics
     if Config.LOG_LEVEL == logging.DEBUG:
@@ -440,7 +440,7 @@ def run() -> None:
     # Produce warning if TLS cert validation is turned off
     if Config.SKIP_HTTPS_CERT_VALIDATION:
         app.logger.warning('TLS / SSL certificate validation is TURNED OFF! This server will accept any given certificate for HTTPS connections without trying to validate it.')
-        app.logger.info('To enable certificate validation set QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION to "False" or unset the variable.')
+        app.logger.info('To enable certificate validation set MOODLE_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION to "False" or unset the variable.')
 
     # Handle proxy settings
     if Config.PROXY_SERVER_URL is not None and Config.PROXY_SERVER_URL.lower() == 'false':

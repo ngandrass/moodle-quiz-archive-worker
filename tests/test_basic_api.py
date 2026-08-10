@@ -24,7 +24,7 @@ from .conftest import client
 import tests.fixtures.quiz_archiver as fixtures
 from config import Config
 from archiveworker.type import JobStatus, WorkerStatus
-from archiveworker.moodle_quiz_archive_worker import start_processing_threads, current_jobs_mutex
+from archiveworker.worker import start_processing_threads, current_jobs_mutex
 
 
 class TestBasicAPI:

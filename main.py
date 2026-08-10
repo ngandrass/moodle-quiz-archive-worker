@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from archiveworker import moodle_quiz_archive_worker
+from archiveworker import worker
 
 if __name__ == "__main__":
-    moodle_quiz_archive_worker.run()
+    worker.run()

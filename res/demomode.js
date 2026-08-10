@@ -52,7 +52,7 @@ document.body.appendChild(wrapper);
 const info = document.createElement('div');
 
 info.innerHTML = 'This PDF was generated in <strong>demo mode</strong>. The watermark will not be present when using a ' +
-                 'productive quiz archive worker service.<br>For more information visit: ' +
+                 'productive archiving worker service.<br>For more information visit: ' +
                  '<a href="https://quizarchiver.gandrass.de">https://quizarchiver.gandrass.de</a>';
 
 Object.assign(info.style, {

@@ -27,7 +27,7 @@ import pytest
 
 from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.type import JobStatus, MoodleBackupStatus
-from archiveworker.moodle_quiz_archive_worker import app as original_app, current_jobs, job_queue, job_history, stop_processing_threads
+from archiveworker.worker import app as original_app, current_jobs, job_queue, job_history, stop_processing_threads
 from config import Config
 
 

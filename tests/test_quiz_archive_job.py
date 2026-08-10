@@ -29,7 +29,7 @@ import pytest
 import tests.fixtures.quiz_archiver as fixtures
 from archiveworker.api.moodle import QuizArchiverMoodleAPI
 from archiveworker.api.worker import ArchiveJobDescriptor
-from archiveworker.moodle_quiz_archive_worker import start_processing_threads
+from archiveworker.worker import start_processing_threads
 from archiveworker.archive_builder import FlatArchiveOrganizer, HierarchicalArchiveOrganizer
 from archiveworker.job import QuizArchiveJob
 from archiveworker.type import JobStatus

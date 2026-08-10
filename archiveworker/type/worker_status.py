@@ -19,7 +19,7 @@ from enum import StrEnum
 
 class WorkerStatus(StrEnum):
     """
-    Status values that the quiz archive worker can report
+    Status values that the archiving worker can report
     """
 
     IDLE = 'IDLE'

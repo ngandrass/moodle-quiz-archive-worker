@@ -1,5 +1,5 @@
 /*
- * Moodle Quiz Archive Worker
+ * Moodle Archiving Worker
  * Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
  *
  * This program is free software: you can redistribute it and/or modify

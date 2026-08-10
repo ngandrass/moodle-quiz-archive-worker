@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ def parse_env_variable(name, default=None, valtype=None) -> None | bool | int | 
 
 class Config:
 
-    APP_NAME = "moodle-quiz-archive-worker"
+    APP_NAME = "moodle-archiving-worker"
     """Name of this app"""
 
     VERSION = "4.0.4"

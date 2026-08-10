@@ -1,22 +1,22 @@
-# moodle-quiz-archive-worker
+# Moodle Archiving Worker
 
-[![Latest Version](https://img.shields.io/github/v/release/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/releases)
-[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ngandrass/moodle-quiz-archive-worker/latest?label=docker%20image)](https://hub.docker.com/r/ngandrass/moodle-quiz-archive-worker)
-[![Docker Pulls](https://img.shields.io/docker/pulls/ngandrass/moodle-quiz-archive-worker)](https://hub.docker.com/r/ngandrass/moodle-quiz-archive-worker)
-[![GitHub Workflow Status: build](https://img.shields.io/github/actions/workflow/status/ngandrass/moodle-quiz-archive-worker/docker-build-and-push-releases.yml?label=CI%20build)](https://github.com/ngandrass/moodle-quiz-archive-worker/actions/workflows/docker-build-and-push-releases.yml)
-[![GitHub Workflow Status: test](https://img.shields.io/github/actions/workflow/status/ngandrass/moodle-quiz-archive-worker/pytest.yml?label=CI%20unit%20tests)](https://github.com/ngandrass/moodle-quiz-archive-worker/actions/workflows/pytest.yml)
-[![GitHub Issues](https://img.shields.io/github/issues/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/pulls)
-[![Maintenance Status](https://img.shields.io/maintenance/yes/9999)](https://github.com/ngandrass/moodle-quiz-archive-worker/)
-[![License](https://img.shields.io/github/license/ngandrass/moodle-quiz-archive-worker)](https://github.com/ngandrass/moodle-quiz-archive-worker/blob/master/LICENSE)
+[![Latest Version](https://img.shields.io/github/v/release/ngandrass/moodle-archiving-worker)](https://github.com/ngandrass/moodle-archiving-worker/releases)
+[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ngandrass/moodle-archiving-worker/latest?label=docker%20image)](https://hub.docker.com/r/ngandrass/moodle-archiving-worker)
+[![Docker Pulls](https://img.shields.io/docker/pulls/ngandrass/moodle-archiving-worker)](https://hub.docker.com/r/ngandrass/moodle-archiving-worker)
+[![GitHub Workflow Status: build](https://img.shields.io/github/actions/workflow/status/ngandrass/moodle-archiving-worker/docker-build-and-push-releases.yml?label=CI%20build)](https://github.com/ngandrass/moodle-archiving-worker/actions/workflows/docker-build-and-push-releases.yml)
+[![GitHub Workflow Status: test](https://img.shields.io/github/actions/workflow/status/ngandrass/moodle-archiving-worker/pytest.yml?label=CI%20unit%20tests)](https://github.com/ngandrass/moodle-archiving-worker/actions/workflows/pytest.yml)
+[![GitHub Issues](https://img.shields.io/github/issues/ngandrass/moodle-archiving-worker)](https://github.com/ngandrass/moodle-archiving-worker/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/ngandrass/moodle-archiving-worker)](https://github.com/ngandrass/moodle-archiving-worker/pulls)
+[![Maintenance Status](https://img.shields.io/maintenance/yes/9999)](https://github.com/ngandrass/moodle-archiving-worker/)
+[![License](https://img.shields.io/github/license/ngandrass/moodle-archiving-worker)](https://github.com/ngandrass/moodle-archiving-worker/blob/master/LICENSE)
 [![Donate with PayPal](https://img.shields.io/badge/PayPal-donate-d85fa0)](https://www.paypal.me/ngandrass)
 [![Sponsor with GitHub](https://img.shields.io/badge/GitHub-sponsor-d85fa0)](https://github.com/sponsors/ngandrass)
-[![GitHub Stars](https://img.shields.io/github/stars/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/network/members)
-[![GitHub Contributors](https://img.shields.io/github/contributors/ngandrass/moodle-quiz-archive-worker?style=social)](https://github.com/ngandrass/moodle-quiz-archive-worker/graphs/contributors)
+[![GitHub Stars](https://img.shields.io/github/stars/ngandrass/moodle-archiving-worker?style=social)](https://github.com/ngandrass/moodle-archiving-worker/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/ngandrass/moodle-archiving-worker?style=social)](https://github.com/ngandrass/moodle-archiving-worker/network/members)
+[![GitHub Contributors](https://img.shields.io/github/contributors/ngandrass/moodle-archiving-worker?style=social)](https://github.com/ngandrass/moodle-archiving-worker/graphs/contributors)
 
-Quiz archiver service to work in conjunction with the Moodle plugin
-[quiz_archiver](https://github.com/ngandrass/moodle-quiz_archiver).
+Archiving worker service to work in conjunction with Moodle archiving plugins,
+such as [quiz_archiver](https://github.com/ngandrass/moodle-quiz_archiver).
 
 This application processes quiz archive jobs. It renders Moodle quiz attempts
 inside a headless webbrowser and exports them to PDF/HTML files, including
@@ -37,7 +37,7 @@ Detailed installation and configuration instructions can be found within the
 
 [![Quiz Archiver: Official Documentation](docs/assets/docs-button.png)](https://quizarchiver.gandrass.de/)
 
-If you have problems installing the Quiz Archiver or the Quiz Archive Worker
+If you have problems installing the Quiz Archiver or the Moodle Archiving Worker
 Service, or you have further questions, please feel free to open an issue within
 the [GitHub issue tracker](https://github.com/ngandrass/moodle-quiz_archiver/issues).
 
@@ -45,20 +45,20 @@ the [GitHub issue tracker](https://github.com/ngandrass/moodle-quiz_archiver/iss
 ## Docker Compose
 
 1. Install [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
-2. Create a `docker-compose.yml` inside a `moodle-quiz-archive-worker` folder
+2. Create a `docker-compose.yml` inside a `moodle-archiving-worker` folder
    with the following content:
    ```yaml
    services:
-     moodle-quiz-archive-worker:
-       image: ngandrass/moodle-quiz-archive-worker:latest
-       container_name: moodle-quiz-archive-worker
+     moodle-archiving-worker:
+       image: ngandrass/moodle-archiving-worker:latest
+       container_name: moodle-archiving-worker
        restart: always
        ports:
          - "8080:8080"
        environment:
-         - QUIZ_ARCHIVER_LOG_LEVEL=INFO
+         - MOODLE_ARCHIVER_LOG_LEVEL=INFO
    ```
-3. From inside the `moodle-quiz-archive-worker` folder, run the application:
+3. From inside the `moodle-archiving-worker` folder, run the application:
    `docker compose up`
 
 You can change the host port by replacing the first port number in the `ports`
@@ -77,7 +77,7 @@ docker compose up -d
 ### Removing the application
 
 To remove all created containers, networks and volumes, run the following
-command from inside the `moodle-quiz-archive-worker` folder:
+command from inside the `moodle-archiving-worker` folder:
 
 ```shell
 docker compose down
@@ -87,20 +87,20 @@ docker compose down
 ## Docker
 
 1. Install [Docker](https://www.docker.com/)
-2. Run a container: `docker run -p 8080:8080 ngandrass/moodle-quiz-archive-worker:latest`
+2. Run a container: `docker run -p 8080:8080 ngandrass/moodle-archiving-worker:latest`
 
 You can change the host port the application is bound to by changing the first
 port number in the `-p` argument of the `docker run` command. Example:
 
 ```shell
-docker run -p 9000:8080 moodle-quiz-archive-worker:latest
+docker run -p 9000:8080 moodle-archiving-worker:latest
 ```
 
 You can change configuration values by setting the respective environment
 variables. Example:
 
 ```shell
-docker run -e QUIZ_ARCHIVER_LOG_LEVEL=DEBUG -p 8080:8080 moodle-quiz-archive-worker:latest
+docker run -e MOODLE_ARCHIVER_LOG_LEVEL=DEBUG -p 8080:8080 moodle-archiving-worker:latest
 ```
 
 For more details and all available configuration parameters see [Configuration](#configuration).
@@ -109,18 +109,18 @@ For more details and all available configuration parameters see [Configuration](
 ### Building the image locally
 
 1. Install [Docker](https://www.docker.com/)
-2. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
-3. Switch into the repository directory: `cd moodle-quiz-archive-worker`
-4. Build the Docker image: `docker build -t moodle-quiz-archive-worker:latest .`
-5. Run a container: `docker run -p 8080:8080 moodle-quiz-archive-worker:latest`
+2. Clone this repository: `git clone https://github.com/ngandrass/moodle-archiving-worker`
+3. Switch into the repository directory: `cd moodle-archiving-worker`
+4. Build the Docker image: `docker build -t moodle-archiving-worker:latest .`
+5. Run a container: `docker run -p 8080:8080 moodle-archiving-worker:latest`
 
 
 ## Manual Installation
 
-1. Install [Python](https://www.python.org/) version >= 3.11
+1. Install [Python](https://www.python.org/) version >= 3.13
 2. Install [Poetry](https://python-poetry.org/): `pip install poetry`
-3. Clone this repository: `git clone https://github.com/ngandrass/moodle-quiz-archive-worker`
-4. Switch into the repository directory: `cd moodle-quiz-archive-worker`
+3. Clone this repository: `git clone https://github.com/ngandrass/moodle-archiving-worker`
+4. Switch into the repository directory: `cd moodle-archiving-worker`
 5. Install app dependencies: `poetry install --no-root --only main`
 6. Download [playwright](https://playwright.dev/) browser binaries: `poetry run python -m playwright install --only-shell chromium`
 7. If PDF/A conversion is desired, install [Ghostscript](https://ghostscript.readthedocs.io/en/latest/Install.html). See [PDF/A Conversion](#pdfa-conversion) for more details.
@@ -130,7 +130,7 @@ You can change configuration values by prepending the respective environment
 variables. Example:
 
 ```text
-QUIZ_ARCHIVER_SERVER_PORT=9000 poetry run python moodle-quiz-archive-worker.py
+MOODLE_ARCHIVER_SERVER_PORT=9000 poetry run python main.py
 ```
 
 For more details and all available configuration parameters see [Configuration](#configuration).
@@ -138,32 +138,32 @@ For more details and all available configuration parameters see [Configuration](
 
 # Versioning and Compatibility
 
-The [Quiz Archive Worker](https://github.com/ngandrass/moodle-quiz-archive-worker)
+The [Moodle Archiving Worker](https://github.com/ngandrass/moodle-archiving-worker)
 and its corresponding [quiz_archiver Moodle Plugin](https://github.com/ngandrass/moodle-quiz_archiver)
 both use [Semantic Versioning 2.0.0](https://semver.org/).
 
 This means that their version numbers are structured as `MAJOR.MINOR.PATCH`. The
-Moodle plugin and the archive worker service are compatible as long as they use
+Moodle plugin and the archiving worker service are compatible as long as they use
 the same `MAJOR` version number. Minor and patch versions can differ between the
 two components without breaking compatibility.
 
 However, it is **recommended to always use the latest version** of both the
-Moodle plugin and the archive worker service to ensure you get all the latest
+Moodle plugin and the archiving worker service to ensure you get all the latest
 bug fixes, features, and optimizations.
 
 
 ### Compatibility Examples
 
-| Moodle Plugin | Archive Worker | Compatible |
-|---------------|----------------|------------|
-| 1.0.0         | 1.0.0          | Yes        |
-| 1.2.3         | 1.0.0          | Yes        |
-| 1.0.0         | 1.1.2          | Yes        |
-| 2.1.4         | 2.0.1          | Yes        |
-|               |                |            |
-| 2.0.0         | 1.0.0          | No         |
-| 1.0.0         | 2.0.0          | No         |
-| 2.4.2         | 1.4.2          | No         |
+| Moodle Plugin | Archiving Worker | Compatible |
+|---------------|------------------|------------|
+| 1.0.0         | 1.0.0            | Yes        |
+| 1.2.3         | 1.0.0            | Yes        |
+| 1.0.0         | 1.1.2            | Yes        |
+| 2.1.4         | 2.0.1            | Yes        |
+|               |                  |            |
+| 2.0.0         | 1.0.0            | No         |
+| 1.0.0         | 2.0.0            | No         |
+| 2.4.2         | 1.4.2            | No         |
 
 
 ### Development / Testing Versions
@@ -175,7 +175,7 @@ development versions are marked by a `+dev-[TIMESTAMP]` suffix, e.g.,
 
 # Resource usage guidelines
 
-For reference, the Moodle Quiz Archiver uses **1 CPU** and **1 GiB of RAM** for
+For reference, the Moodle Archiving Worker uses **1 CPU** and **1 GiB of RAM** for
 each parallel job while processing. By default, up to four jobs can be executed
 simultaneously. _For complex or large quizzes, you may want to increase the
 amount of RAM provisioned beyond the default reference._
@@ -185,7 +185,7 @@ environment variable.
 
 Example:
 ```text
-QUIZ_ARCHIVER_PARALLEL_JOBS=2
+MOODLE_ARCHIVER_PARALLEL_JOBS=2
 ```
 
 For more details on all available configuration parameters see
@@ -193,7 +193,7 @@ For more details on all available configuration parameters see
 
 # PDF/A Conversion
 
-The quiz archive worker can produce PDF/A-3b compliant PDF files. PDF/A is an
+The archiving worker can produce PDF/A-3b compliant PDF files. PDF/A is an
 ISO-standardized version of the PDF format that is designed for long-term
 archiving and preservation of electronic documents. It ensures that the PDF
 files can be displayed exactly the same way in the future, regardless of the
@@ -206,14 +206,14 @@ properly. If you are installing the worker service manually, please refer to the
 [Manual installation](#manual-installation) section above.
 
 PDF/A conversion is enabled by default, but can be disabled by setting
-`QUIZ_ARCHIVER_PDFA_CONVERSION = False`. The location of your Ghostscript binary
+`MOODLE_ARCHIVER_PDFA_CONVERSION = False`. The location of your Ghostscript binary
 is automatically detected on startup. If automatic detection fails or you want
 to use a specific Ghostscript distribution, you can set the path to your
 Ghostscript binary manually via the corresponding environment variable.
 
 Example:
 ```text
-QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH=/bin/gs
+MOODLE_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH=/bin/gs
 ```
 
 For more details on all available configuration parameters see
@@ -225,34 +225,34 @@ For more details on all available configuration parameters see
 Configuration parameters are located inside `config.py` and can be overwritten
 using the following environment variables:
 
-- `QUIZ_ARCHIVER_SERVER_HOST`: Host to bind to (default=`'0.0.0.0'`)
-- `QUIZ_ARCHIVER_SERVER_PORT`: Port to bind to (default=`8080`)
-- `QUIZ_ARCHIVER_LOG_LEVEL`: Logging level. One of `'CRITICAL'`, `'FATAL'`, `'ERROR'`, `'WARN'`, `'WARNING'`, `'INFO'`, `'DEBUG'` (default=`'INFO'`)
-- `QUIZ_ARCHIVER_QUEUE_SIZE`: Maximum number of jobs to enqueue (default=`8`)
-- `QUIZ_ARCHIVER_PARALLEL_JOBS`: Number of worker threads to process archive jobs in parallel. Value has to be greater than 0 (default=`4`)
-- `QUIZ_ARCHIVER_HISTORY_SIZE`: Maximum number of jobs to remember in job history (default=`128`)
-- `QUIZ_ARCHIVER_ZIP_COMPRESSION_ALGO`: Compression algorithm to use for ZIP archives. Use `DEFLATED` for compatibility with Windows and MacOS. Possible values are `STORED` (no compression), `DEFLATED` (light compression, default), `BZIP2` (medium compression), and `LZMA` (strong compression). (default=`DEFLATED`)
-- `QUIZ_ARCHIVER_STATUS_REPORTING_INTERVAL_SEC`: Number of seconds to wait between job progress updates (default=`15`)
-- `QUIZ_ARCHIVER_REQUEST_TIMEOUT_SEC`: Maximum number of seconds a single job is allowed to run before it is terminated (default=`3600`)
-- `QUIZ_ARCHIVER_BACKUP_STATUS_RETRY_SEC`: Number of seconds to wait between backup status queries (default=`30`)
-- `QUIZ_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes a generic Moodle file is allowed to have for downloading (default=`(1024 * 10e6)`)
-- `QUIZ_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes Moodle backups are allowed to have (default=`(512 * 10e6)`)
-- `QUIZ_ARCHIVER_QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes a question attachment is allowed to have for downloading (default=`(128 * 10e6)`)
-- `QUIZ_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH`: Width of the viewport on attempt rendering in px (default=`1240`)
-- `QUIZ_ARCHIVER_REPORT_PAGE_MARGIN`: Margin (top, bottom, left, right) of the report PDF pages including unit (mm, cm, in, px) (default=`'5mm'`)
-- `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL`: Whether to wait for the ready signal from the report page JS before generating the export (default=`True`)
-- `QUIZ_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC`: Number of seconds to wait for the ready signal from the report page JS before generating the export (default=`30`)
-- `QUIZ_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT`: Whether to continue with the export if the ready signal was not received in time (default=`False`)
-- `QUIZ_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC`: Number of seconds to wait for the report page to load before aborting the job (default=`30`)
-- `QUIZ_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN`: Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests fail due to permission errors (default=`True`)
-- `QUIZ_ARCHIVER_DEMO_MODE`: Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included (default=`False`)
-- `QUIZ_ARCHIVER_PROXY_SERVER_URL`: URL of the proxy server to use for all requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used. (default=`None`)
-- `QUIZ_ARCHIVER_PROXY_BYPASS_DOMAINS`: Comma-separated list of domains that should always be accessed directly, bypassing the proxy (default=`None`)
-- `QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION`: Whether to skip validation of TLS / SSL certs for all HTTPS connections (default=`False`)
-- `QUIZ_ARCHIVER_PDFA_CONVERSION`: Whether to convert exported attempt PDF files into a PDF/A compliant format (default=`True`)
-- `QUIZ_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC`: Number of seconds to wait before conversion process is aborted (default=`30`)
-- `QUIZ_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH`: Path to the ghostscript binary that should be used for PDF/A conversion. If left unset, this will be detected automatically. (default=`None`)
-- `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION`: _For development only_: PHP XDEBUG session id to trigger debugging of moodle webservice API calls. (default=`None`)
+- `MOODLE_ARCHIVER_SERVER_HOST`: Host to bind to (default=`'0.0.0.0'`)
+- `MOODLE_ARCHIVER_SERVER_PORT`: Port to bind to (default=`8080`)
+- `MOODLE_ARCHIVER_LOG_LEVEL`: Logging level. One of `'CRITICAL'`, `'FATAL'`, `'ERROR'`, `'WARN'`, `'WARNING'`, `'INFO'`, `'DEBUG'` (default=`'INFO'`)
+- `MOODLE_ARCHIVER_QUEUE_SIZE`: Maximum number of jobs to enqueue (default=`8`)
+- `MOODLE_ARCHIVER_PARALLEL_JOBS`: Number of worker threads to process archive jobs in parallel. Value has to be greater than 0 (default=`4`)
+- `MOODLE_ARCHIVER_HISTORY_SIZE`: Maximum number of jobs to remember in job history (default=`128`)
+- `MOODLE_ARCHIVER_ZIP_COMPRESSION_ALGO`: Compression algorithm to use for ZIP archives. Use `DEFLATED` for compatibility with Windows and MacOS. Possible values are `STORED` (no compression), `DEFLATED` (light compression, default), `BZIP2` (medium compression), and `LZMA` (strong compression). (default=`DEFLATED`)
+- `MOODLE_ARCHIVER_STATUS_REPORTING_INTERVAL_SEC`: Number of seconds to wait between job progress updates (default=`15`)
+- `MOODLE_ARCHIVER_REQUEST_TIMEOUT_SEC`: Maximum number of seconds a single job is allowed to run before it is terminated (default=`3600`)
+- `MOODLE_ARCHIVER_BACKUP_STATUS_RETRY_SEC`: Number of seconds to wait between backup status queries (default=`30`)
+- `MOODLE_ARCHIVER_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes a generic Moodle file is allowed to have for downloading (default=`(1024 * 10e6)`)
+- `MOODLE_ARCHIVER_BACKUP_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes Moodle backups are allowed to have (default=`(512 * 10e6)`)
+- `MOODLE_ARCHIVER_QUESTION_ATTACHMENT_DOWNLOAD_MAX_FILESIZE_BYTES`: Maximum number of bytes a question attachment is allowed to have for downloading (default=`(128 * 10e6)`)
+- `MOODLE_ARCHIVER_REPORT_BASE_VIEWPORT_WIDTH`: Width of the viewport on attempt rendering in px (default=`1240`)
+- `MOODLE_ARCHIVER_REPORT_PAGE_MARGIN`: Margin (top, bottom, left, right) of the report PDF pages including unit (mm, cm, in, px) (default=`'5mm'`)
+- `MOODLE_ARCHIVER_WAIT_FOR_READY_SIGNAL`: Whether to wait for the ready signal from the report page JS before generating the export (default=`True`)
+- `MOODLE_ARCHIVER_WAIT_FOR_READY_SIGNAL_TIMEOUT_SEC`: Number of seconds to wait for the ready signal from the report page JS before generating the export (default=`30`)
+- `MOODLE_ARCHIVER_CONTINUE_AFTER_READY_SIGNAL_TIMEOUT`: Whether to continue with the export if the ready signal was not received in time (default=`False`)
+- `MOODLE_ARCHIVER_WAIT_FOR_NAVIGATION_TIMEOUT_SEC`: Number of seconds to wait for the report page to load before aborting the job (default=`30`)
+- `MOODLE_ARCHIVER_PREVENT_REDIRECT_TO_LOGIN`: Whether to supress all redirects to Moodle login pages (`/login/*.php`) after page load. This can occur, if dynamic ajax requests fail due to permission errors (default=`True`)
+- `MOODLE_ARCHIVER_DEMO_MODE`: Whether the app is running in demo mode. In demo mode, a watermark will be added to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included (default=`False`)
+- `MOODLE_ARCHIVER_PROXY_SERVER_URL`: URL of the proxy server to use for all requests. HTTP and SOCKS proxies are supported. If not set, auto-detection will be performed. If set to false, no proxy will be used. (default=`None`)
+- `MOODLE_ARCHIVER_PROXY_BYPASS_DOMAINS`: Comma-separated list of domains that should always be accessed directly, bypassing the proxy (default=`None`)
+- `MOODLE_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION`: Whether to skip validation of TLS / SSL certs for all HTTPS connections (default=`False`)
+- `MOODLE_ARCHIVER_PDFA_CONVERSION`: Whether to convert exported attempt PDF files into a PDF/A compliant format (default=`True`)
+- `MOODLE_ARCHIVER_PDFA_CONVERSION_TIMEOUT_SEC`: Number of seconds to wait before conversion process is aborted (default=`30`)
+- `MOODLE_ARCHIVER_PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH`: Path to the ghostscript binary that should be used for PDF/A conversion. If left unset, this will be detected automatically. (default=`None`)
+- `MOODLE_ARCHIVER_DEV_XDEBUG_SESSION`: _For development only_: PHP XDEBUG session id to trigger debugging of moodle webservice API calls. (default=`None`)
 
 
 # Development

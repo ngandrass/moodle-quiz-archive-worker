@@ -6,8 +6,8 @@ import tempfile
 
 import pytest
 
-from archiveworker.quiz_archive import ArchiveOrganizer, FlatArchiveOrganizer, HierarchicalArchiveOrganizer, QuizArchiveBuilder
-from archiveworker.workspace import Workspace
+from archiveworker.archive_builder import ArchiveOrganizer, FlatArchiveOrganizer, HierarchicalArchiveOrganizer, ArchiveBuilder
+from archiveworker.workspace import Workspace, ArchivingArtifact
 
 
 class TestArchiveOrganizer:
@@ -120,7 +120,39 @@ class TestFlatArchiveOrganizer:
             assert name == "notes.txt"
 
 
-class TestQuizArchiveBuilder:
+
+class TestArchiveOrganizerArtifactCoverage:
+    """
+    Regression guard: every concrete artifact type the Workspace can produce
+    must be handled by both organizers without raising. This is meant to fail
+    loudly if a future artifact type is added without a matching organizer
+    branch.
+    """
+
+    @staticmethod
+    def _build_one_of_every_artifact(workspace: Workspace) -> list[ArchivingArtifact]:
+        attempt = workspace.attempt(1, "Attempt", "attempt-dir")
+
+        return [
+            workspace.file("generic.txt"),
+            workspace.backup("backup.mbz"),
+            attempt.pdf_report("attempt-report.pdf"),
+            attempt.html_report("attempt-report.html"),
+            attempt.attachment(1, "attempt-attachment.txt"),
+        ]
+
+    def test_all_known_artifact_types_are_organizable(self) -> None:
+        """Both organizers must handle every concrete artifact type without raising."""
+
+        for organizer in [HierarchicalArchiveOrganizer(), FlatArchiveOrganizer()]:
+            with Workspace() as workspace:
+                for artifact in self._build_one_of_every_artifact(workspace):
+                    path, name = organizer.organize(artifact)
+                    assert isinstance(path, str)
+                    assert isinstance(name, str)
+
+
+class TestArchiveBuilder:
     """Tests for the archive builder."""
 
     def test_builder_writes_artifacts_using_the_selected_organizer(self) -> None:
@@ -140,7 +172,7 @@ class TestQuizArchiveBuilder:
                     generic.path.write_text("notes", encoding="utf-8")
 
                     archive_path = os.path.join(tempdir, "archive.zip")
-                    QuizArchiveBuilder(organizer, False, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
+                    ArchiveBuilder(organizer, False, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
 
                 with zipfile.ZipFile(archive_path, 'r') as archive:
                     expected_names = []
@@ -162,7 +194,7 @@ class TestQuizArchiveBuilder:
                 artifact.path.write_text("hello world", encoding="utf-8")
 
                 archive_path = os.path.join(tempdir, "archive.zip")
-                QuizArchiveBuilder(FlatArchiveOrganizer(), True, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
+                ArchiveBuilder(FlatArchiveOrganizer(), True, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
 
             with zipfile.ZipFile(archive_path, 'r') as archive:
                 assert (set(archive.namelist()) - set([file_name, file_name + '.sha256'])) == set()
@@ -184,7 +216,7 @@ class TestQuizArchiveBuilder:
                 artifact.path.write_text("hello world", encoding="utf-8")
 
                 archive_path = os.path.join(tempdir, "archive.zip")
-                QuizArchiveBuilder(FlatArchiveOrganizer(), False, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
+                ArchiveBuilder(FlatArchiveOrganizer(), False, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
 
             with zipfile.ZipFile(archive_path, 'r') as archive:
                 assert archive.namelist() == [file_name]
@@ -209,7 +241,7 @@ class TestQuizArchiveBuilder:
 
                 archive_path = os.path.join(tempdir, "archive.zip")
                 with caplog.at_level(logging.WARNING):
-                    QuizArchiveBuilder(FlatArchiveOrganizer(), False, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
+                    ArchiveBuilder(FlatArchiveOrganizer(), False, zipfile.ZIP_DEFLATED).write(workspace, archive_path)
 
             with zipfile.ZipFile(archive_path, 'r') as archive:
                 assert len(archive.namelist()) == 5

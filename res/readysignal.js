@@ -1,5 +1,5 @@
 /*
- * Moodle Quiz Archive Worker
+ * Moodle Archiving Worker
  * Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,31 +24,31 @@
  * Interval in milliseconds the readiness probe checks are executed after the initial delay.
  * @type {number}
  */
-const QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS = 250;
+const MOODLE_ARCHIVER_READINESS_PROBE_INTERVAL_MS = 250;
 
 /**
  * Number of milliseconds to wait after the last mutation of a GeoGebra applet before
  * considering it stable and ready for export.
  * @type {number}
  */
-const QUIZ_ARCHIVER_GEOGEBRA_MUTATION_STABLE_PERIOD_MS = 2000;
+const MOODLE_ARCHIVER_GEOGEBRA_MUTATION_STABLE_PERIOD_MS = 2000;
 
-const SIGNAL_PAGE_READY_FOR_EXPORT = "x-quiz-archiver-page-ready-for-export";
-const SIGNAL_GEOGEBRA_FOUND = "x-quiz-archiver-geogebra-found";
-const SIGNAL_GEOGEBRA_NOT_FOUND = "x-quiz-archiver-geogebra-not-found";
-const SIGNAL_GEOGEBRA_MUTATED = "x-quiz-archiver-geogebra-mutated";
-const SIGNAL_GEOGEBRA_READY_FOR_EXPORT = "x-quiz-archiver-geogebra-ready-for-export";
-const SIGNAL_MATHJAX_FOUND = "x-quiz-archiver-mathjax-found";
-const SIGNAL_MATHJAX_NOT_FOUND = "x-quiz-archiver-mathjax-not-found";
-const SIGNAL_MATHJAX_NO_FORMULAS_ON_PAGE = "x-quiz-archiver-mathjax-no-formulas-on-page";
-const SIGNAL_MATHJAX_READY_FOR_EXPORT = "x-quiz-archiver-mathjax-ready-for-export";
+const SIGNAL_PAGE_READY_FOR_EXPORT = "x-moodle-archiver-page-ready-for-export";
+const SIGNAL_GEOGEBRA_FOUND = "x-moodle-archiver-geogebra-found";
+const SIGNAL_GEOGEBRA_NOT_FOUND = "x-moodle-archiver-geogebra-not-found";
+const SIGNAL_GEOGEBRA_MUTATED = "x-moodle-archiver-geogebra-mutated";
+const SIGNAL_GEOGEBRA_READY_FOR_EXPORT = "x-moodle-archiver-geogebra-ready-for-export";
+const SIGNAL_MATHJAX_FOUND = "x-moodle-archiver-mathjax-found";
+const SIGNAL_MATHJAX_NOT_FOUND = "x-moodle-archiver-mathjax-not-found";
+const SIGNAL_MATHJAX_NO_FORMULAS_ON_PAGE = "x-moodle-archiver-mathjax-no-formulas-on-page";
+const SIGNAL_MATHJAX_READY_FOR_EXPORT = "x-moodle-archiver-mathjax-ready-for-export";
 
 /**
  * Global object to store readiness signals for different components.
  *
  * @type {{readySignals: {geogebra: null, mathjax: null}}}
  */
-window.MoodleQuizArchiver = {
+window.MoodleArchiver = {
     initialized: false,         // True if the readiness detection process has been initialized
     readySignals: {
         mathjax: null,          // True if MathJax is ready for export, null if MathJax is not found
@@ -68,12 +68,12 @@ window.MoodleQuizArchiver = {
 function detectAndPrepareReadinessComponents() {
     // MathJax
     if (typeof window.MathJax !== 'undefined') {
-        window.MoodleQuizArchiver.readySignals.mathjax = false;
+        window.MoodleArchiver.readySignals.mathjax = false;
         console.log(SIGNAL_MATHJAX_FOUND);
 
         // Check if MathJax is not just loaded but the page also has formulas on it
         if (document.getElementsByClassName('filter_mathjaxloader_equation').length === 0) {
-            window.MoodleQuizArchiver.readySignals.mathjax = true;
+            window.MoodleArchiver.readySignals.mathjax = true;
             console.log(SIGNAL_MATHJAX_NO_FORMULAS_ON_PAGE);
             console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
         } else {
@@ -82,21 +82,21 @@ function detectAndPrepareReadinessComponents() {
             if (mjVersion.startsWith('2')) {
                 console.debug("MathJax version '" + mjVersion + "' detected. Waiting for MathJax to process equations ...");
                 window.MathJax.Hub.Queue(function () {
-                    window.MoodleQuizArchiver.readySignals.mathjax = true;
+                    window.MoodleArchiver.readySignals.mathjax = true;
                     console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
                 });
                 window.MathJax.Hub.processSectionDelay = 0;
             } else if (mjVersion.startsWith('3') || mjVersion.startsWith('4')) {
                 console.debug("MathJax version '" + mjVersion + "' detected. Waiting for MathJax to process equations ...");
                 window.MathJax.startup.promise.then(() => {
-                    window.MoodleQuizArchiver.readySignals.mathjax = true;
+                    window.MoodleArchiver.readySignals.mathjax = true;
                     console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
                 });
             } else {
                 console.error("Unknown MathJax version '" + mjVersion + "' detected");
                 console.debug("Just waiting 3 seconds ...")
                 setTimeout(() => {
-                    window.MoodleQuizArchiver.readySignals.mathjax = true;
+                    window.MoodleArchiver.readySignals.mathjax = true;
                     console.log(SIGNAL_MATHJAX_READY_FOR_EXPORT);
                 }, 3000 );
             }
@@ -107,8 +107,8 @@ function detectAndPrepareReadinessComponents() {
 
     // GeoGebra
     if (typeof window.GGBApplet !== 'undefined') {
-        window.MoodleQuizArchiver.readySignals.geogebra = false;
-        window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date(9999, 1, 1);  // Far future
+        window.MoodleArchiver.readySignals.geogebra = false;
+        window.MoodleArchiver.states.geogebra.last_mutation = new Date(9999, 1, 1);  // Far future
         console.log(SIGNAL_GEOGEBRA_FOUND);
 
         // Attach mutation observer to GeoGebra frames once available
@@ -117,7 +117,7 @@ function detectAndPrepareReadinessComponents() {
         console.log(SIGNAL_GEOGEBRA_NOT_FOUND);
     }
 
-    window.MoodleQuizArchiver.initialized = true;
+    window.MoodleArchiver.initialized = true;
 }
 
 /**
@@ -150,7 +150,7 @@ function attachGeogebraMutationObserver() {
                 if (allFramesLoaded === true) {
                     // Attach mutation listener to GeoGebra frames
                     let mutationObserver = new (window.MutationObserver || window.WebKitMutationObserver)(() => {
-                        window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date();
+                        window.MoodleArchiver.states.geogebra.last_mutation = new Date();
                         console.log(SIGNAL_GEOGEBRA_MUTATED);
                     });
 
@@ -158,10 +158,10 @@ function attachGeogebraMutationObserver() {
                         mutationObserver.observe(ggbFrame, { childList: true, subtree: true });
                         console.log("Attached mutation observer to GeoGebra frame.");
                     });
-                    window.MoodleQuizArchiver.states.geogebra.last_mutation = new Date();
+                    window.MoodleArchiver.states.geogebra.last_mutation = new Date();
 
                     // Ignite periodic readiness check
-                    setTimeout(detectGeogebraFinishedRendering, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
+                    setTimeout(detectGeogebraFinishedRendering, MOODLE_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
                     return;
                 } else {
                     console.log(`Not all ${frameNumber} GeoGebra frames are fully loaded yet. Waiting ...`);
@@ -181,24 +181,24 @@ function attachGeogebraMutationObserver() {
     }
 
     // If we got here, GeoGebra is not ready yet. Retry in a bit.
-    setTimeout(attachGeogebraMutationObserver, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
+    setTimeout(attachGeogebraMutationObserver, MOODLE_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
 }
 
 /**
  * Detects when GeoGebra instances have finished rendering. This function calls
  * itself periodically until all applets are rendered.
  *
- * Results are stored inside window.MoodleQuizArchiver.readySignals.geogebra.
+ * Results are stored inside window.MoodleArchiver.readySignals.geogebra.
  */
 function detectGeogebraFinishedRendering() {
     // Declare GeoGebra to be ready for export if no mutation has occurred since the given time
-    const lastMutationMs = window.MoodleQuizArchiver.states.geogebra.last_mutation.getTime();
-    if (new Date().getTime() >= lastMutationMs + QUIZ_ARCHIVER_GEOGEBRA_MUTATION_STABLE_PERIOD_MS) {
-        window.MoodleQuizArchiver.readySignals.geogebra = true;
+    const lastMutationMs = window.MoodleArchiver.states.geogebra.last_mutation.getTime();
+    if (new Date().getTime() >= lastMutationMs + MOODLE_ARCHIVER_GEOGEBRA_MUTATION_STABLE_PERIOD_MS) {
+        window.MoodleArchiver.readySignals.geogebra = true;
         console.log(SIGNAL_GEOGEBRA_READY_FOR_EXPORT);
     } else {
-        window.MoodleQuizArchiver.readySignals.geogebra = false;
-        setTimeout(detectGeogebraFinishedRendering, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
+        window.MoodleArchiver.readySignals.geogebra = false;
+        setTimeout(detectGeogebraFinishedRendering, MOODLE_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
     }
 }
 
@@ -207,18 +207,18 @@ function detectGeogebraFinishedRendering() {
  * call itself periodically until all components are ready.
  */
 function checkReadiness() {
-    if (!window.MoodleQuizArchiver.initialized) {
+    if (!window.MoodleArchiver.initialized) {
         console.error("Failed to check component export readiness before initialization.");
-        setTimeout(checkReadiness, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
+        setTimeout(checkReadiness, MOODLE_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
         return;
     }
 
-    for (const [component, ready] of Object.entries(window.MoodleQuizArchiver.readySignals)) {
+    for (const [component, ready] of Object.entries(window.MoodleArchiver.readySignals)) {
         if (ready === null) {
             continue;
         }
         if (ready !== true) {
-            setTimeout(checkReadiness, QUIZ_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
+            setTimeout(checkReadiness, MOODLE_ARCHIVER_READINESS_PROBE_INTERVAL_MS);
             return;
         }
     }

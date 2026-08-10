@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@ import zipfile
 import pytest
 
 from archiveworker.type import JobStatus
-from archiveworker.moodle_quiz_archive_worker import start_processing_threads
+from archiveworker.worker import start_processing_threads
 from config import Config
 from .conftest import client, TestUtils
 import tests.fixtures.quiz_archiver as fixtures

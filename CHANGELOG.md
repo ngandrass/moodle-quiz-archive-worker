@@ -2,12 +2,21 @@
 
 ## Version X.Y.Z (YYYY-MM-DD)
 
+- **⚠️ BREAKING ⚠️** Renamed project from "Moodle Quiz Archive Worker" to "Moodle Archiving Worker" to reflect generalized future support for Moodle activities beyond `mod_quiz`
+  - GitHub repository renamed `moodle-archiving-worker` (old URLs redirect automatically)
+  - Docker image renamed to `ngandrass/moodle-archiving-worker`
+    - Update your `docker-compose.yml` / `docker run` commands accordingly
+  - All `QUIZ_ARCHIVER_*` environment variables have been renamed to `MOODLE_ARCHIVER_*`
+    - Update your deployment configuration before upgrading, or the worker will silently fall back to default values
+  - The `app` field returned by `GET /status` now reports `moodle-archiving-worker` instead of `moodle-quiz-archive-worker`
+  - API routes and request/response payloads are otherwise unchanged
 - Add support for chunked uploads
   - Archives larger than the maximum upload filesize of Moodle will be split into multiple chunks
   - Uploaded chunks will be automatically reassembled by the Moodle plugin
 - Rework current archive creation process into a flexible and extensible archive packer structure
 - Add support for flat archive structures where all files are stored in a single directory instead of a nested directory structure
 - Make SHA256 checksum generation configurable via the companion plugin
+- Refactor the archive worker codebase to allow for easier extendability and maintainability
 - Allow passing of php xdebug session id via the environment variable `QUIZ_ARCHIVER_DEV_XDEBUG_SESSION` for development purposes
 - Update Python dependencies
  

@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,3 +16,4 @@
 
 from .base import MoodleAPIBase
 from .quiz_archiver import QuizArchiverMoodleAPI
+from .archivingmod_quiz import ArchivingmodQuizMoodleAPI

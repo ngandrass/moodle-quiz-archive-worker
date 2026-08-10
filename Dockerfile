@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,9 +16,9 @@
 
 FROM python:3.13
 
-ENV USER_NAME archiveworker
-ENV USER_GROUP archiveworker
-ENV USER_HOME /app
+ENV USER_NAME=archiveworker
+ENV USER_GROUP=archiveworker
+ENV USER_HOME=/app
 
 RUN set -e && \
     mkdir ${USER_HOME}

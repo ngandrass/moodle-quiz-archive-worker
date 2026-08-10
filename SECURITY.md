@@ -1,6 +1,6 @@
 # Security Policy
 
-This is the security policy for the [Moodle quiz archive worker](https://github.com/ngandrass/moodle-quiz-archive-worker/).
+This is the security policy for the [Moodle Archiving Worker](https://github.com/ngandrass/moodle-archiving-worker/).
 
 
 ## Supported versions
@@ -29,7 +29,7 @@ Instead, report privately using one of the methods described below:
 ### Reporting via GitHub private vulnerability reporting
 
 To report a security issue via GitHub, please use the [Report a
-Vulnerability](https://github.com/ngandrass/moodle-quiz-archive-worker/security)
+Vulnerability](https://github.com/ngandrass/moodle-archiving-worker/security)
 function. Do not create a public GitHub issue.
 
 ### Reporting via mail

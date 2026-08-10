@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@ from enum import StrEnum
 
 class WorkerStatus(StrEnum):
     """
-    Status values that the quiz archive worker can report
+    Status values that the archiving worker can report
     """
 
     IDLE = 'IDLE'

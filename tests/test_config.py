@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,10 +26,10 @@ class TestConfig:
     """
 
     @pytest.mark.parametrize("envvar, default", [
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_1337", None),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_42", "foo"),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_1337", "bar"),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_42", "baz"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_1337", None),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_42", "foo"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_1337", "bar"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_42", "baz"),
     ])
     def test_parse_env_variable_unset_default(self, envvar, default) -> None:
         """
@@ -44,10 +44,10 @@ class TestConfig:
         assert parse_env_variable(envvar, default) == default
 
     @pytest.mark.parametrize("envvar, value, default", [
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_1337", "foo", None),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_42", "baz", None),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_1337", "bar", "invalid"),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ_42", "baz", "invalid"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_1337", "foo", None),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_42", "baz", None),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_1337", "bar", "invalid"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ_42", "baz", "invalid"),
     ])
     def test_parse_env_variable_existing(self, envvar, value, default) -> None:
         """
@@ -65,28 +65,28 @@ class TestConfig:
         assert parse_env_variable(envvar, default) == default
 
     @pytest.mark.parametrize("envvar, valtype, value, expected, shouldfail", [
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "True", True, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "true", True, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "1", True, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "tru", False, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "False", False, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "false", False, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "0", False, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "", False, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", bool, "None", False, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "True", True, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "true", True, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "1", True, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "tru", False, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "False", False, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "false", False, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "0", False, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "", False, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", bool, "None", False, False),
 
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", int, "1337", 1337, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", int, "42", 42, False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", int, "-42", -42, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", int, "1337", 1337, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", int, "42", 42, False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", int, "-42", -42, False),
 
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", str, "foo", "foo", False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", str, "bar", "bar", False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", str, "baz", "baz", False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", str, "", "", False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", str, "foo", "foo", False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", str, "bar", "bar", False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", str, "baz", "baz", False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", str, "", "", False),
 
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", int, "13xxx37", None, True),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", int, "zweiundvierzig", None, True),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", int, "", None, True),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", int, "13xxx37", None, True),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", int, "zweiundvierzig", None, True),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", int, "", None, True),
     ])
     def test_parse_env_variable_typecast(self, envvar, valtype, value, expected, shouldfail) -> None:
         """
@@ -110,19 +110,19 @@ class TestConfig:
         os.environ.pop(envvar, None)
 
     @pytest.mark.parametrize("envvar, value, expected", [
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "True", True),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "true", True),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "False", False),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "false", False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "True", True),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "true", True),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "False", False),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "false", False),
 
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "1337", 1337),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "42", 42),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "-42", -42),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "1337", 1337),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "42", 42),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "-42", -42),
 
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "foo", "foo"),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "bar", "bar"),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "baz", "baz"),
-        ("QUIZ_ARCHIVER_FOO_BAR_BAZ", "", ""),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "foo", "foo"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "bar", "bar"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "baz", "baz"),
+        ("MOODLE_ARCHIVER_FOO_BAR_BAZ", "", ""),
     ])
     def test_parse_env_variable_auto_typecast(self, envvar, value, expected) -> None:
         """
@@ -143,8 +143,8 @@ class TestConfig:
         Tests that the automatic type detection does not trigger for unset env vars
         :return:
         """
-        os.environ.pop("QUIZ_ARCHIVER_FOO_BAR_BAZ", None)
-        assert type(parse_env_variable("QUIZ_ARCHIVER_FOO_BAR_BAZ", None)) is type(None)
-        assert type(parse_env_variable("QUIZ_ARCHIVER_FOO_BAR_BAZ", None, bool)) is type(None)
-        assert type(parse_env_variable("QUIZ_ARCHIVER_FOO_BAR_BAZ", None, int)) is type(None)
-        assert type(parse_env_variable("QUIZ_ARCHIVER_FOO_BAR_BAZ", None, str)) is type(None)
+        os.environ.pop("MOODLE_ARCHIVER_FOO_BAR_BAZ", None)
+        assert type(parse_env_variable("MOODLE_ARCHIVER_FOO_BAR_BAZ", None)) is type(None)
+        assert type(parse_env_variable("MOODLE_ARCHIVER_FOO_BAR_BAZ", None, bool)) is type(None)
+        assert type(parse_env_variable("MOODLE_ARCHIVER_FOO_BAR_BAZ", None, int)) is type(None)
+        assert type(parse_env_variable("MOODLE_ARCHIVER_FOO_BAR_BAZ", None, str)) is type(None)

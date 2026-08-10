@@ -19,7 +19,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            ngandrass/moodle-quiz-archive-worker
+            ngandrass/moodle-archiving-worker
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}

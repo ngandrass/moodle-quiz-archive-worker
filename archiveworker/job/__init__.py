@@ -14,18 +14,5 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from enum import StrEnum
-
-
-class JobStatus(StrEnum):
-    """
-    Status values a single archiving worker job can have
-    """
-    UNINITIALIZED = 'UNINITIALIZED'
-    AWAITING_PROCESSING = 'AWAITING_PROCESSING'
-    RUNNING = 'RUNNING'
-    WAITING_FOR_BACKUP = 'WAITING_FOR_BACKUP'
-    FINALIZING = 'FINALIZING'
-    FINISHED = 'FINISHED'
-    FAILED = 'FAILED'
-    TIMEOUT = 'TIMEOUT'
+from .archive_job import ArchiveJob
+from .quiz_archive_job import QuizArchiveJob

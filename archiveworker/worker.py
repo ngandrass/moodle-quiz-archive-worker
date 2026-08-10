@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -33,27 +33,27 @@ from flask import Flask, make_response, request, jsonify
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
 from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
 from archiveworker.interruptable_thread import InterruptableThread
-from archiveworker.quiz_archive_job import QuizArchiveJob
+from archiveworker.job import ArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
 from config import Config
 
 
 app = Flask(__name__)
-"""Moodle Quiz Archive Worker REST API"""
+"""Moodle Archiving Worker REST API"""
 
 worker_threads:list[InterruptableThread] = list()
 """List collecting all references of started worker threads"""
 
-current_jobs:dict[str,QuizArchiveJob] = dict()
+current_jobs:dict[str,ArchiveJob] = dict()
 """Mapping of worker thread name to their current job"""
 
 current_jobs_mutex = threading.Lock()
 """Mutex for `current_jobs`'s thread safety"""
 
-job_queue:queue.Queue[QuizArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
+job_queue:queue.Queue[ArchiveJob|WorkerThreadInterrupter] = queue.Queue(maxsize=Config.QUEUE_SIZE)
 """Queue collecting all pending jobs"""
 
-job_history:deque[QuizArchiveJob] = deque(maxlen=Config.HISTORY_SIZE)
+job_history:deque[ArchiveJob] = deque(maxlen=Config.HISTORY_SIZE)
 """List of past submitted jobs up to a maximum history size"""
 
 
@@ -231,7 +231,7 @@ def _handle_archive_request(apicls: type[ArchiveRequest]):
             return error_response(f'Could not establish a connection to Moodle webservice API at "{job_descriptor.moodle_api.ws_rest_url}" using the provided wstoken.', HTTPStatus.BAD_REQUEST)
 
         # Enqueue request
-        job = QuizArchiveJob(uuid.uuid1(), job_descriptor)
+        job = apicls.JOB_CLASS(uuid.uuid1(), job_descriptor)
         job_queue.put_nowait(job)  # Actual queue capacity limit is enforced here!
         job_history.append(job)
         job.set_status(JobStatus.AWAITING_PROCESSING, notify_moodle=False)
@@ -327,7 +327,7 @@ def detect_proxy_settings(envvars) -> None:
 
     # Try to detect HTTP proxy
     for varname in [
-        'QUIZ_ARCHIVER_PROXY_SERVER_URL',
+        'MOODLE_ARCHIVER_PROXY_SERVER_URL',
         'http_proxy',
         'HTTP_PROXY',
         'https_proxy',
@@ -427,7 +427,7 @@ def run() -> None:
     # Print demo mode notice if enabled
     if Config.DEMO_MODE:
         app.logger.warning('---> ATTENTION: Running in demo mode! This will add a watermark to all generated PDFs, only a limited number of attempts will be exported per archive job, and only placeholder Moodle backups are included. <---')
-        app.logger.info('---> To disable demo mode, set the environment variable QUIZ_ARCHIVER_DEMO_MODE to "False". <---')
+        app.logger.info('---> To disable demo mode, set the environment variable MOODLE_ARCHIVER_DEMO_MODE to "False". <---')
 
     # Handle DEBUG specifics
     if Config.LOG_LEVEL == logging.DEBUG:
@@ -440,7 +440,7 @@ def run() -> None:
     # Produce warning if TLS cert validation is turned off
     if Config.SKIP_HTTPS_CERT_VALIDATION:
         app.logger.warning('TLS / SSL certificate validation is TURNED OFF! This server will accept any given certificate for HTTPS connections without trying to validate it.')
-        app.logger.info('To enable certificate validation set QUIZ_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION to "False" or unset the variable.')
+        app.logger.info('To enable certificate validation set MOODLE_ARCHIVER_SKIP_HTTPS_CERT_VALIDATION to "False" or unset the variable.')
 
     # Handle proxy settings
     if Config.PROXY_SERVER_URL is not None and Config.PROXY_SERVER_URL.lower() == 'false':

@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 
 import pytest
 
-from archiveworker.moodle_quiz_archive_worker import detect_proxy_settings
+from archiveworker.worker import detect_proxy_settings
 
 from config import Config
 

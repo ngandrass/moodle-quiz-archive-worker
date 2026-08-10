@@ -1,4 +1,4 @@
-# Moodle Quiz Archive Worker
+# Moodle Archiving Worker
 # Copyright (C) 2026 Niels Gandraß <niels@gandrass.de>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -13,10 +13,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import shutil
 import tempfile
-import threading
 import uuid
 from pathlib import Path
 from typing import Tuple, List, Dict, Union
@@ -27,7 +27,7 @@ import pytest
 
 from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.type import JobStatus, MoodleBackupStatus
-from archiveworker.moodle_quiz_archive_worker import app as original_app, current_jobs, job_queue, job_history, stop_processing_threads
+from archiveworker.worker import app as original_app, current_jobs, job_queue, job_history, stop_processing_threads
 from config import Config
 
 

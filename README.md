@@ -18,13 +18,13 @@
 Archiving worker service to work in conjunction with Moodle archiving plugins,
 such as [quiz_archiver](https://github.com/ngandrass/moodle-quiz_archiver).
 
-This application processes quiz archive jobs. It renders Moodle quiz attempts
-inside a headless webbrowser and exports them to PDF/HTML files, including
-MathJax formulas and other complex elements that require JS processing.
-Generated PDFs can be converted into a PDF/A compliant format for long-term
-storage. Moodle backups can optionally be included in the generated archive. The
-checksum for each file within the archive as well as the checksum of the archive
-itself is calculated to allow integrity checks.
+This application processes Moodle archiving jobs. It renders Moodle user content,
+such as quiz attempts, inside a headless webbrowser and exports it to PDF/HTML
+files, including MathJax formulas and other complex elements that require
+JavaScript processing. Generated PDFs can be converted into a PDF/A compliant
+format for long-term storage. Moodle backups can optionally be included in the
+generated archive. The checksum for each file within the archive as well as the
+checksum of the archive itself is calculated to allow integrity checks.
 
 
 # Installation

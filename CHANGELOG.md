@@ -1,6 +1,6 @@
 # Changelog
 
-## Version X.Y.Z (YYYY-MM-DD)
+## Version 5.0.0 (2026-08-11)
 
 - **⚠️ BREAKING ⚠️** Renamed project from "Moodle Quiz Archive Worker" to "Moodle Archiving Worker" to reflect generalized future support for Moodle activities beyond `mod_quiz`
     - GitHub repository renamed `moodle-archiving-worker` (old URLs redirect automatically)

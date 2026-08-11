@@ -57,7 +57,7 @@ class Config:
     APP_NAME = "moodle-archiving-worker"
     """Name of this app"""
 
-    VERSION = "4.0.4"
+    VERSION = "5.0.0"
     """Version of this app"""
 
     LOG_LEVEL = logging.getLevelNamesMapping()[parse_env_variable('MOODLE_ARCHIVER_LOG_LEVEL', default='INFO', valtype=str)]

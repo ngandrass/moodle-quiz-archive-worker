@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "moodle-archiving-worker"
-version = "4.0.4"
+version = "5.0.0"
 description = "Archiving worker service to work in conjunction with Moodle archiving plugins"
 authors = ["Niels Gandraß <niels@gandrass.de>"]
 readme = "README.md"

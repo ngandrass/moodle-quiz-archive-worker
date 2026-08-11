@@ -90,7 +90,7 @@ class Config:
     PROXY_BYPASS_DOMAINS = parse_env_variable('MOODLE_ARCHIVER_PROXY_BYPASS_DOMAINS', default=None, valtype=str)
     """Comma-separated list of domains that should always be accessed directly, bypassing the proxy"""
 
-    QUEUE_SIZE = parse_env_variable('MOODLE_ARCHIVER_QUEUE_SIZE', default=8, valtype=int)
+    QUEUE_SIZE = parse_env_variable('MOODLE_ARCHIVER_QUEUE_SIZE', default=32, valtype=int)
     """Maximum number of requests that are queued before returning an error."""
 
     PARALLEL_JOBS = parse_env_variable('MOODLE_ARCHIVER_PARALLEL_JOBS', default=4, valtype=int)

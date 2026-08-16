@@ -105,8 +105,6 @@ class MoodleAPIMockBase:
             'get_backup_status': patch(self.CLS_ROOT+'.get_backup_status', new=self.get_backup_status),
             'get_remote_file_metadata': patch(self.CLS_ROOT+'.get_remote_file_metadata', new=self.get_remote_file_metadata),
             'download_moodle_file': patch(self.CLS_ROOT+'.download_moodle_file', new=self.download_moodle_file),
-            'get_attempts_metadata': patch(self.CLS_ROOT+'.get_attempts_metadata', new=self.get_attempts_metadata),
-            'get_attempt_data': patch(self.CLS_ROOT+'.get_attempt_data', new=self.get_attempt_data),
             'upload_file': patch(self.CLS_ROOT+'.upload_file', new=self.upload_file),
             'process_uploaded_artifact': patch(self.CLS_ROOT+'.process_uploaded_artifact', new=self.process_uploaded_artifact),
         }
@@ -194,21 +192,6 @@ class MoodleAPIMockBase:
     ) -> int:
         raise NotImplementedError('download_moodle_file')
 
-    def get_attempts_metadata(
-            self,
-            jobid: UUID,
-            jobdescriptor: ArchiveJobDescriptor
-    ) -> List[Dict[str, str]]:
-        raise NotImplementedError('get_attempts_metadata')
-
-    def get_attempt_data(
-            self,
-            jobid: UUID,
-            jobdescriptor: ArchiveJobDescriptor,
-            attemptid: int
-    ) -> Tuple[str, str, str, List[Dict[str, str]]]:
-        raise NotImplementedError('get_attempt_data')
-
     def upload_file(self, file: Path) -> Dict[str, str]:
         if not file.is_file():
             raise FileNotFoundError(f'File not found: {file}')
@@ -253,3 +236,30 @@ class MoodleAPIMockBase:
             sha256sum: str
     ) -> bool:
         return True
+
+
+class MoodleQuizAttemptAPIMockBase(MoodleAPIMockBase):
+    """
+    Base class for Moodle API mocks of plugins that archive quiz attempts
+    (i.e. implement MoodleQuizAttemptAPIBase)
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.patchers['get_attempts_metadata'] = patch(self.CLS_ROOT+'.get_attempts_metadata', new=self.get_attempts_metadata)
+        self.patchers['get_attempt_data'] = patch(self.CLS_ROOT+'.get_attempt_data', new=self.get_attempt_data)
+
+    def get_attempts_metadata(
+            self,
+            jobid: UUID,
+            jobdescriptor: ArchiveJobDescriptor
+    ) -> List[Dict[str, str]]:
+        raise NotImplementedError('get_attempts_metadata')
+
+    def get_attempt_data(
+            self,
+            jobid: UUID,
+            jobdescriptor: ArchiveJobDescriptor,
+            attemptid: int
+    ) -> Tuple[str, str, str, List[Dict[str, str]]]:
+        raise NotImplementedError('get_attempt_data')

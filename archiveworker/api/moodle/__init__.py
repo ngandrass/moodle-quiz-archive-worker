@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .base import MoodleAPIBase
+from .quiz_base import MoodleQuizAPIBase
 from .quiz_archiver import QuizArchiverMoodleAPI
 from .archivingmod_quiz import ArchivingmodQuizMoodleAPI
 from .archivingmod_assign import ArchivingmodAssignMoodleAPI

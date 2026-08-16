@@ -23,7 +23,7 @@ from uuid import UUID
 
 from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveJobDescriptor
 from config import Config
-from tests.conftest import MoodleAPIMockBase
+from tests.conftest import MoodleQuizAttemptAPIMockBase
 
 ARCHIVE_API_REQUEST = {
     "api_version": QuizArchiverArchiveRequest.API_VERSION,
@@ -86,7 +86,7 @@ ARCHIVE_API_REQUEST = {
 }
 
 
-class MoodleAPIMock(MoodleAPIMockBase):
+class MoodleAPIMock(MoodleQuizAttemptAPIMockBase):
 
     CLS_ROOT = 'archiveworker.api.moodle.QuizArchiverMoodleAPI'
 

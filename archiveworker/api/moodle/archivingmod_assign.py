@@ -190,21 +190,6 @@ class ArchivingmodAssignMoodleAPI(MoodleAPIBase):
     ) -> MoodleBackupStatus:
         raise NotImplementedError('Archivingmod Assign API does not support handling Moodle backups')
 
-    def get_attempts_metadata(
-            self,
-            jobid: UUID,
-            jobdescriptor: ArchiveJobDescriptor
-    ) -> List[Dict[str, str]]:
-        raise NotImplementedError('Archivingmod Assign API does not use get_attempts_metadata(). Use get_submissions_metadata() instead.')
-
-    def get_attempt_data(
-            self,
-            jobid: UUID,
-            jobdescriptor: ArchiveJobDescriptor,
-            attemptid: int,
-    ) -> Tuple[str, str, str, List[Dict[str, str]]]:
-        raise NotImplementedError('Archivingmod Assign API does not use get_attempt_data(). Use get_submission_data() instead.')
-
     def get_submission_data(
             self,
             jobid: UUID,

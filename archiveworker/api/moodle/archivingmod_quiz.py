@@ -21,10 +21,10 @@ from uuid import UUID
 
 from archiveworker.type import JobStatus, MoodleBackupStatus
 from archiveworker.api.worker import ArchiveJobDescriptor
-from archiveworker.api.moodle.base import MoodleAPIBase
+from archiveworker.api.moodle.quiz_base import MoodleQuizAPIBase
 
 
-class ArchivingmodQuizMoodleAPI(MoodleAPIBase):
+class ArchivingmodQuizMoodleAPI(MoodleQuizAPIBase):
     """
     Adapter for the archivingmod_quiz plugin Moodle web service API
     """

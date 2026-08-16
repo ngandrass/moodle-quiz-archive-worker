@@ -123,6 +123,98 @@ class AttemptArtifact():
         return attachment
 
 
+class SubmissionArtifact():
+    """
+    Represents an assignment submission artifact, which may include reports
+    and attachments for a mod_assign submission.
+    """
+    class PdfReport(ArchivingArtifact):
+        """
+        Represents a PDF report artifact for an assignment submission.
+        """
+        def __init__(self, workspace, file_name, submission: 'SubmissionArtifact'):
+            super().__init__(workspace, file_name)
+            self.submission = submission
+
+    class HtmlReport(ArchivingArtifact):
+        """
+        Represents an HTML report artifact for an assignment submission.
+        """
+        def __init__(self, workspace, file_name, submission: 'SubmissionArtifact'):
+            super().__init__(workspace, file_name)
+            self.submission = submission
+
+    class Attachment(ArchivingArtifact):
+        """
+        Represents an attachment artifact for an assignment submission.
+        """
+        def __init__(self, workspace: 'Workspace', file_name: str, submission: 'SubmissionArtifact', type: str):
+            """
+            Initializes an Attachment artifact.
+
+            :param workspace: The Workspace instance
+            :param file_name: The name of the attachment file
+            :param submission: The parent SubmissionArtifact
+            :param type: The type of the attachment (e.g. "submission", "feedback")
+            """
+            super().__init__(workspace, file_name)
+            self.submission = submission
+            self.type = type
+
+    def __init__(self, workspace: 'Workspace', id: int, name: str, dir_name: str):
+        """
+        Initializes a SubmissionArtifact instance.
+
+        :param workspace: The corresponding Workspace instance
+        :param id: The submission ID
+        :param name: The submission name
+        :param dir_name: The directory name for the submission
+        """
+        self._workspace = workspace
+        self.id = id
+        self.name = name
+        self.dir = dir_name
+
+    def pdf_report(self, file_name: str) -> PdfReport:
+        """
+        Creates and adds a PDF report artifact for this submission.
+
+        :param file_name: The name of the PDF file
+        :return: The created PdfReport artifact
+        """
+        pdf_report = SubmissionArtifact.PdfReport(self._workspace, file_name, self)
+        self._workspace.add_artifact(pdf_report)
+        return pdf_report
+
+    def html_report(self, file_name: str) -> HtmlReport:
+        """
+        Creates and adds an HTML report artifact for this submission.
+
+        :param file_name: The name of the HTML file
+        :return: The created HtmlReport artifact
+        """
+        html_report = SubmissionArtifact.HtmlReport(self._workspace, file_name, self)
+        self._workspace.add_artifact(html_report)
+        return html_report
+
+    def attachment(self, type: str, file_name: str) -> Attachment:
+        """
+        Creates and adds an attachment artifact for this submission.
+
+        :param type: The type of the attachment (e.g. "submission", "feedback")
+        :param file_name: The name of the attachment file
+        :return: The created Attachment artifact
+        """
+        attachment = SubmissionArtifact.Attachment(
+            self._workspace,
+            file_name,
+            self,
+            type
+        )
+        self._workspace.add_artifact(attachment)
+        return attachment
+
+
 class BackupArtifact(ArchivingArtifact):
     """
     Represents a backup artifact to be archived.
@@ -149,6 +241,7 @@ class Workspace(TemporaryDirectory):
 
         self._artifacts: list[ArchivingArtifact] = []
         self._attempt_folders: dict[int, str] = {}
+        self._submission_folders: dict[int, str] = {}
 
 
     def __enter__(self):
@@ -201,6 +294,28 @@ class Workspace(TemporaryDirectory):
 
         attempt_artifact = AttemptArtifact(self, id, name, dir_name)
         return attempt_artifact
+
+
+    def submission(self, id: int, name: str, dir_name: str) -> SubmissionArtifact:
+        """
+        Creates a new SubmissionArtifact and ensures unique submission directories.
+
+        :param id: The submission ID
+        :param name: The submission name
+        :param dir_name: The directory name for the submission
+        :return: The created SubmissionArtifact
+        """
+        # Check if the submission folders are unique
+        if dir_name in self._submission_folders.values():
+            dir_name_override = f'{dir_name}_{id}'
+            logging.getLogger().warning(
+                f'Submission directory "{dir_name}" already exists. Using "{dir_name_override}" instead. Check your submission folder naming!'
+            )
+            dir_name = dir_name_override
+        self._submission_folders[id] = dir_name
+
+        submission_artifact = SubmissionArtifact(self, id, name, dir_name)
+        return submission_artifact
 
 
     def backup(self, file_name: str) -> BackupArtifact:

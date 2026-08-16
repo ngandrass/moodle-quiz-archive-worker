@@ -21,7 +21,7 @@ import zipfile
 from pathlib import Path
 from abc import ABCMeta, abstractmethod
 
-from archiveworker.workspace import Workspace, ArchivingArtifact, AttemptArtifact, BackupArtifact
+from archiveworker.workspace import Workspace, ArchivingArtifact, AttemptArtifact, SubmissionArtifact, BackupArtifact
 from archiveworker.interruptable_thread import raise_error_if_stop_requested
 
 class ArchiveOrganizer(metaclass=ABCMeta):
@@ -69,6 +69,21 @@ class HierarchicalArchiveOrganizer(ArchiveOrganizer):
                 f"attempts/{attempt.dir}/attachments/{artifact.slot}",
                 artifact.name
             )
+        elif (
+                isinstance(artifact, SubmissionArtifact.PdfReport) or
+                isinstance(artifact, SubmissionArtifact.HtmlReport)
+        ):
+            submission = artifact.submission
+            return (
+                f"submissions/{submission.dir}",
+                artifact.name
+            )
+        elif isinstance(artifact, SubmissionArtifact.Attachment):
+            submission = artifact.submission
+            return (
+                f"submissions/{submission.dir}/{artifact.type}",
+                artifact.name
+            )
         elif isinstance(artifact, BackupArtifact):
             return (
                 "backups",
@@ -108,6 +123,21 @@ class FlatArchiveOrganizer(ArchiveOrganizer):
             return (
                 "",
                 f"attempt_{attempt.id}.{attempt.name}.attachment.{artifact.slot}.{artifact.name}"
+            )
+        elif (
+                isinstance(artifact, SubmissionArtifact.PdfReport) or
+                isinstance(artifact, SubmissionArtifact.HtmlReport)
+        ):
+            submission = artifact.submission
+            return (
+                "",
+                f"submission_{submission.id}.{artifact.name}"
+            )
+        elif isinstance(artifact, SubmissionArtifact.Attachment):
+            submission = artifact.submission
+            return (
+                "",
+                f"submission_{submission.id}.{submission.name}.{artifact.type}.{artifact.name}"
             )
         elif isinstance(artifact, BackupArtifact):
             return (

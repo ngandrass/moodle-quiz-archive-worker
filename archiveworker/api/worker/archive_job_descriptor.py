@@ -64,6 +64,7 @@ class ArchiveJobDescriptor:
 
         self.tasks = {
             'quiz_attempts': None,
+            'assign_submissions': None,
             'moodle_backups': None
         }
 
@@ -142,6 +143,85 @@ class ArchiveJobDescriptor:
             'sections': sections,
             'fetch_metadata': fetch_metadata,
             'fetch_attachments': fetch_attachments,
+            'paper_format': paper_format,
+            'keep_html_files': keep_html_files,
+            'foldername_pattern': foldername_pattern,
+            'filename_pattern': filename_pattern,
+            'image_optimize': {
+                'width': image_optimize_width,
+                'height': image_optimize_height,
+                'quality': image_optimize_quality
+            } if image_optimize else False,
+        }
+
+    def add_task_assign_submissions(
+        self,
+        submissionids: List[int],
+        sections: Dict,
+        fetch_metadata: bool,
+        attachments: Dict,
+        paper_format: PaperFormat,
+        keep_html_files: bool,
+        foldername_pattern: str,
+        filename_pattern: str,
+        image_optimize: bool,
+        image_optimize_width: int = None,
+        image_optimize_height: int = None,
+        image_optimize_quality: int = None,
+    ):
+        """
+        Adds a new assignment submissions archiving task to this job request.
+
+        :param submissionids: List of submission IDs to archive
+        :param sections: Submission report sections to include
+        :param fetch_metadata: Whether to fetch and export submission metadata
+        :param attachments: Map of attachment type to whether that type should be downloaded
+        :param paper_format: Paper format to use for the PDF (e.g. 'A4')
+        :param keep_html_files: Whether to keep the raw HTML DOM of each submission
+        :param foldername_pattern: Pattern to generate the folder name for each submission
+        :param filename_pattern: Pattern to generate the file name for each submission report
+        :param image_optimize: Whether to optimize (resize/compress) images embedded in the PDF
+        :param image_optimize_width: Maximum width of images in pixels, required if image_optimize is True
+        :param image_optimize_height: Maximum height of images in pixels, required if image_optimize is True
+        :param image_optimize_quality: JPEG compression quality (0-100), required if image_optimize is True
+        :return: None
+
+        :raises ValueError: If any of the parameters are invalid
+        """
+        # Validate input
+        if not isinstance(submissionids, List) or len(submissionids) == 0:
+            raise ValueError('Submission ID list is invalid.')
+        if not isinstance(sections, object) or len(sections) == 0:
+            raise ValueError('Submission report sections are invalid.')
+        if not isinstance(fetch_metadata, bool):
+            raise ValueError('Fetch metadata flag is invalid.')
+        if not isinstance(attachments, object) or len(attachments) == 0:
+            raise ValueError('Attachment type selection is invalid.')
+        if not isinstance(paper_format, PaperFormat):
+            raise ValueError('Paper format is invalid.')
+        if not isinstance(keep_html_files, bool):
+            raise ValueError('Keep HTML files flag is invalid.')
+        if not isinstance(foldername_pattern, str) or len(foldername_pattern) == 0:
+            raise ValueError('Folder name pattern is invalid.')
+        if not isinstance(filename_pattern, str) or len(filename_pattern) == 0:
+            raise ValueError('Filename pattern is invalid.')
+        if not isinstance(image_optimize, bool):
+            raise ValueError('Image optimization flag is invalid.')
+
+        if image_optimize:
+            if not isinstance(image_optimize_width, int) or image_optimize_width < 1:
+                raise ValueError('Image optimization width is invalid.')
+            if not isinstance(image_optimize_height, int) or image_optimize_height < 1:
+                raise ValueError('Image optimization height is invalid.')
+            if not isinstance(image_optimize_quality, int) or not 0 <= image_optimize_quality <= 100:
+                raise ValueError('Image optimization quality is invalid.')
+
+        # Append the new submission information
+        self.tasks['assign_submissions'] = {
+            'submissionids': submissionids,
+            'sections': sections,
+            'fetch_metadata': fetch_metadata,
+            'attachments': attachments,
             'paper_format': paper_format,
             'keep_html_files': keep_html_files,
             'foldername_pattern': foldername_pattern,

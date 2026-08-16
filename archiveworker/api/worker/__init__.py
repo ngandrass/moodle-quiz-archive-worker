@@ -19,3 +19,4 @@ from .archive_job_descriptor import ArchiveJobDescriptor
 from .archive_request import ArchiveRequest
 from .quiz_archiver import QuizArchiverArchiveRequest
 from .archivingmod_quiz import ArchivingmodQuizArchiveRequest
+from .archivingmod_assign import ArchivingmodAssignArchiveRequest

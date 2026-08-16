@@ -119,6 +119,53 @@ class TestFlatArchiveOrganizer:
             assert path == ""
             assert name == "notes.txt"
 
+    def test_place_submission_reports_in_submission_folder(self) -> None:
+        """Submission report artifacts should be grouped by their submission directory."""
+
+        with Workspace() as workspace:
+            submission = workspace.submission(7, "Submission 7", "submission-7")
+            artifact = submission.pdf_report("report.pdf")
+
+            path, name = HierarchicalArchiveOrganizer().organize(artifact)
+
+            assert path == "submissions/submission-7"
+            assert name == "report.pdf"
+
+    def test_place_submission_attachments_in_type_folder(self) -> None:
+        """Submission attachments should be organized under the submission folder and type subfolder."""
+
+        with Workspace() as workspace:
+            submission = workspace.submission(9, "Attachment submission", "submission-9")
+            artifact = submission.attachment("feedback", "comment.txt")
+
+            path, name = HierarchicalArchiveOrganizer().organize(artifact)
+
+            assert path == "submissions/submission-9/feedback"
+            assert name == "comment.txt"
+
+    def test_prefixes_submission_report_names(self) -> None:
+        """Submission report artifacts should be prefixed with submission id to avoid collisions."""
+
+        with Workspace() as workspace:
+            submission = workspace.submission(11, "Submission 11", "submission-11")
+            artifact = submission.pdf_report("report.pdf")
+
+            path, name = FlatArchiveOrganizer().organize(artifact)
+
+            assert path == ""
+            assert name == "submission_11.report.pdf"
+
+    def test_prefixes_submission_attachment_names(self) -> None:
+        """Submission attachment artifacts should carry an attachment-specific prefix."""
+
+        with Workspace() as workspace:
+            submission = workspace.submission(12, "Submission 12", "submission-12")
+            artifact = submission.attachment("submission", "answer.png")
+
+            path, name = FlatArchiveOrganizer().organize(artifact)
+
+            assert path == ""
+            assert name == "submission_12.Submission 12.submission.answer.png"
 
 
 class TestArchiveOrganizerArtifactCoverage:
@@ -132,6 +179,7 @@ class TestArchiveOrganizerArtifactCoverage:
     @staticmethod
     def _build_one_of_every_artifact(workspace: Workspace) -> list[ArchivingArtifact]:
         attempt = workspace.attempt(1, "Attempt", "attempt-dir")
+        submission = workspace.submission(1, "Submission", "submission-dir")
 
         return [
             workspace.file("generic.txt"),
@@ -139,6 +187,9 @@ class TestArchiveOrganizerArtifactCoverage:
             attempt.pdf_report("attempt-report.pdf"),
             attempt.html_report("attempt-report.html"),
             attempt.attachment(1, "attempt-attachment.txt"),
+            submission.pdf_report("submission-report.pdf"),
+            submission.html_report("submission-report.html"),
+            submission.attachment("feedback", "submission-attachment.txt"),
         ]
 
     def test_all_known_artifact_types_are_organizable(self) -> None:

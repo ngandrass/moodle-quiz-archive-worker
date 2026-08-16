@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from archiveworker.workspace import ArchivingArtifact, AttemptArtifact, BackupArtifact, Workspace
+from archiveworker.workspace import ArchivingArtifact, AttemptArtifact, SubmissionArtifact, BackupArtifact, Workspace
 
 class TestWorkspace:
     """Tests for the Workspace class artifact container."""
@@ -173,3 +173,110 @@ class TestWorkspace:
             assert attempt_dir_name in caplog.text
             assert "already exists" in caplog.text
             assert expected_attempt_dir_name in caplog.text
+
+    def test_submission_artifact_subtypes_reference_parent(self) -> None:
+        """Any SubmissionArtifact sub type should reference its parent submission."""
+
+        with Workspace() as workspace:
+            submission = workspace.submission(42, "your submission", "submission-mir")
+
+            pdf_report = submission.pdf_report("report.pdf")
+            html_report = submission.html_report("report.html")
+            attachment = submission.attachment("submission", "answer.txt")
+
+            assert pdf_report.submission is submission
+            assert html_report.submission is submission
+            assert attachment.submission is submission
+
+    def test_create_submission(self) -> None:
+        """
+        Creating a submission should retain supplied id, name and path values.
+        """
+
+        submission_id = 42
+        file_name = "he-she-it's submission"
+        dir_name = "submission-ihr"
+
+        with Workspace() as workspace:
+            submission = workspace.submission(submission_id, file_name, dir_name)
+
+            assert isinstance(submission, SubmissionArtifact)
+            assert submission.id == submission_id
+            assert submission.name == file_name
+            assert submission.dir == dir_name
+            assert len(workspace.get_artifacts()) == 0
+
+    def test_create_submission_pdf_report_artifact(self) -> None:
+        """
+        Created submission PDF report artifacts should be tracked by the workspace.
+        """
+        with Workspace() as workspace:
+            _submission = workspace.submission(42, "our submission", "submission-wir")
+            report = _submission.pdf_report("report.pdf")
+
+            assert isinstance(report, SubmissionArtifact.PdfReport)
+            assert report in workspace.get_artifacts()
+
+    def test_create_submission_html_report_artifact(self) -> None:
+        """
+        Created submission HTML report artifacts should be tracked by the workspace.
+        """
+        with Workspace() as workspace:
+            _submission = workspace.submission(42, "their submission", "submission-mir")
+            report = _submission.html_report("report.html")
+
+            assert isinstance(report, SubmissionArtifact.HtmlReport)
+            assert report in workspace.get_artifacts()
+
+    def test_create_submission_artifact_attachment(self) -> None:
+        """
+        Created submission attachment artifacts should be tracked by the
+        workspace and retain the supplied type value.
+        """
+
+        with Workspace() as workspace:
+            _submission = workspace.submission(42, "only my submission", "submission-gier")
+            attachment = _submission.attachment("feedback", "answer.txt")
+
+            assert attachment.type == "feedback"
+            assert isinstance(attachment, SubmissionArtifact.Attachment)
+            assert attachment in workspace.get_artifacts()
+
+    def test_submission_artifacts_are_filterable(self) -> None:
+        """
+        Submission artifacts should be retrievable, filtered according to
+        their type if requested.
+        """
+
+        with Workspace() as workspace:
+            _submission = workspace.submission(42, "my precious submission", "submission-gollum")
+
+            pdf_report = _submission.pdf_report("report.pdf")
+            html_report = _submission.html_report("report.html")
+
+            attachment1 = _submission.attachment("submission", "attachment1.ext")
+            attachment2 = _submission.attachment("feedback", "attachment2.ext")
+
+            assert set(workspace.get_artifacts(SubmissionArtifact.PdfReport)) - set([pdf_report]) == set()
+            assert set(workspace.get_artifacts(SubmissionArtifact.HtmlReport)) - set([html_report]) == set()
+            assert set(workspace.get_artifacts(SubmissionArtifact.Attachment)) - set([attachment2, attachment1]) == set()
+
+    def test_duplicate_submission_directory_uses_id_suffix(self, caplog) -> None:
+        """
+        A duplicate submission directory name should trigger a warning and
+        receive its id as a suffix.
+        """
+
+        submission_dir_name = "submission-same-dir"
+
+        with Workspace() as workspace:
+            workspace.submission(1, "First", submission_dir_name)
+
+            with caplog.at_level(logging.WARNING):
+                duplicate_submission = workspace.submission(12, "Second", submission_dir_name)
+
+            expected_submission_dir_name = f"{submission_dir_name}_{duplicate_submission.id}"
+            assert duplicate_submission.dir == expected_submission_dir_name
+            assert submission_dir_name in caplog.text
+            assert "already exists" in caplog.text
+            assert expected_submission_dir_name in caplog.text

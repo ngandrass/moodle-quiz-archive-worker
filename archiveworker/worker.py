@@ -30,8 +30,7 @@ from http import HTTPStatus
 import waitress
 from flask import Flask, make_response, request, jsonify
 
-from archiveworker.api.worker import QuizArchiverArchiveRequest, ArchiveRequest
-from archiveworker.api.worker.archivingmod_quiz import ArchivingmodQuizArchiveRequest
+from archiveworker.api.worker import *
 from archiveworker.interruptable_thread import InterruptableThread
 from archiveworker.job import ArchiveJob
 from archiveworker.type import WorkerStatus, JobStatus, WorkerThreadInterrupter
@@ -204,6 +203,15 @@ def handle_archive_request_archivingmod_quiz():
     :return:
     """
     return _handle_archive_request(ArchivingmodQuizArchiveRequest)
+
+
+@app.post('/archive/archivingmod_assign')
+def handle_archive_request_archivingmod_assign():
+    """
+    Handles the archive request for the archivingmod_assign API
+    :return:
+    """
+    return _handle_archive_request(ArchivingmodAssignArchiveRequest)
 
 
 def _handle_archive_request(apicls: type[ArchiveRequest]):

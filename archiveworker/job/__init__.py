@@ -16,3 +16,4 @@
 
 from .archive_job import ArchiveJob
 from .quiz_archive_job import QuizArchiveJob
+from .assign_archive_job import AssignArchiveJob

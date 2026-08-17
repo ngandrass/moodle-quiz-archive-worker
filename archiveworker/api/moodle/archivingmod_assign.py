@@ -274,6 +274,20 @@ class ArchivingmodAssignMoodleAPI(MoodleAPIBase):
         if any(char in data['filename'] for char in self.FILENAME_FORBIDDEN_CHARACTERS):
             raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid filename')
 
+        # Validate attachment metadata. The "type" field is used as a folder path segment and
+        # "filename" as a file name when the archive is assembled, so both must be sanitized here.
+        for attachment in data['attachments']:
+            for attr in ['type', 'filename', 'filesize', 'mimetype', 'contenthash', 'downloadurl']:
+                if attr not in attachment:
+                    self.logger.debug(f'Missing attachment attribute: {attr}')
+                    raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an incomplete attachment')
+
+            if any(char in attachment['type'] for char in self.FOLDERNAME_FORBIDDEN_CHARACTERS):
+                raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment type')
+
+            if any(char in attachment['filename'] for char in self.FILENAME_FORBIDDEN_CHARACTERS):
+                raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment filename')
+
         # Looks fine - Data seems valid :)
         return data['foldername'], data['filename'], data['report'], data['attachments']
 

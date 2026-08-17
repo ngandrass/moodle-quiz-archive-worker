@@ -14,7 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import csv
+import logging
 import os
+import shutil
 import tempfile
 import time
 import uuid
@@ -24,12 +27,12 @@ from copy import deepcopy
 import pytest
 
 import tests.fixtures.archivingmod_assign as fixtures
-from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.api.moodle import ArchivingmodAssignMoodleAPI
+from archiveworker.api.worker import ArchiveJobDescriptor
 from archiveworker.archive_builder import FlatArchiveOrganizer, HierarchicalArchiveOrganizer
 from archiveworker.job import AssignArchiveJob
-from archiveworker.worker import start_processing_threads
 from archiveworker.type import JobStatus
+from archiveworker.worker import start_processing_threads
 from archiveworker.workspace import Workspace
 from config import Config
 from .conftest import client, TestUtils, MoodleAPIMockBase
@@ -157,6 +160,36 @@ class TestAssignArchiveJob:
         assert job1 != job2, 'Different jobs should not be equal'
         assert job1 != object(), 'Job should not be equal to an object of different type'
 
+    @pytest.mark.timeout(5)
+    def test_job_timeout(self, client) -> None:
+        """
+        Tests that an overdue job is terminated and marked as failed.
+
+        Note: Unlike the quiz driver, archivingmod_assign requires at least one
+        submission ID per job (enforced by ArchiveJobDescriptor.add_task_assign_submissions()),
+        so an "empty" job fixture is not possible here. This is not an issue since
+        Config.REQUEST_TIMEOUT_SEC = 0 causes the worker thread join to time out
+        immediately regardless of job content.
+
+        :return: None
+        """
+        Config.REQUEST_TIMEOUT_SEC = 0
+
+        with fixtures.reference_assign_full.MoodleAPIMock():
+            r = client.post('/archive/archivingmod_assign', json=fixtures.reference_assign_full.ARCHIVE_API_REQUEST)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_threads(1)
+
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                if r.json['status'] == JobStatus.TIMEOUT:
+                    break
+                if r.json['status'] == JobStatus.FINISHED:
+                    assert False, 'Job should have timed out'
+
     @pytest.mark.timeout(30)
     @pytest.mark.parametrize("archive_flatten, archive_filehashes", ARCHIVE_OPTIONS_MATRIX)
     def test_archive_full_assignment(self, client, archive_flatten, archive_filehashes) -> None:
@@ -167,8 +200,8 @@ class TestAssignArchiveJob:
         :param client: Flask test client
         :return: None
         """
-        with fixtures.assign_single_submission.MoodleAPIMock() as mock:
-            jobjson = deepcopy(fixtures.assign_single_submission.ARCHIVE_API_REQUEST)
+        with fixtures.reference_assign_full.MoodleAPIMock() as mock:
+            jobjson = deepcopy(fixtures.reference_assign_full.ARCHIVE_API_REQUEST)
             jobjson['job']['archive_flatten'] = archive_flatten
             jobjson['job']['archive_filehashes'] = archive_filehashes
 
@@ -215,8 +248,8 @@ class TestAssignArchiveJob:
         :param client: Flask test client
         :return: None
         """
-        with fixtures.assign_single_submission.MoodleAPIMock() as mock:
-            jobjson = deepcopy(fixtures.assign_single_submission.ARCHIVE_API_REQUEST)
+        with fixtures.reference_assign_full.MoodleAPIMock() as mock:
+            jobjson = deepcopy(fixtures.reference_assign_full.ARCHIVE_API_REQUEST)
             jobjson['job']['archive_flatten'] = archive_flatten
             jobjson['job']['attachments'] = {
                 "assignment": True,
@@ -259,3 +292,105 @@ class TestAssignArchiveJob:
                     if not jobjson['job']['attachments'].get(attachment_type, True):
                         assert entry not in archive_names, \
                             f'Archive contains attachment of disabled type "{attachment_type}": {entry}'
+
+    @pytest.mark.timeout(30)
+    @pytest.mark.parametrize("archive_flatten, archive_filehashes", ARCHIVE_OPTIONS_MATRIX)
+    def test_archive_name_collision(self, client, archive_flatten, archive_filehashes) -> None:
+        """
+        Tests the assignment archiving process with two submissions that have a
+        folder name pattern that results in identical folder and file names for
+        both submissions. Both should be present in the archive and not
+        overwrite each other.
+
+        :param client: Flask test client
+        :return: None
+        """
+        with fixtures.reference_assign_foldername_collision.MoodleAPIMock() as mock:
+            jobjson = deepcopy(fixtures.reference_assign_foldername_collision.ARCHIVE_API_REQUEST)
+            jobjson['job']['archive_flatten'] = archive_flatten
+            jobjson['job']['archive_filehashes'] = archive_filehashes
+
+            r = client.post('/archive/archivingmod_assign', json=jobjson)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_threads(1)
+
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break
+
+            # Validate that an artifact was uploaded
+            job_uploads = mock.get_uploaded_files()
+            assert len(job_uploads) == 1, 'Expected exactly one uploaded artifact'
+            job_artifact = job_uploads[1]['file']
+            assert job_artifact.is_file(), 'Uploaded artifact is not a valid file'
+
+            # Extract artifact and validate contents
+            with zipfile.ZipFile(job_artifact, 'r') as zipf:
+                expected_entries = self._get_expected_archive_entries(jobjson, mock)
+
+                with tempfile.TemporaryDirectory() as tempdir:
+                    zipf.extractall(tempdir)
+
+                    # Validate presence of both (deduplicated) colliding submission artifacts
+                    for entry in expected_entries:
+                        TestUtils.assert_is_file_with_size(os.path.join(tempdir, entry), 200, 2000 * 1024)
+
+                    # Validate submissions metadata file
+                    csvpath = os.path.join(tempdir, 'submissions_metadata.csv')
+                    submissionids_to_find = jobjson['job']['submissionids'].copy()
+                    with open(csvpath, 'r') as f:
+                        for row in csv.DictReader(f, skipinitialspace=True):
+                            assert int(row['submissionid']) in submissionids_to_find, \
+                                'Unexpected submission ID in submissions metadata csv file'
+                            submissionids_to_find.remove(int(row['submissionid']))
+
+                            # Ensure that the path points to one of the actual (deduplicated) submission artifacts
+                            assert row['path'] in expected_entries, \
+                                'Submission path in metadata does not point to an actual submission artifact'
+
+                    assert len(submissionids_to_find) == 0, 'Not all submission IDs found in submissions metadata csv file'
+
+    @pytest.mark.timeout(30)
+    @pytest.mark.skipif(shutil.which("gs") is None and Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None, reason="test requires ghostscript binary to be installed")
+    def test_pdfa_conversion(self, client, caplog) -> None:
+        """
+        Tests the assignment archiving process with PDF/A conversion enabled.
+
+        :param client: Flask test client
+        :param caplog: Pytest log capturing fixture
+        :return: None
+        """
+        with fixtures.reference_assign_full.MoodleAPIMock():
+            # Setup logging
+            caplog.set_level(logging.DEBUG)
+
+            # Setup PDFA conversion
+            Config.PDFA_CONVERSION = True
+            if Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH is None:
+                Config.PDFA_CONVERSION_GHOSTSCRIPT_BINARY_PATH = shutil.which("gs")
+
+            # Create job and process it
+            r = client.post('/archive/archivingmod_assign', json=fixtures.reference_assign_full.ARCHIVE_API_REQUEST)
+            assert r.status_code == 200
+            jobid = r.json['jobid']
+
+            start_processing_threads(1)
+
+            while True:
+                time.sleep(0.5)
+                r = client.get(f'/status/{jobid}')
+                assert r.json['status'] != JobStatus.FAILED
+
+                if r.json['status'] == JobStatus.FINISHED:
+                    break
+
+            # Ensure that the PDF/A conversion task was executed
+            assert 'PDF/A conversion' in caplog.text
+            assert 'Creating ghostscript subprocess' in caplog.text
+            assert 'Processing pages 1 through' in caplog.text

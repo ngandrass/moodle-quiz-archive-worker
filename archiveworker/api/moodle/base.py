@@ -54,6 +54,9 @@ class MoodleAPIBase(metaclass=ABCMeta):
     FILENAME_FORBIDDEN_CHARACTERS = FOLDERNAME_FORBIDDEN_CHARACTERS + ["/"]
     """List of characters that are forbidden inside a file name"""
 
+    FILENAME_FORBIDDEN_CHARACTERS_RELAXED = ["\\", "/", ":", ";", "*", "\"", "\0"]
+    """List of characters that are strictly forbidden inside a file name (allows dots, ...)"""
+
     def __init__(
             self,
             base_url: str,

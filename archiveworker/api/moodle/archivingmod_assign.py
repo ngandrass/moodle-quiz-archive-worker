@@ -285,7 +285,7 @@ class ArchivingmodAssignMoodleAPI(MoodleAPIBase):
             if any(char in attachment['type'] for char in self.FOLDERNAME_FORBIDDEN_CHARACTERS):
                 raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment type: {attachment["type"]}')
 
-            if any(char in attachment['filename'] for char in self.FILENAME_FORBIDDEN_CHARACTERS):
+            if any(char in attachment['filename'] for char in self.FILENAME_FORBIDDEN_CHARACTERS_RELAXED):
                 raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment filename: {attachment["filename"]}')
 
         # Looks fine - Data seems valid :)

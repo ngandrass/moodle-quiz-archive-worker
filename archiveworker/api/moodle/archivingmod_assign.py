@@ -266,13 +266,13 @@ class ArchivingmodAssignMoodleAPI(MoodleAPIBase):
 
         # Validate received folder and file names
         if any(char in data['foldername'] for char in self.FOLDERNAME_FORBIDDEN_CHARACTERS):
-            raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid foldername')
+            raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid foldername: {data["foldername"]}')
 
         if data['foldername'].startswith('/') or data['foldername'].endswith('/'):
-            raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned a forbidden foldername')
+            raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned a forbidden foldername: {data["foldername"]}')
 
         if any(char in data['filename'] for char in self.FILENAME_FORBIDDEN_CHARACTERS):
-            raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid filename')
+            raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid filename: {data["filename"]}')
 
         # Validate attachment metadata. The "type" field is used as a folder path segment and
         # "filename" as a file name when the archive is assembled, so both must be sanitized here.
@@ -283,10 +283,10 @@ class ArchivingmodAssignMoodleAPI(MoodleAPIBase):
                     raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an incomplete attachment')
 
             if any(char in attachment['type'] for char in self.FOLDERNAME_FORBIDDEN_CHARACTERS):
-                raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment type')
+                raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment type: {attachment["type"]}')
 
             if any(char in attachment['filename'] for char in self.FILENAME_FORBIDDEN_CHARACTERS):
-                raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment filename')
+                raise ValueError(f'Moodle webservice function {self.MOODLE_WSFUNCTION_ARCHIVE} returned an invalid attachment filename: {attachment["filename"]}')
 
         # Looks fine - Data seems valid :)
         return data['foldername'], data['filename'], data['report'], data['attachments']
